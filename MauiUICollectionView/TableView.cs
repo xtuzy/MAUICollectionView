@@ -24,8 +24,8 @@ namespace MauiUICollectionView
 
         Color separatorColor;
 
-        TableViewCell _tableHeaderView;
-        public TableViewCell TableHeaderView
+        TableViewViewHolder _tableHeaderView;
+        public TableViewViewHolder TableHeaderView
         {
             get => _tableHeaderView;
             set
@@ -34,13 +34,13 @@ namespace MauiUICollectionView
                 {
                     _tableHeaderView = null;// _tableHeaderView?.Dispose();
                     _tableHeaderView = value;
-                    this.AddSubview(_tableHeaderView);
+                    this.AddSubview(_tableHeaderView.ContentView);
                 }
             }
         }
 
-        TableViewCell _tableFooterView;
-        public TableViewCell TableFooterView
+        TableViewViewHolder _tableFooterView;
+        public TableViewViewHolder TableFooterView
         {
             get => _tableFooterView;
             set
@@ -49,7 +49,7 @@ namespace MauiUICollectionView
                 {
                     _tableFooterView = null;//_tableFooterView?.Dispose();
                     _tableFooterView = value;
-                    this.AddSubview(_tableFooterView);
+                    this.AddSubview(_tableFooterView.ContentView);
                 }
             }
         }
@@ -69,11 +69,11 @@ namespace MauiUICollectionView
         /// <summary>
         /// 当前正在显示区域中的Cell
         /// </summary>
-        public Dictionary<NSIndexPath, TableViewCell> _cachedCells;
+        public Dictionary<NSIndexPath, TableViewViewHolder> _cachedCells;
         /// <summary>
         /// 回收的等待重复利用的Cell
         /// </summary>
-        public List<TableViewCell> _reusableCells;
+        public List<TableViewViewHolder> _reusableCells;
         /// <summary>
         /// 存储Cell的临时数据
         /// </summary>
@@ -170,7 +170,7 @@ namespace MauiUICollectionView
 
         void endUpdates() { }
 
-        public TableViewCell CellForRowAtIndexPath(NSIndexPath indexPath)
+        public TableViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
             // this is allowed to return nil if the cell isn't visible and is not restricted to only returning visible cells
             // so this simple call should be good enough.
@@ -212,8 +212,8 @@ namespace MauiUICollectionView
         {
             // clear the caches and remove the cells since everything is going to change
             foreach (var cell in _cachedCells.Values)
-                cell.RemoveFromSuperview();
-            _reusableCells.ForEach((v) => v.RemoveFromSuperview());
+                cell.ContentView.RemoveFromSuperview();
+            _reusableCells.ForEach((v) => v.ContentView.RemoveFromSuperview());
             _reusableCells.Clear();
             _cachedCells.Clear();
 
@@ -290,7 +290,7 @@ namespace MauiUICollectionView
             return _selectedRow;
         }
 
-        public NSIndexPath IndexPathForCell(TableViewCell cell)
+        public NSIndexPath IndexPathForCell(TableViewViewHolder cell)
         {
             foreach (NSIndexPath index in _cachedCells.Keys)
             {
@@ -404,13 +404,13 @@ namespace MauiUICollectionView
             throw new NotImplementedException();
         }
 
-        public TableViewCell dequeueReusableCellWithIdentifier(string identifier)
+        public TableViewViewHolder dequeueReusableCellWithIdentifier(string identifier)
         {
-            foreach (TableViewCell cell in _reusableCells)
+            foreach (TableViewViewHolder cell in _reusableCells)
             {
                 if (cell.ReuseIdentifier == identifier)
                 {
-                    TableViewCell strongCell = cell;
+                    TableViewViewHolder strongCell = cell;
 
                     // the above strongCell reference seems totally unnecessary, but without it ARC apparently
                     // ends up releasing the cell when it's removed on this line even though we're referencing it
@@ -483,7 +483,7 @@ namespace MauiUICollectionView
             double tempBottom = 0;
             if (_tableHeaderView != null)
             {
-                tempBottom = totalHeight + _tableHeaderView.DesiredSize.Height;
+                tempBottom = totalHeight + _tableHeaderView.ContentView.DesiredSize.Height;
                 if (totalHeight <= point.Y && tempBottom >= point.Y)
                 {
                     return null;

@@ -35,30 +35,14 @@ public partial class DefaultTestPage : ContentPage
         {
             Console.WriteLine("Clicked Header");
         };
-        var headerView = new TableViewViewHolder("Header")
-        {
-            HeightRequest = 50,
-            BackgroundColor = Colors.Red,
-            Children =
-            {
-                headerButton
-            }
-        };
+        var headerView = new TableViewViewHolder(headerButton, "Header");
         tableView.TableHeaderView = headerView;
         var footerButton = new Button() { Text = "Footer", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
             Console.WriteLine("Clicked Footer");
         };
-        tableView.TableFooterView = new TableViewViewHolder("Footer")
-        {
-            HeightRequest = 50,
-            BackgroundColor = Colors.Red,
-            Children =
-            {
-                footerButton
-            }
-        };
+        tableView.TableFooterView = new TableViewViewHolder(footerButton, "Footer");
     }
 
     class Source : TableViewSource
@@ -109,13 +93,14 @@ public partial class DefaultTestPage : ContentPage
             switch (type)
             {
                 case sectionCell:
-                    return SizeStrategy.FixedSize;
+                    //return SizeStrategy.FixedSize;
                 case youdaoCell:
                     //return SizeStrategy.MeasureSelf;
                 case baiduCell:
-                    //return SizeStrategy.MeasureSelfAndMinFixedSize;
+                    //return SizeStrategy.MeasureSelfGreaterThanMinFixedSize;
                 default:
-                    return SizeStrategy.FixedSize;
+                    //return SizeStrategy.FixedSize;
+                    return SizeStrategy.MeasureSelf;
             }
         }
 
@@ -149,122 +134,99 @@ public partial class DefaultTestPage : ContentPage
             var type = cellTypeForRowAtIndexPathMethod(tableView, indexPath);
             TableViewViewHolder cell = tableView.dequeueReusableCellWithIdentifier(type);
 
-            if (type == botCell)
+            if (type == sectionCell)
             {
+                var textCell = cell as TextCell;
                 //判断队列里面是否有这个cell 没有自己创建，有直接使用
-                if (cell == null)
+                if (textCell == null)
                 {
                     //没有,创建一个
-                    cell = new ImageCell(type) { };
-                    (cell as ImageCell).NewCellIndex = ++newCellCount;
+                    textCell = new TextCell(new Label(), type) { };
+                    textCell.NewCellIndex = ++newCellCount;
                     Console.WriteLine($"newCell: {newCellCount}");
-                    cell.BackgroundColor = Colors.Pink;
+                }
+                if (!blank)
+                {
+                    textCell.IsEmpty = false;
+                    textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row} newCellIndex={textCell.NewCellIndex}";
+                }
+                cell = textCell;
+            }
+            else
+            {
+                var imageCell = cell as ImageCell;
+                if (imageCell == null)
+                {
+                    //没有,创建一个
+                    imageCell = new ImageCell(new Image() { HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }, type) { };
+                    imageCell.NewCellIndex = ++newCellCount;
+                    Console.WriteLine($"newCell: {newCellCount}");
+                }
+                if (!blank)
+                {
+                    if (type == botCell)
+                    {
+                        imageCell.ImageView.Source = "dotnet_bot.png";
+                    }
+                    else if (type == youdaoCell)
+                    {
+                        imageCell.ImageView.Source = "https://ydlunacommon-cdn.nosdn.127.net/cb776e6995f1c703706cf8c4c39a7520.png";
+                    }
+                    else if (type == baiduCell)
+                    {
+                        imageCell.ImageView.Source = "https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png";
+                    }
+                    imageCell.IsEmpty = false;
                 }
 
-                if (!blank)
-                {
-                    //使用cell
-                    (cell as ImageCell).Image.Source = "dotnet_bot.png";
-                    cell.IsEmpty = false;
-                }
+                cell = imageCell;
             }
-            else if (type == youdaoCell)
-            {
-                //判断队列里面是否有这个cell 没有自己创建，有直接使用
-                if (cell == null)
-                {
-                    //没有,创建一个
-                    cell = new ImageCell(type) { };
-                    cell.IsClippedToBounds = true;
-                    (cell as Cell).NewCellIndex = ++newCellCount;
-                    Console.WriteLine($"newCell: {newCellCount}");
-                }
 
-                if (!blank)
-                {
-                    //使用cell
-                    (cell as ImageCell).Image.Source = "https://ydlunacommon-cdn.nosdn.127.net/cb776e6995f1c703706cf8c4c39a7520.png";
-                    cell.IsEmpty = false;
-                }
-            }
-            else if (type == baiduCell)
-            {
-                //判断队列里面是否有这个cell 没有自己创建，有直接使用
-                if (cell == null)
-                {
-                    //没有,创建一个
-                    cell = new ImageCell(type) { };
-                    cell.IsClippedToBounds = true;
-                    (cell as Cell).NewCellIndex = ++newCellCount;
-                    Console.WriteLine($"newCell: {newCellCount}");
-                }
-                if (!blank)
-                {
-                    //使用cell
-                    (cell as ImageCell).Image.Source = "https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png";
-                    cell.IsEmpty = false;
-                }
-            }
-            else if (type == sectionCell)
-            {
-                //判断队列里面是否有这个cell 没有自己创建，有直接使用
-                if (cell == null)
-                {
-                    //没有,创建一个
-                    cell = new Cell(type) { };
-                    cell.IsClippedToBounds = true;
-                    (cell as Cell).NewCellIndex = ++newCellCount;
-                    Console.WriteLine($"newCell: {newCellCount}");
-                }
-                if (!blank)
-                {
-                    cell.IsEmpty = false;
-                }
-            }
-            if (!blank)
-            {
-                cell.TextLabel.Text = $"Section={indexPath.Section} Row={indexPath.Row} newCellIndex={(cell as Cell).NewCellIndex}";
-            }
             return cell;
         }
     }
 
-    internal class Cell : TableViewViewHolder
+    internal class TextCell : TableViewViewHolder
     {
         public int NewCellIndex;
 
-        public Cell(string reuseIdentifier) : base(reuseIdentifier)
+        public Label TextView;
+        public TextCell(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
-            this.BackgroundColor = Colors.Gray;
-            IsClippedToBounds = true;
-            this.SelectedBackgroundView = new Grid() { BackgroundColor = Colors.Red };
+            TextView = itemView as Label;
         }
 
         public override void PrepareForReuse()
         {
             base.PrepareForReuse();
-            TextLabel.Text = null;
+            TextView.Text = string.Empty;
+        }
+
+        public override void UpdateSelectionState(bool shouldHighlight)
+        {
+            base.UpdateSelectionState(shouldHighlight);
+            if (shouldHighlight)
+                TextView.BackgroundColor = Colors.LightGrey;
+            else
+                TextView.BackgroundColor = Colors.White;
         }
     }
 
-    internal class ImageCell : Cell
+    internal class ImageCell : TableViewViewHolder
     {
-        public ImageCell(string reuseIdentifier) : base(reuseIdentifier)
+        public int NewCellIndex;
+
+        public ImageCell(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
-            Image = new Microsoft.Maui.Controls.Image() {HeightRequest=100, BackgroundColor = Colors.Green, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-            var indicator = new ActivityIndicator { Color = new Color(0.5f), HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-            indicator.SetBinding(ActivityIndicator.IsRunningProperty, "IsLoading");
-            indicator.BindingContext = Image;
-            this.ContentView.Add(Image);
-            this.ContentView.Add(indicator);
+            ImageView = itemView as Image;
         }
 
-        public Microsoft.Maui.Controls.Image Image;
+        public Microsoft.Maui.Controls.Image ImageView;
 
         public override void PrepareForReuse()
         {
             base.PrepareForReuse();
-            Image.Source = null;
+            ImageView.Source = null;
         }
     }
 }

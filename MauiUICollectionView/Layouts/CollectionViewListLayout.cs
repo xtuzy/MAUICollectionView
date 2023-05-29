@@ -19,22 +19,22 @@
 
             if (CollectionView.TableHeaderView != null)
             {
-                CollectionView.LayoutChild(CollectionView.TableHeaderView, new Rect(0, CollectionView.TableHeaderView.PositionInLayout.Y, visibleBounds.Width, CollectionView.TableHeaderView.DesiredSize.Height));
+                CollectionView.LayoutChild(CollectionView.TableHeaderView.ContentView, new Rect(0, CollectionView.TableHeaderView.PositionInLayout.Y, visibleBounds.Width, CollectionView.TableHeaderView.ContentView.DesiredSize.Height));
             }
 
             // layout sections and rows
             foreach (var cell in CollectionView._cachedCells)
-                CollectionView.LayoutChild(cell.Value, new Rect(0, cell.Value.PositionInLayout.Y, visibleBounds.Width, cell.Value.DesiredSize.Height));
+                CollectionView.LayoutChild(cell.Value.ContentView, new Rect(0, cell.Value.PositionInLayout.Y, visibleBounds.Width, cell.Value.ContentView.DesiredSize.Height));
 
 
             if (CollectionView.TableFooterView != null)
             {
-                CollectionView.LayoutChild(CollectionView.TableFooterView, new Rect(0, CollectionView.TableFooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.TableFooterView.DesiredSize.Height));
+                CollectionView.LayoutChild(CollectionView.TableFooterView.ContentView, new Rect(0, CollectionView.TableFooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.TableFooterView.ContentView.DesiredSize.Height));
             }
 
-            foreach (TableViewCell cell in CollectionView._reusableCells)
+            foreach (TableViewViewHolder cell in CollectionView._reusableCells)
             {
-                CollectionView.LayoutChild(cell, new Rect(0, -3000, cell.DesiredSize.Width, cell.DesiredSize.Height));
+                CollectionView.LayoutChild(cell.ContentView, new Rect(0, -3000, cell.ContentView.DesiredSize.Width, cell.ContentView.DesiredSize.Height));
             }
         }
 
@@ -62,13 +62,13 @@
             //表头的View是确定的, 我们可以直接测量
             if (CollectionView.TableHeaderView != null)
             {
-                var _tableHeaderViewH = CollectionView.MeasureChild(CollectionView.TableHeaderView, tableViewWidth, double.PositiveInfinity).Request.Height;
+                var _tableHeaderViewH = CollectionView.MeasureChild(CollectionView.TableHeaderView.ContentView, tableViewWidth, double.PositiveInfinity).Request.Height;
                 CollectionView.TableHeaderView.PositionInLayout = new Point(0, 0);
                 tableHeight += _tableHeaderViewH;
             }
 
             // 需要重新布局后, cell会变动, 先将之前显示的cell放入可供使用的cell字典
-            Dictionary<NSIndexPath, TableViewCell> availableCells = new();
+            Dictionary<NSIndexPath, TableViewViewHolder> availableCells = new();
             foreach (var cell in CollectionView._cachedCells)
                 availableCells.Add(cell.Key, cell.Value);
             int numberOfSections = CollectionView._sections.Count;
@@ -81,10 +81,10 @@
             {
                 foreach (var cell in tempCells)
                 {
-                    if (cell.Value.DesiredSize.Height < scrollOffset)
+                    if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
                     {
                         needRemoveCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.DesiredSize.Height;
+                        scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
                     }
                     else
                     {
@@ -98,10 +98,10 @@
                 for (int i = tempCells.Count - 1; i >= 0; i--)
                 {
                     var cell = tempCells[i];
-                    if (cell.Value.DesiredSize.Height < scrollOffset)
+                    if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
                     {
                         needRemoveCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.DesiredSize.Height;
+                        scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
                     }
                     else
                     {
@@ -145,7 +145,7 @@
                        || (rowMaybeTop <= visibleBounds.Top - topExtandHeight && rowMaybeBottom >= visibleBounds.Bottom + bottomExtandHeight))
                     {
                         //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                        TableViewCell cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, false);
+                        TableViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, false);
 
                         if ((rowMaybeTop >= visibleBounds.Top && rowMaybeTop <= visibleBounds.Bottom)
                        || (rowMaybeBottom >= visibleBounds.Top && rowMaybeBottom <= visibleBounds.Bottom)
@@ -167,33 +167,33 @@
                             cell.Selected = CollectionView._selectedRow == null ? false : CollectionView._selectedRow.IsEqual(indexPath);
 
                             //添加到ScrollView, 必须先添加才有测量值
-                            if (!CollectionView.ContentView.Children.Contains(cell))
-                                CollectionView.AddSubview(cell);
+                            if (!CollectionView.ContentView.Children.Contains(cell.ContentView))
+                                CollectionView.AddSubview(cell.ContentView);
                             //测量高度
                             if (sizeStrategy == SizeStrategy.FixedSize)
                             {
-                                cell.HeightRequest = rowHeightWant;
-                                var measureSize = CollectionView.MeasureChild(cell, tableViewBoundsSize.Width, rowHeightWant).Request;
+                                cell.ContentView.HeightRequest = rowHeightWant;
+                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, rowHeightWant).Request;
                                 //sectionRecord._rowHeights[row] = rowHeightWant;
                             }
                             else if (sizeStrategy == SizeStrategy.MeasureSelf)
                             {
-                                cell.HeightRequest = -1; //避免之前的Cell被设置了固定值
-                                var measureSize = CollectionView.MeasureChild(cell, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
+                                cell.ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
+                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
                                 sectionRecord._rowHeights[row] = measureSize.Height;
                             }
                             else if (sizeStrategy == SizeStrategy.MeasureSelfGreaterThanMinFixedSize)
                             {
-                                cell.HeightRequest = -1; //避免之前的Cell被设置了固定值
-                                cell.MinimumHeightRequest = rowHeightWant;
-                                var measureSize = CollectionView.MeasureChild(cell, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
+                                cell.ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
+                                cell.ContentView.MinimumHeightRequest = rowHeightWant;
+                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
                                 sectionRecord._rowHeights[row] = measureSize.Height;
                             }
                             else if (sizeStrategy == SizeStrategy.MeasureSelfGreaterThanMinFixedSize)
                             {
-                                cell.HeightRequest = -1; //避免之前的Cell被设置了固定值
-                                cell.MaximumHeightRequest = rowHeightWant;
-                                var measureSize = CollectionView.MeasureChild(cell, tableViewBoundsSize.Width, rowHeightWant).Request;
+                                cell.ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
+                                cell.ContentView.MaximumHeightRequest = rowHeightWant;
+                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, rowHeightWant).Request;
                                 sectionRecord._rowHeights[row] = measureSize.Height;
                             }
 
@@ -232,20 +232,20 @@
             }
 
             // 重新测量后, 需要显示的已经存入缓存的字典, 剩余的放入可重用列表
-            foreach (TableViewCell cell in availableCells.Values)
+            foreach (TableViewViewHolder cell in availableCells.Values)
             {
                 if (cell.ReuseIdentifier != default)
                 {
                     if (CollectionView._reusableCells.Count > 3)
                     {
-                        cell.RemoveFromSuperview();
+                        cell.ContentView.RemoveFromSuperview();
                     }
                     else
                         CollectionView._reusableCells.Add(cell);
                 }
                 else
                 {
-                    cell.RemoveFromSuperview();
+                    cell.ContentView.RemoveFromSuperview();
                 }
             }
 
@@ -259,9 +259,9 @@
             // the cells suddenly disappear instead of seemingly animating down and out of view like they should. This tries to leave them
             // on screen as long as possible, but only if they don't get in the way.
             var allCachedCells = CollectionView._cachedCells.Values;
-            foreach (TableViewCell cell in CollectionView._reusableCells)
+            foreach (TableViewViewHolder cell in CollectionView._reusableCells)
             {
-                if (cell.Frame.IntersectsWith(visibleBounds) && !allCachedCells.Contains(cell))
+                if (cell.ContentView.Frame.IntersectsWith(visibleBounds) && !allCachedCells.Contains(cell))
                 {
                     //cell.RemoveFromSuperview();
                 }
@@ -270,7 +270,7 @@
             //表尾的View是确定的, 我们可以直接测量
             if (CollectionView.TableFooterView != null)
             {
-                var footMeasureSize = CollectionView.MeasureChild(CollectionView.TableFooterView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
+                var footMeasureSize = CollectionView.MeasureChild(CollectionView.TableFooterView.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
                 CollectionView.TableFooterView.PositionInLayout = new Point(0, tableHeight);
                 tableHeight += footMeasureSize.Height;
             }
