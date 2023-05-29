@@ -17,4 +17,39 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 	</PropertyGroup>
 
+  <ItemGroup Condition="$(TargetFramework.Contains('ios')) == false and $(TargetFramework.Contains('maccatalyst'))==false">
+    <Compile Remove="**\*.iOS.cs" />
+    <None Include="**\*.iOS.cs" />
+    <Compile Remove="**\iOS\*.cs" />
+    <None Include="**\iOS\*.cs" />
+    <Compile Remove="**\iOS\**\*.cs" />
+    <None Include="**\iOS\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetFramework.Contains('android')) == false">
+    <Compile Remove="**\*.Android.cs" />
+    <None Include="**\*.Android.cs" />
+    <Compile Remove="**\Android\*.cs" />
+    <None Include="**\Android\*.cs" />
+    <Compile Remove="**\Android\**\*.cs" />
+    <None Include="**\Android\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetFramework.Contains('-windows')) == false">
+    <Compile Remove="**\*.Windows.cs" />
+    <None Include="**\*.Windows.cs" />
+    <Compile Remove="**\Windows\*.cs" />
+    <None Include="**\Windows\*.cs" />
+    <Compile Remove="**\Windows\**\*.cs" />
+    <None Include="**\Windows\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="CollectionViewExperiment\**" />
+    <EmbeddedResource Remove="CollectionViewExperiment\**" />
+    <MauiCss Remove="CollectionViewExperiment\**" />
+    <MauiXaml Remove="CollectionViewExperiment\**" />
+    <None Remove="CollectionViewExperiment\**" />
+  </ItemGroup>
+
 </Project>
