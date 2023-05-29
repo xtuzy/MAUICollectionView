@@ -74,32 +74,17 @@ namespace MauiUICollectionView
         /// 回收的等待重复利用的Cell
         /// </summary>
         public List<TableViewViewHolder> _reusableCells;
-        /// <summary>
-        /// 存储Cell的临时数据
-        /// </summary>
-        public List<TableViewSection> _sections;
 
         SourceHas _sourceHas;
         struct SourceHas
         {
             public bool numberOfSectionsInTableView = true;
-            public bool titleForHeaderInSection = true;
-            public bool titleForFooterInSection = true;
-            public bool commitEditingStyle = true;
-            public bool canEditRowAtIndexPath = true;
 
             public bool heightForRowAtIndexPath = true;
-            public bool heightForHeaderInSection = true;
-            public bool heightForFooterInSection = true;
-            public bool viewForHeaderInSection = true;
-            public bool viewForFooterInSection = true;
             public bool willSelectRowAtIndexPath = true;
             public bool didSelectRowAtIndexPath = true;
             public bool willDeselectRowAtIndexPath = true;
             public bool didDeselectRowAtIndexPath = true;
-            public bool willBeginEditingRowAtIndexPath = true;
-            public bool didEndEditingRowAtIndexPath = true;
-            public bool titleForDeleteConfirmationButtonForRowAtIndexPath = true;
 
             public SourceHas()
             {
@@ -109,7 +94,6 @@ namespace MauiUICollectionView
         void Init()
         {
             this._cachedCells = new();
-            this._sections = new();
             this._reusableCells = new();
             this.separatorColor = new Color(red: 0.88f, green: 0.88f, blue: 0.88f, alpha: 1);
             this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
@@ -129,23 +113,12 @@ namespace MauiUICollectionView
                 _source = value;
 
                 _sourceHas.numberOfSectionsInTableView = _source.numberOfSectionsInTableView != null;
-                _sourceHas.titleForHeaderInSection = _source.titleForHeaderInSection != null;
-                _sourceHas.titleForFooterInSection = _source.titleForFooterInSection != null;
-                _sourceHas.commitEditingStyle = _source.commitEditingStyle != null;
-                _sourceHas.canEditRowAtIndexPath = _source.canEditRowAtIndexPath != null;
 
                 _sourceHas.heightForRowAtIndexPath = _source.heightForRowAtIndexPath != null;
-                _sourceHas.heightForHeaderInSection = _source.heightForHeaderInSection != null;
-                _sourceHas.heightForFooterInSection = _source.heightForFooterInSection != null;
-                _sourceHas.viewForHeaderInSection = _source.viewForHeaderInSection != null;
-                _sourceHas.viewForFooterInSection = _source.viewForFooterInSection != null;
                 _sourceHas.willSelectRowAtIndexPath = _source.willSelectRowAtIndexPath != null;
                 _sourceHas.didSelectRowAtIndexPath = _source.didSelectRowAtIndexPath != null;
                 _sourceHas.willDeselectRowAtIndexPath = _source.willDeselectRowAtIndexPath != null;
                 _sourceHas.didDeselectRowAtIndexPath = _source.didDeselectRowAtIndexPath != null;
-                _sourceHas.willBeginEditingRowAtIndexPath = _source.willBeginEditingRowAtIndexPath != null;
-                _sourceHas.didEndEditingRowAtIndexPath = _source.didEndEditingRowAtIndexPath != null;
-                _sourceHas.titleForDeleteConfirmationButtonForRowAtIndexPath = _source.titleForDeleteConfirmationButtonForRowAtIndexPath != null;
 
                 this._setNeedsReload();
             }
@@ -206,31 +179,44 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 清空字典里存储的View, 并且从ScrollView里移除, 重新统计高度
+        /// 回收全部Cell
         /// </summary>
         public void ReloadData()
         {
             // clear the caches and remove the cells since everything is going to change
             foreach (var cell in _cachedCells.Values)
-                cell.ContentView.RemoveFromSuperview();
-            _reusableCells.ForEach((v) => v.ContentView.RemoveFromSuperview());
-            _reusableCells.Clear();
+            {
+                cell.PrepareForReuse();
+                _reusableCells.Add(cell);
+            }
+
             _cachedCells.Clear();
 
             // clear prior selection
             this._selectedRow = null;
             this._highlightedRow = null;
 
-            // trigger the section cache to be repopulated
-            for (var i = 0; i < NumberOfSections(); i++)
+            this._needsReload = false;
+
+            (this as IView).InvalidateMeasure();
+        }
+
+        /// <summary>
+        /// 切换页面返回时, 数据可能不再展示, 因此需要强制重新加载
+        /// </summary>
+        public void ReAppear()
+        {
+            foreach (var cell in _cachedCells.Values)
             {
-                var section = new TableViewSection();
-                section.numberOfRows = NumberOfRowsInSection(i);
-                section._rowHeights = new double[section.numberOfRows];
-                _sections.Add(section);
+                cell.PrepareForReuse();
+                _reusableCells.Add(cell);
             }
 
+            _cachedCells.Clear();
+
             this._needsReload = false;
+
+            (this as IView).InvalidateMeasure();
         }
 
         void _reloadDataIfNeeded()
@@ -255,11 +241,11 @@ namespace MauiUICollectionView
             Size size;
             if (ItemsLayout != null)
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
-                    size= ItemsLayout.MeasureContents(widthConstraint, TableViewConstraintSize.Height);
+                    size = ItemsLayout.MeasureContents(widthConstraint, TableViewConstraintSize.Height);
                 else
-                    size= ItemsLayout.MeasureContents(TableViewConstraintSize.Width, heightConstraint);
+                    size = ItemsLayout.MeasureContents(TableViewConstraintSize.Width, heightConstraint);
             else
-                size= new Size(0, 0);
+                size = new Size(0, 0);
             stopwatch.Stop();
             Console.WriteLine($"Measure:{stopwatch.ElapsedMilliseconds}");
             return size;
@@ -460,59 +446,6 @@ namespace MauiUICollectionView
             this.ReloadData();
         }
 
-        /// <summary>
-        /// 可见的区域中的点在哪一行
-        /// </summary>
-        /// <param name="point">相对于TableView的位置, 可以是在TableView上设置手势获取的位置</param>
-        /// <returns></returns>
-        public NSIndexPath IndexPathForVisibaleRowAtPointOfTableView(Point point)
-        {
-            var contentOffset = ScrollY;
-            point.Y = point.Y + contentOffset;//相对于content
-            return IndexPathForRowAtPointOfContentView(point);
-        }
-
-        /// <summary>
-        /// 迭代全部内容计算点在哪
-        /// </summary>
-        /// <param name="point">相对与Content的位置</param>
-        /// <returns></returns>
-        public NSIndexPath IndexPathForRowAtPointOfContentView(Point point)
-        {
-            double totalHeight = 0;
-            double tempBottom = 0;
-            if (_tableHeaderView != null)
-            {
-                tempBottom = totalHeight + _tableHeaderView.ContentView.DesiredSize.Height;
-                if (totalHeight <= point.Y && tempBottom >= point.Y)
-                {
-                    return null;
-                }
-                totalHeight = tempBottom;
-            }
-
-            var number = NumberOfSections();
-            for (int section = 0; section < number; section++)
-            {
-                TableViewSection sectionRecord = _sections[section];
-                int numberOfRows = sectionRecord.numberOfRows;
-                for (int row = 0; row < numberOfRows; row++)
-                {
-                    tempBottom = totalHeight + sectionRecord._rowHeights[row];
-                    if (totalHeight <= point.Y && tempBottom >= point.Y)
-                    {
-                        return NSIndexPath.FromRowSection(row, section);
-                    }
-                    else
-                    {
-                        totalHeight = tempBottom;
-                    }
-                }
-            }
-
-            return null;
-        }
-
         /*public override void TouchesBegan(NSSet touches, UIEvent evt)
         {
             base.TouchesBegan(touches, evt);
@@ -553,86 +486,5 @@ namespace MauiUICollectionView
                 _highlightedRow = null;
             }
         }*/
-
-        bool _canEditRowAtIndexPath(NSIndexPath indexPath)
-        {
-            // it's YES by default until the dataSource overrules
-            return _sourceHas.commitEditingStyle && (!_sourceHas.canEditRowAtIndexPath || _source.canEditRowAtIndexPath(this, indexPath));
-        }
-
-        void _beginEditingRowAtIndexPath(NSIndexPath indexPath)
-        {
-            if (this._canEditRowAtIndexPath(indexPath))
-            {
-                this.editing = true;
-
-                if (_sourceHas.willBeginEditingRowAtIndexPath)
-                {
-                    (this.Source as ITableViewSource).willBeginEditingRowAtIndexPath(this, indexPath);
-                }
-
-                // deferring this because it presents a modal menu and that's what we do everywhere else in Chameleon
-                _showEditMenuForRowAtIndexPath(indexPath);//this.PerformSelector(new ObjCRuntime.Selector(nameof(_showEditMenuForRowAtIndexPath)), indexPath, afterDelay: 0, null);
-            }
-        }
-
-        void _endEditingRowAtIndexPath(NSIndexPath indexPath)
-        {
-            if (this.editing)
-            {
-                this.editing = false;
-
-                if (_sourceHas.didEndEditingRowAtIndexPath)
-                {
-                    (this.Source as ITableViewSource).didEndEditingRowAtIndexPath(this, indexPath);
-                }
-            }
-        }
-
-        void _showEditMenuForRowAtIndexPath(NSIndexPath indexPath)
-        {
-            // re-checking for safety since _showEditMenuForRowAtIndexPath is deferred. this may be overly paranoid.
-            if (this._canEditRowAtIndexPath(indexPath))
-            {
-                /*UITableViewCell cell = this.cellForRowAtIndexPath(indexPath);
-                string menuItemTitle = null;
-
-                // fetch the title for the delete menu item
-                if (_delegateHas.titleForDeleteConfirmationButtonForRowAtIndexPath)
-                {
-                    menuItemTitle = (this.Delegate as UITableViewDelegate).titleForDeleteConfirmationButtonForRowAtIndexPath(this, indexPath);
-                }
-                if(menuItemTitle.Length == 0)
-                {
-                    menuItemTitle = @"Delete";
-                }
-                cell.Highlighted = true;
-                UIMenuItem theItem = new UIMenuItem(menuItemTitle, null);// [[NSMenuItem alloc] initWithTitle: menuItemTitle action:NULL keyEquivalent:@""];
-
-                UIMenu menu = UIMenu.Create("", null);// [[NSMenu alloc] initWithTitle: @""];
-                menu.AutoenablesItems :NO] ;
-                menu.setAllowsContextMenuPlugIns:NO] ;
-                menu.AddItem:theItem] ;
-
-                // calculate the mouse's current position so we can present the menu from there since that's normal OSX behavior
-                NSPoint mouseLocation = [NSEvent mouseLocation];
-                CGPoint screenPoint = [self.window.screen convertPoint: NSPointToCGPoint(mouseLocation) fromScreen: nil];
-
-                // modally present a menu with the single delete option on it, if it was selected, then do the delete, otherwise do nothing
-                bool didSelectItem = menu.popUpMenuPositioningItem: nil atLocation: NSPointFromCGPoint(screenPoint) inView: self.window.screen.UIKitView];
-
-                UIApplication.InterruptTouchesInView(nil);
-
-                if (didSelectItem)
-                {
-                    _dataSource.commitEditingStyle(this, UITableViewCellEditingStyle.Delete, indexPath) ;
-                }
-
-                cell.Highlighted = false;*/
-            }
-
-            // all done
-            this._endEditingRowAtIndexPath(indexPath);
-        }
     }
 }

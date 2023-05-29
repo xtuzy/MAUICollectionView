@@ -1,7 +1,7 @@
+using Bogus;
 using MauiUICollectionView;
 using MauiUICollectionView.Layouts;
 using TableView = MauiUICollectionView.TableView;
-
 namespace DemoTest.Pages;
 
 public partial class DefaultTestPage : ContentPage
@@ -22,9 +22,9 @@ public partial class DefaultTestPage : ContentPage
         {
             var p = e.GetPosition(tableView);
 #if IOS
-            var indexPath = tableView.IndexPathForRowAtPointOfContentView(p.Value);
+            var indexPath = tableView.ItemsLayout.IndexPathForRowAtPointOfContentView(p.Value);
 #else
-            var indexPath = tableView.IndexPathForVisibaleRowAtPointOfTableView(p.Value);
+            var indexPath = tableView.ItemsLayout.IndexPathForVisibaleRowAtPointOfTableView(p.Value);
 #endif
             if (indexPath != null)
                 tableView.SelectRowAtIndexPath(indexPath, false, TableViewScrollPosition.None);
@@ -43,80 +43,61 @@ public partial class DefaultTestPage : ContentPage
             Console.WriteLine("Clicked Footer");
         };
         tableView.TableFooterView = new TableViewViewHolder(footerButton, "Footer");
+        this.Loaded += (sender, e) =>
+        {
+            Console.WriteLine("Loaded");
+        };
+        this.Appearing += (sender, e) =>
+        {
+            tableView.ReAppear();
+            Console.WriteLine("Appearing");
+        };
     }
 
     class Source : TableViewSource
     {
+        List<Model> models;
         public Source()
         {
+            var testModel = new Faker<Model>();
+            testModel.RuleFor(u => u.Url, f => f.Image.PicsumUrl());
+            models = testModel.Generate(100);
+
             heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
-            cellTypeForRowAtIndexPath += cellTypeForRowAtIndexPathMethod;
             numberOfRowsInSection += numberOfRowsInSectionMethod;
             cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
-            sizeStrategyForRowAtIndexPath += sizeStrategyForRowAtIndexPathMethod;
             numberOfSectionsInTableView += numberOfSectionsInTableViewMethod;
+            reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
         }
 
         public int numberOfSectionsInTableViewMethod(TableView tableView)
         {
-            return 10;
+            return 1;
         }
 
         public int numberOfRowsInSectionMethod(TableView tableView, int section)
         {
-            return 50;
+            return models.Count;
         }
 
-        public string cellTypeForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath)
+        public string reuseIdentifierForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath)
         {
             if (indexPath.Row == 0)
             {
                 return sectionCell;
             }
-            if (indexPath.Row % 2 == 0)
-            {
-                return botCell;
-            }
-            else if (indexPath.Row % 3 == 0)
-            {
-                return youdaoCell;
-            }
-            else
-            {
-                return baiduCell;
-            }
-        }
-
-        public SizeStrategy sizeStrategyForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath)
-        {
-            var type = cellTypeForRowAtIndexPathMethod(tableView, indexPath);
-            switch (type)
-            {
-                case sectionCell:
-                    //return SizeStrategy.FixedSize;
-                case youdaoCell:
-                    //return SizeStrategy.MeasureSelf;
-                case baiduCell:
-                    //return SizeStrategy.MeasureSelfGreaterThanMinFixedSize;
-                default:
-                    //return SizeStrategy.FixedSize;
-                    return SizeStrategy.MeasureSelf;
-            }
+            return botCell;
         }
 
         public float heightForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath)
         {
-            var type = cellTypeForRowAtIndexPathMethod(tableView, indexPath);
+            var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
             switch (type)
             {
                 case sectionCell:
                     return 40;
                 case botCell:
-                    return 100;
-                case youdaoCell:
-                    return 100;
-                case baiduCell:
-                    return 80;
+                    return TableViewViewHolder.MeasureSelf;
                 default:
                     return 100;
             }
@@ -126,12 +107,10 @@ public partial class DefaultTestPage : ContentPage
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
         const string botCell = "botCell";
-        const string youdaoCell = "youdaoCell";
-        const string baiduCell = "baiduCell";
-        public TableViewViewHolder cellForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath, bool blank)
+        public TableViewViewHolder cellForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath, double widthConstrain, bool blank)
         {
             //从tableView的一个队列里获取一个cell
-            var type = cellTypeForRowAtIndexPathMethod(tableView, indexPath);
+            var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
             TableViewViewHolder cell = tableView.dequeueReusableCellWithIdentifier(type);
 
             if (type == sectionCell)
@@ -158,7 +137,8 @@ public partial class DefaultTestPage : ContentPage
                 if (imageCell == null)
                 {
                     //没有,创建一个
-                    imageCell = new ImageCell(new Image() { HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }, type) { };
+                    imageCell = new ImageCell(new Image() { Aspect = Aspect.Center, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }, type) { };
+                    //if (!System.OperatingSystem.IsWindows()) imageCell.ImageView.MinimumHeightRequest = widthConstrain;
                     imageCell.NewCellIndex = ++newCellCount;
                     Console.WriteLine($"newCell: {newCellCount}");
                 }
@@ -166,15 +146,7 @@ public partial class DefaultTestPage : ContentPage
                 {
                     if (type == botCell)
                     {
-                        imageCell.ImageView.Source = "dotnet_bot.png";
-                    }
-                    else if (type == youdaoCell)
-                    {
-                        imageCell.ImageView.Source = "https://ydlunacommon-cdn.nosdn.127.net/cb776e6995f1c703706cf8c4c39a7520.png";
-                    }
-                    else if (type == baiduCell)
-                    {
-                        imageCell.ImageView.Source = "https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png";
+                        imageCell.ImageView.Source = models[indexPath.Row].Url;
                     }
                     imageCell.IsEmpty = false;
                 }
@@ -184,6 +156,11 @@ public partial class DefaultTestPage : ContentPage
 
             return cell;
         }
+    }
+
+    class Model
+    {
+        public string Url { get; set; }
     }
 
     internal class TextCell : TableViewViewHolder

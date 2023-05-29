@@ -1,4 +1,6 @@
-﻿namespace MauiUICollectionView.Layouts
+﻿using System.Diagnostics;
+
+namespace MauiUICollectionView.Layouts
 {
     public class CollectionViewListLayout : CollectionViewLayout
     {
@@ -41,9 +43,19 @@
         List<NSIndexPath> needRemoveCell = new List<NSIndexPath>();
 
         /// <summary>
-        /// 存储已经显示的Row的行高, 用于估计未显示的行. 这种预估默认是存储同
+        /// 存储同类型的已经显示的Row的行高, 用于估计未显示的行.
         /// </summary>
-        public Dictionary<string, double> EstimatedRowHeightPro = new Dictionary<string, double>();
+        public Dictionary<string, double> MeasuredSelfHeightCacheForReuse = new Dictionary<string, double>();
+
+        /// <summary>
+        /// 存储所有测量的行高
+        /// </summary>
+        public Dictionary<NSIndexPath, double> MeasuredSelfHeightCache = new Dictionary<NSIndexPath, double>();
+
+        /// <summary>
+        /// Image测量可能首先获得的高度为0, 造成要显示Item数目过多. 这个值尽量接近最终高度.
+        /// </summary>
+        public double EstimatedRowHeight = 100;
         /// <summary>
         /// 第一次显示我们尽量少创建Cell
         /// </summary>
@@ -71,7 +83,6 @@
             Dictionary<NSIndexPath, TableViewViewHolder> availableCells = new();
             foreach (var cell in CollectionView._cachedCells)
                 availableCells.Add(cell.Key, cell.Value);
-            int numberOfSections = CollectionView._sections.Count;
             CollectionView._cachedCells.Clear();
 
             //复用是从_reusableCells获取的, 需要让不可见的先回收
@@ -123,21 +134,20 @@
             needRemoveCell.Clear();
             scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
 
+            int numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
             {
-                TableViewSection sectionRecord = CollectionView._sections[section];
-                int numberOfRows = sectionRecord.numberOfRows;
+                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
 
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    string cellType = CollectionView.Source.cellTypeForRowAtIndexPath(CollectionView, indexPath);
-                    var sizeStrategy = CollectionView.Source.sizeStrategyForRowAtIndexPath(CollectionView, indexPath);
+                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
                     //尝试用之前测量的值或者预设值估计底部在哪
                     var rowMaybeTop = tableHeight;
                     var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
 
-                    var rowMaybeHeight = sizeStrategy == SizeStrategy.FixedSize ? rowHeightWant : (sectionRecord._rowHeights[row] != 0 ? sectionRecord._rowHeights[row] : rowHeightWant);
+                    var rowMaybeHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                     var rowMaybeBottom = tableHeight + rowMaybeHeight;
                     //如果在可见区域, 就详细测量
                     if ((rowMaybeTop >= visibleBounds.Top - topExtandHeight && rowMaybeTop <= visibleBounds.Bottom + bottomExtandHeight)
@@ -145,17 +155,7 @@
                        || (rowMaybeTop <= visibleBounds.Top - topExtandHeight && rowMaybeBottom >= visibleBounds.Bottom + bottomExtandHeight))
                     {
                         //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                        TableViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, false);
-
-                        if ((rowMaybeTop >= visibleBounds.Top && rowMaybeTop <= visibleBounds.Bottom)
-                       || (rowMaybeBottom >= visibleBounds.Top && rowMaybeBottom <= visibleBounds.Bottom)
-                       || (rowMaybeTop <= visibleBounds.Top && rowMaybeBottom >= visibleBounds.Bottom))
-                        {
-                        }
-                        else
-                        {
-                            //cell.PrepareForReuse();
-                        }
+                        TableViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, tableViewWidth, false);
 
                         if (cell != null)
                         {
@@ -170,48 +170,38 @@
                             if (!CollectionView.ContentView.Children.Contains(cell.ContentView))
                                 CollectionView.AddSubview(cell.ContentView);
                             //测量高度
-                            if (sizeStrategy == SizeStrategy.FixedSize)
+                            if (rowHeightWant != TableViewViewHolder.MeasureSelf)//固定高度
                             {
                                 cell.ContentView.HeightRequest = rowHeightWant;
                                 var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, rowHeightWant).Request;
-                                //sectionRecord._rowHeights[row] = rowHeightWant;
-                            }
-                            else if (sizeStrategy == SizeStrategy.MeasureSelf)
-                            {
-                                cell.ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
-                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
-                                sectionRecord._rowHeights[row] = measureSize.Height;
-                            }
-                            else if (sizeStrategy == SizeStrategy.MeasureSelfGreaterThanMinFixedSize)
-                            {
-                                cell.ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
-                                cell.ContentView.MinimumHeightRequest = rowHeightWant;
-                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
-                                sectionRecord._rowHeights[row] = measureSize.Height;
-                            }
-                            else if (sizeStrategy == SizeStrategy.MeasureSelfGreaterThanMinFixedSize)
-                            {
-                                cell.ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
-                                cell.ContentView.MaximumHeightRequest = rowHeightWant;
-                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, rowHeightWant).Request;
-                                sectionRecord._rowHeights[row] = measureSize.Height;
-                            }
-
-                            if (!EstimatedRowHeightPro.ContainsKey(cellType))
-                            {
-                                EstimatedRowHeightPro.Add(cellType, sectionRecord._rowHeights[row]);
                             }
                             else
                             {
-                                if (EstimatedRowHeightPro[cellType] < sectionRecord._rowHeights[row])
+                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
+                                if (measureSize.Height != 0)
                                 {
-                                    EstimatedRowHeightPro[cellType] = sectionRecord._rowHeights[row];
+                                    if (!MeasuredSelfHeightCache.ContainsKey(indexPath))
+                                        MeasuredSelfHeightCache.Add(indexPath, measureSize.Height);
+                                    else MeasuredSelfHeightCache[indexPath] = measureSize.Height;
+
+                                    //存储同类型的高度
+                                    if (!MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier))
+                                    {
+                                        MeasuredSelfHeightCacheForReuse.Add(cell.ReuseIdentifier, measureSize.Height);
+                                    }
+                                    else
+                                    {
+                                        if (MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] < measureSize.Height)
+                                        {
+                                            MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] = measureSize.Height;
+                                        }
+                                    }
                                 }
                             }
 
                             cell.PositionInLayout = new Point(0, tableHeight);
-
-                            tableHeight += (sizeStrategy == SizeStrategy.FixedSize ? rowHeightWant : sectionRecord._rowHeights[row]);
+                            var finalHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier)? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                            tableHeight += finalHeight;
                         }
                     }
                     else//如果不可见
@@ -274,8 +264,63 @@
                 CollectionView.TableFooterView.PositionInLayout = new Point(0, tableHeight);
                 tableHeight += footMeasureSize.Height;
             }
-
+            Debug.WriteLine("TableView Content Height:" + tableHeight);
             return new Size(tableViewBoundsSize.Width, tableHeight);
+        }
+
+
+        /// <summary>
+        /// 可见的区域中的点在哪一行
+        /// </summary>
+        /// <param name="point">相对于TableView的位置, 可以是在TableView上设置手势获取的位置</param>
+        /// <returns></returns>
+        public override NSIndexPath IndexPathForVisibaleRowAtPointOfTableView(Point point)
+        {
+            var contentOffset = CollectionView.ScrollY;
+            point.Y = point.Y + contentOffset;//相对于content
+            return IndexPathForRowAtPointOfContentView(point);
+        }
+
+        /// <summary>
+        /// 迭代全部内容计算点在哪
+        /// </summary>
+        /// <param name="point">相对与Content的位置</param>
+        /// <returns></returns>
+        public override NSIndexPath IndexPathForRowAtPointOfContentView(Point point)
+        {
+            double totalHeight = 0;
+            double tempBottom = 0;
+            if (CollectionView.TableHeaderView != null)
+            {
+                tempBottom = totalHeight + CollectionView.TableHeaderView.ContentView.DesiredSize.Height;
+                if (totalHeight <= point.Y && tempBottom >= point.Y)
+                {
+                    return null;
+                }
+                totalHeight = tempBottom;
+            }
+
+            var number = CollectionView.NumberOfSections();
+            for (int section = 0; section < number; section++)
+            {
+                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                for (int row = 0; row < numberOfRows; row++)
+                {
+                    NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
+                    var wantHeight = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+                    tempBottom = totalHeight + (wantHeight == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : 0) : wantHeight);//使用0的好处是, 在范围内的肯定在范围内
+                    if (totalHeight <= point.Y && tempBottom >= point.Y)
+                    {
+                        return NSIndexPath.FromRowSection(row, section);
+                    }
+                    else
+                    {
+                        totalHeight = tempBottom;
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

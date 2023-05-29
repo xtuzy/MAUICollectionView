@@ -37,5 +37,8 @@
         /// <param name="tableViewHeight"></param>
         /// <returns></returns>
         public abstract Size MeasureContents(double tableViewWidth, double tableViewHeight);
+
+        public abstract NSIndexPath IndexPathForVisibaleRowAtPointOfTableView(Point point);
+        public abstract NSIndexPath IndexPathForRowAtPointOfContentView(Point point);
     }
 }

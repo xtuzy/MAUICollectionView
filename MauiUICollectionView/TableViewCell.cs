@@ -17,6 +17,7 @@
 
     public class TableViewViewHolder
     {
+        public const float MeasureSelf = -1;
         /// <summary>
         /// 存储Cell的位置, 
         /// </summary>
@@ -84,10 +85,12 @@
         public static Point EmptyPoint = new Point(-1, -1);
 
         public bool IsEmpty = true;
+
         public virtual void PrepareForReuse()
         {
             IsEmpty = true;
             PositionInLayout = EmptyPoint;
+            ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
         }
     }
 
