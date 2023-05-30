@@ -1,18 +1,8 @@
 ﻿namespace MauiUICollectionView
 {
-    public enum TableViewCellAccessoryType
-    {
-        None, DisclosureIndicator, DetailDisclosureButton, Checkmark
-    }
-
     public enum TableViewCellSelectionStyle
     {
         None, Blue, Gray
-    }
-
-    public enum TableViewCellEditingStyle
-    {
-        None, Delete, Insert
     }
 
     public class TableViewViewHolder
@@ -21,7 +11,7 @@
         /// <summary>
         /// 存储Cell的位置, 
         /// </summary>
-        internal Point PositionInLayout;
+        public Point PositionInLayout;
 
         #region https://github.com/BigZaphod/Chameleon/blob/master/UIKit/Classes/UITableViewCell.h
 

@@ -52,6 +52,8 @@
 		<PackageReference Include="Bogus" Version="34.0.2" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
+		<PackageReference Include="SharpConstraintLayout.Maui" Version="2.2.1" />
+		<PackageReference Include="Yang.Maui.Helper" Version="1.0.3.7" />
 	</ItemGroup>
 
 	<ItemGroup>
