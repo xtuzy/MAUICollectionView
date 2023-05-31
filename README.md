@@ -3,6 +3,12 @@ This is an experiment with a custom CollectionView, which does not use the nativ
 
 We know UICollectionView/RecyclerView is a high performance way to show list, they get high performance by recycle view. In this library, i also do it.
 
+Demo:
+
+https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-964f-78616592ca62.mp4
+
+https://user-images.githubusercontent.com/17793881/242146821-f081f369-ccae-41d0-aeb5-9003f50fbee7.mp4
+
 ## Features
 - Cross Platform, as long as the ScrollView behaves consistently
 - Support for custom layouts
