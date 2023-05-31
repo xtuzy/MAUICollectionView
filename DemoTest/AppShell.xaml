@@ -12,6 +12,10 @@
         ContentTemplate="{DataTemplate pages:DefaultTestPage}"
         Route="DefaultTestPage" />
     <ShellContent
+        Title="GridLayoutTestPage"
+        ContentTemplate="{DataTemplate pages:GridLayoutTestPage}"
+        Route="GridLayoutTestPage" />
+    <ShellContent
         Title="DefaultScrollViewTestPage"
         ContentTemplate="{DataTemplate pages:DefaultScrollViewTestPage}"
         Route="DefaultScrollViewTestPage" />

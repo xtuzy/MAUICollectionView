@@ -41,7 +41,7 @@ namespace MauiUICollectionView
         {
             scrollOffset = e.ScrollY - lastScrollY;
             lastScrollY = e.ScrollY;
-            Console.WriteLine($"Scrolled {e.ScrollY}");
+            //Console.WriteLine($"Scrolled {e.ScrollY}");
             (this as IView).InvalidateMeasure();
         }
 

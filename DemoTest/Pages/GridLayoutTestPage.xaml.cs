@@ -7,16 +7,16 @@ using Yang.Maui.Helper.Image;
 using TableView = MauiUICollectionView.TableView;
 namespace DemoTest.Pages;
 
-public partial class DefaultTestPage : ContentPage
+public partial class GridLayoutTestPage : ContentPage
 {
-    public DefaultTestPage()
+    public GridLayoutTestPage()
     {
         InitializeComponent();
         var tableView = new TableView();
         Content = tableView;
         tableView.VerticalScrollBarVisibility = ScrollBarVisibility.Always;
         tableView.Source = new Source();
-        tableView.ItemsLayout = new CollectionViewListLayout(tableView)
+        tableView.ItemsLayout = new CollectionViewGridLayout(tableView)
         {
         };
 
@@ -36,7 +36,10 @@ public partial class DefaultTestPage : ContentPage
         var headerButton = new Button() { Text = "Header", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
-            Console.WriteLine("Clicked Header");
+            if ((tableView.ItemsLayout as CollectionViewGridLayout).ColumnCount == 1)
+                (tableView.ItemsLayout as CollectionViewGridLayout).ColumnCount = 2;
+            else
+                (tableView.ItemsLayout as CollectionViewGridLayout).ColumnCount = 1;
         };
         var headerView = new TableViewViewHolder(headerButton, "Header");
         tableView.TableHeaderView = headerView;
@@ -164,7 +167,7 @@ public partial class DefaultTestPage : ContentPage
                         imageCell.ModelView.PersonPhone.Text = models[indexPath.Row].PersonPhone;
                         imageCell.ModelView.PersonTextBlog.Text = models[indexPath.Row].PersonTextBlog;
                         imageCell.ModelView.PersonImageBlog.Source = models[indexPath.Row].PersonImageBlogUrl;
-                        imageCell.ModelView.LikeIcon.Source =  new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
+                        imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
                     }
                     imageCell.IsEmpty = false;
                 }
@@ -235,6 +238,9 @@ public partial class DefaultTestPage : ContentPage
             {
                 base.PrepareForReuse();
                 ModelView.PersonIcon.Source = null;
+                ModelView.PersonName.Text = string.Empty;
+                ModelView.PersonPhone.Text = string.Empty;
+                ModelView.PersonTextBlog.Text = string.Empty;
                 ModelView.PersonImageBlog.Source = null;
                 //ModelView.CommentIcon.Source = null;
                 //ModelView.ShareIcon.Source = null;
@@ -271,10 +277,10 @@ public partial class DefaultTestPage : ContentPage
             public ModelView()
             {
                 this.StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(10) };
-                this.Margin = new Thickness(20, 0, 20, 20);
+                //this.Margin = new Thickness(20, 0, 20, 20);
                 this.BackgroundColor = new Color(30, 30, 30);
 
-                rootLayout = new ConstraintLayout() { ConstrainHeight = ConstraintSet.WrapContent, ConstrainWidth = ConstraintSet.MatchParent, ConstrainPaddingLeftDp = 5, ConstrainPaddingRightDp = 5 };
+                rootLayout = new ConstraintLayout() { ConstrainHeight = ConstraintSet.MatchParent, ConstrainWidth = ConstraintSet.MatchParent, ConstrainPaddingLeftDp = 5, ConstrainPaddingRightDp = 5 };
                 Content = rootLayout;
                 var PersonIconContainer = new Border() { StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(20) } };
                 PersonIcon = new Image() { };

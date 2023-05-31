@@ -2,11 +2,24 @@
 
 namespace MauiUICollectionView.Layouts
 {
-    public class CollectionViewListLayout : CollectionViewLayout
+    /// <summary>
+    /// GridLayout 意味着分割列表为几列, 高度直接指定比例, 在布局时是确定的值. Source中的设置高度的方法对其无效. 注意Cell不要直接设置Margin, Layout中未加入计算.
+    /// </summary>
+    public class CollectionViewGridLayout : CollectionViewLayout
     {
-        public CollectionViewListLayout(TableView collectionView) : base(collectionView)
+        public CollectionViewGridLayout(TableView collectionView) : base(collectionView)
         {
         }
+
+        /// <summary>
+        /// 分成几列
+        /// </summary>
+        public int ColumnCount { get; set; } = 2;
+
+        /// <summary>
+        /// The default height to apply to all items
+        /// </summary>
+        public Size AspectRatio { get; set; } = new Size(1, 1);
 
         public override void ArrangeContents()
         {
@@ -128,91 +141,68 @@ namespace MauiUICollectionView.Layouts
             tempCells.Clear();
             needRemoveCell.Clear();
             scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
-
+            var itemWidth = tableViewWidth / ColumnCount;
+            var itemHeight = itemWidth * AspectRatio.Height / AspectRatio.Width;
+            //Console.WriteLine($"itemWidth:{itemWidth} itemHeight:{itemHeight}");
             int numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
             {
                 int numberOfRows = CollectionView.NumberOfRowsInSection(section);
 
-                for (int row = 0; row < numberOfRows; row++)
+                for (int row = 0; row < numberOfRows; row = row + ColumnCount)
                 {
-                    NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
-                    //尝试用之前测量的值或者预设值估计底部在哪
                     var rowMaybeTop = tableHeight;
-                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
-
-                    var rowMaybeHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = itemHeight;
                     var rowMaybeBottom = tableHeight + rowMaybeHeight;
-                    //如果在可见区域, 就详细测量
-                    if ((rowMaybeTop >= visibleBounds.Top - topExtandHeight && rowMaybeTop <= visibleBounds.Bottom + bottomExtandHeight)
-                       || (rowMaybeBottom >= visibleBounds.Top - topExtandHeight && rowMaybeBottom <= visibleBounds.Bottom + bottomExtandHeight)
-                       || (rowMaybeTop <= visibleBounds.Top - topExtandHeight && rowMaybeBottom >= visibleBounds.Bottom + bottomExtandHeight))
+                    for (var currentRow = row; currentRow < numberOfRows && currentRow < row + ColumnCount; currentRow++)
                     {
-                        //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                        TableViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, tableViewWidth, false);
+                        NSIndexPath indexPath = NSIndexPath.FromRowSection(currentRow, section);
+                        var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
 
-                        if (cell != null)
+                        //如果在可见区域, 就详细测量
+                        if ((rowMaybeTop >= visibleBounds.Top - topExtandHeight && rowMaybeTop <= visibleBounds.Bottom + bottomExtandHeight)
+                           || (rowMaybeBottom >= visibleBounds.Top - topExtandHeight && rowMaybeBottom <= visibleBounds.Bottom + bottomExtandHeight)
+                           || (rowMaybeTop <= visibleBounds.Top - topExtandHeight && rowMaybeBottom >= visibleBounds.Bottom + bottomExtandHeight))
                         {
-                            //将Cell添加到正在显示的Cell字典
-                            CollectionView._cachedCells[indexPath] = cell;
-                            if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
-                            //Cell是否是正在被选择的
-                            cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
-                            cell.Selected = CollectionView._selectedRow == null ? false : CollectionView._selectedRow.IsEqual(indexPath);
+                            //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
+                            TableViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, tableViewWidth, false);
 
-                            //添加到ScrollView, 必须先添加才有测量值
-                            if (!CollectionView.ContentView.Children.Contains(cell.ContentView))
-                                CollectionView.AddSubview(cell.ContentView);
-                            //测量高度
-                            if (rowHeightWant != TableViewViewHolder.MeasureSelf)//固定高度
+                            if (cell != null)
                             {
-                                cell.ContentView.HeightRequest = rowHeightWant;
-                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, rowHeightWant).Request;
+                                //将Cell添加到正在显示的Cell字典
+                                CollectionView._cachedCells[indexPath] = cell;
+                                if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
+                                //Cell是否是正在被选择的
+                                cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
+                                cell.Selected = CollectionView._selectedRow == null ? false : CollectionView._selectedRow.IsEqual(indexPath);
+
+                                //添加到ScrollView, 必须先添加才有测量值
+                                if (!CollectionView.ContentView.Children.Contains(cell.ContentView))
+                                    CollectionView.AddSubview(cell.ContentView);
+                                //测量高度
+                                cell.ContentView.WidthRequest = itemWidth;
+                                cell.ContentView.HeightRequest = itemHeight;
+                                var measureSize = CollectionView.MeasureChild(cell.ContentView, itemWidth, itemHeight).Request;
+
+                                cell.PositionInLayout = new Point(itemWidth * (currentRow - row), tableHeight);
                             }
-                            else
+                        }
+                        else//如果不可见
+                        {
+                            if (availableCells.ContainsKey(indexPath))
                             {
-                                var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
-                                if (measureSize.Height != 0)
+                                var cell = availableCells[indexPath];
+                                if (cell.ReuseIdentifier != default)
                                 {
-                                    if (!MeasuredSelfHeightCache.ContainsKey(indexPath))
-                                        MeasuredSelfHeightCache.Add(indexPath, measureSize.Height);
-                                    else MeasuredSelfHeightCache[indexPath] = measureSize.Height;
-
-                                    //存储同类型的高度
-                                    if (!MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier))
-                                    {
-                                        MeasuredSelfHeightCacheForReuse.Add(cell.ReuseIdentifier, measureSize.Height);
-                                    }
-                                    else
-                                    {
-                                        if (MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] < measureSize.Height)
-                                        {
-                                            MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] = measureSize.Height;
-                                        }
-                                    }
+                                    CollectionView._reusableCells.Add(cell);
+                                    availableCells.Remove(indexPath);
                                 }
+                                cell.PrepareForReuse();
                             }
-
-                            cell.PositionInLayout = new Point(0, tableHeight);
-                            var finalHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier)? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
-                            tableHeight += finalHeight;
+                            
                         }
                     }
-                    else//如果不可见
-                    {
-                        if (availableCells.ContainsKey(indexPath))
-                        {
-                            var cell = availableCells[indexPath];
-                            if (cell.ReuseIdentifier != default)
-                            {
-                                CollectionView._reusableCells.Add(cell);
-                                availableCells.Remove(indexPath);
-                            }
-                            cell.PrepareForReuse();
-                        }
-                        tableHeight = rowMaybeBottom;
-                    }
+                    tableHeight = rowMaybeBottom;
                 }
             }
 

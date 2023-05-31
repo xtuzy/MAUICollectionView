@@ -247,7 +247,7 @@ namespace MauiUICollectionView
             else
                 size = new Size(0, 0);
             stopwatch.Stop();
-            Console.WriteLine($"Measure:{stopwatch.ElapsedMilliseconds}");
+            //Console.WriteLine($"Measure:{stopwatch.ElapsedMilliseconds}");
             return size;
         }
 
@@ -263,7 +263,7 @@ namespace MauiUICollectionView
             stopwatch.Restart();
             ItemsLayout?.ArrangeContents();
             stopwatch.Stop();
-            Console.WriteLine($"Layout:{stopwatch.ElapsedMilliseconds}");
+            //Console.WriteLine($"Layout:{stopwatch.ElapsedMilliseconds}");
         }
 
         public void LayoutChild(Element element, Rect rect)
