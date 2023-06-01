@@ -46,6 +46,7 @@ public partial class GridLayoutTestPage : ContentPage
         var footerButton = new Button() { Text = "Footer", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
+            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), TableViewScrollPosition.Top, true);
             Console.WriteLine("Clicked Footer");
         };
         tableView.TableFooterView = new TableViewViewHolder(footerButton, "Footer");

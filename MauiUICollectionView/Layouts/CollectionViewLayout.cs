@@ -40,5 +40,10 @@
 
         public abstract NSIndexPath IndexPathForVisibaleRowAtPointOfTableView(Point point);
         public abstract NSIndexPath IndexPathForRowAtPointOfContentView(Point point);
+        /// <summary>
+        /// 返回IndexPath对应的行在ContentView中的位置. 在某些Item大小不固定的Layout中, 其可能是不精确的, 会变化的. 可能只是即时状态, 比如滑动后数据会变化.
+        /// </summary>
+        /// <returns></returns>
+        public abstract Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPath);
     }
 }

@@ -36,6 +36,7 @@ public partial class DefaultTestPage : ContentPage
         var headerButton = new Button() { Text = "Header", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
+            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), TableViewScrollPosition.Top, true);
             Console.WriteLine("Clicked Header");
         };
         var headerView = new TableViewViewHolder(headerButton, "Header");
@@ -43,6 +44,7 @@ public partial class DefaultTestPage : ContentPage
         var footerButton = new Button() { Text = "Footer", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
+            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), TableViewScrollPosition.Top, true);
             Console.WriteLine("Clicked Footer");
         };
         tableView.TableFooterView = new TableViewViewHolder(footerButton, "Footer");

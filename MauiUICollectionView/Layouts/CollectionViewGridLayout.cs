@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace MauiUICollectionView.Layouts
+﻿namespace MauiUICollectionView.Layouts
 {
     /// <summary>
     /// GridLayout 意味着分割列表为几列, 高度直接指定比例, 在布局时是确定的值. Source中的设置高度的方法对其无效. 注意Cell不要直接设置Margin, Layout中未加入计算.
@@ -157,7 +155,6 @@ namespace MauiUICollectionView.Layouts
                     for (var currentRow = row; currentRow < numberOfRows && currentRow < row + ColumnCount; currentRow++)
                     {
                         NSIndexPath indexPath = NSIndexPath.FromRowSection(currentRow, section);
-                        var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
 
                         //如果在可见区域, 就详细测量
                         if ((rowMaybeTop >= visibleBounds.Top - topExtandHeight && rowMaybeTop <= visibleBounds.Bottom + bottomExtandHeight)
@@ -199,7 +196,7 @@ namespace MauiUICollectionView.Layouts
                                 }
                                 cell.PrepareForReuse();
                             }
-                            
+
                         }
                     }
                     tableHeight = rowMaybeBottom;
@@ -285,27 +282,74 @@ namespace MauiUICollectionView.Layouts
                 totalHeight = tempBottom;
             }
 
-            var number = CollectionView.NumberOfSections();
-            for (int section = 0; section < number; section++)
+            var itemWidth = CollectionView.ContentSize.Width / ColumnCount;
+            var itemHeight = itemWidth * AspectRatio.Height / AspectRatio.Width;
+            //Console.WriteLine($"itemWidth:{itemWidth} itemHeight:{itemHeight}");
+            int numberOfSections = CollectionView.NumberOfSections();
+            for (int section = 0; section < numberOfSections; section++)
             {
                 int numberOfRows = CollectionView.NumberOfRowsInSection(section);
-                for (int row = 0; row < numberOfRows; row++)
+
+                for (int row = 0; row < numberOfRows; row = row + ColumnCount)
                 {
-                    NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var wantHeight = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
-                    tempBottom = totalHeight + (wantHeight == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : 0) : wantHeight);//使用0的好处是, 在范围内的肯定在范围内
-                    if (totalHeight <= point.Y && tempBottom >= point.Y)
+                    var rowMaybeTop = totalHeight;
+                    var rowMaybeHeight = itemHeight;
+                    var rowMaybeBottom = totalHeight + rowMaybeHeight;
+                    for (var currentRow = row; currentRow < numberOfRows && currentRow < row + ColumnCount; currentRow++)
                     {
-                        return NSIndexPath.FromRowSection(row, section);
+                        if (point.X > itemWidth * (currentRow - row) && point.X < itemWidth * (currentRow - row + 1) &&
+                            point.Y > rowMaybeTop && point.Y < rowMaybeBottom)
+                        {
+                            return NSIndexPath.FromRowSection(currentRow, section);
+                        }
+                        else
+                        {
+                        };
                     }
-                    else
-                    {
-                        totalHeight = tempBottom;
-                    }
+                    totalHeight = rowMaybeBottom;
                 }
             }
-
             return null;
+        }
+
+        public override Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPathTarget)
+        {
+            double totalHeight = 0;
+            double tempBottom = 0;
+            if (CollectionView.TableHeaderView != null)
+            {
+                tempBottom = totalHeight + CollectionView.TableHeaderView.ContentView.DesiredSize.Height;
+                totalHeight = tempBottom;
+            }
+
+            var itemWidth = CollectionView.ContentSize.Width / ColumnCount;
+            var itemHeight = itemWidth * AspectRatio.Height / AspectRatio.Width;
+            //Console.WriteLine($"itemWidth:{itemWidth} itemHeight:{itemHeight}");
+            int numberOfSections = CollectionView.NumberOfSections();
+            for (int section = 0; section < numberOfSections; section++)
+            {
+                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+
+                for (int row = 0; row < numberOfRows; row = row + ColumnCount)
+                {
+                    var rowMaybeTop = totalHeight;
+                    var rowMaybeHeight = itemHeight;
+                    var rowMaybeBottom = totalHeight + rowMaybeHeight;
+                    for (var currentRow = row; currentRow < numberOfRows && currentRow < row + ColumnCount; currentRow++)
+                    {
+                        var indexPath = NSIndexPath.FromRowSection(currentRow, section);
+                        if (indexPath.Section == indexPathTarget.Section && indexPath.Row == indexPathTarget.Row)
+                        {
+                            return Rect.FromLTRB(itemWidth * (currentRow - row), rowMaybeTop, itemWidth * (currentRow - row + 1), rowMaybeBottom);
+                        }
+                        else
+                        {
+                        };
+                    }
+                    totalHeight = rowMaybeBottom;
+                }
+            }
+            return Rect.Zero;
         }
     }
 }

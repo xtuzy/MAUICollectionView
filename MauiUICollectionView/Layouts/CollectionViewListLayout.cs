@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace MauiUICollectionView.Layouts
+﻿namespace MauiUICollectionView.Layouts
 {
     public class CollectionViewListLayout : CollectionViewLayout
     {
@@ -55,6 +53,7 @@ namespace MauiUICollectionView.Layouts
         /// 第一次显示我们尽量少创建Cell
         /// </summary>
         int measureTimes = 0;
+
         public override Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
             if (measureTimes <= 3)
@@ -195,7 +194,7 @@ namespace MauiUICollectionView.Layouts
                             }
 
                             cell.PositionInLayout = new Point(0, tableHeight);
-                            var finalHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier)? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                            var finalHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                             tableHeight += finalHeight;
                         }
                     }
@@ -302,8 +301,12 @@ namespace MauiUICollectionView.Layouts
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var wantHeight = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
-                    tempBottom = totalHeight + (wantHeight == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : 0) : wantHeight);//使用0的好处是, 在范围内的肯定在范围内
+                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+
+                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+
+                    var rowMaybeHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    tempBottom = totalHeight + rowMaybeHeight;
                     if (totalHeight <= point.Y && tempBottom >= point.Y)
                     {
                         return NSIndexPath.FromRowSection(row, section);
@@ -316,6 +319,43 @@ namespace MauiUICollectionView.Layouts
             }
 
             return null;
+        }
+
+        public override Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPathTarget)
+        {
+            double totalHeight = 0;
+            double tempBottom = 0;
+            if (CollectionView.TableHeaderView != null)
+            {
+                tempBottom = totalHeight + CollectionView.TableHeaderView.ContentView.DesiredSize.Height;
+                totalHeight = tempBottom;
+            }
+
+            var number = CollectionView.NumberOfSections();
+            for (int section = 0; section < number; section++)
+            {
+                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                for (int row = 0; row < numberOfRows; row++)
+                {
+                    NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
+                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+
+                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+
+                    var rowMaybeHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    tempBottom = totalHeight + rowMaybeHeight;
+
+                    if (indexPath.Section == indexPathTarget.Section && indexPath.Row == indexPathTarget.Row)
+                    {
+                        return Rect.FromLTRB(0, totalHeight, CollectionView.ContentSize.Width, tempBottom);
+                    }
+                    else
+                    {
+                        totalHeight = tempBottom;
+                    }
+                }
+            }
+            return Rect.Zero;
         }
     }
 }

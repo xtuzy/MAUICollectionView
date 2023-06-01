@@ -387,7 +387,20 @@ namespace MauiUICollectionView
 
         public void ScrollToRowAtIndexPath(NSIndexPath indexPath, TableViewScrollPosition scrollPosition, bool animated)
         {
-            throw new NotImplementedException();
+            var rect = ItemsLayout.RectForRowOfIndexPathInContentView(indexPath);
+            switch (scrollPosition)
+            {
+                case TableViewScrollPosition.None:
+                case TableViewScrollPosition.Top:
+                    ScrollToAsync(0, rect.Top, animated);
+                    break;
+                case TableViewScrollPosition.Middle:
+                    ScrollToAsync(0, rect.Y + rect.Height / 2, animated);
+                    break;
+                case TableViewScrollPosition.Bottom:
+                    ScrollToAsync(0, rect.Bottom, animated);
+                    break;
+            }
         }
 
         public TableViewViewHolder dequeueReusableCellWithIdentifier(string identifier)
@@ -409,16 +422,6 @@ namespace MauiUICollectionView
             }
 
             return null;
-        }
-
-        void setEditing(bool editing, bool animated)
-        {
-            this.editing = editing;
-        }
-
-        void setEditing(bool editing)
-        {
-            this.setEditing(editing, false);
         }
 
         public void InsertSections(int[] sections, TableViewRowAnimation animation)
@@ -445,46 +448,5 @@ namespace MauiUICollectionView
         {
             this.ReloadData();
         }
-
-        /*public override void TouchesBegan(NSSet touches, UIEvent evt)
-        {
-            base.TouchesBegan(touches, evt);
-        }
-
-        public override void TouchesMoved(NSSet touches, UIEvent evt)
-        {
-            base.TouchesMoved(touches, evt);
-        }
-
-        public override void TouchesEnded(NSSet touches, UIEvent evt)
-        {
-            base.TouchesEnded(touches, evt);
-            if (_highlightedRow == null)
-            {
-                UITouch touch = touches.AnyObject as UITouch;
-                CGPoint location = touch.LocationInView(this);
-
-                _highlightedRow = this.IndexPathForRowAtPoint(location);
-                if (_highlightedRow != null)
-                    this.CellForRowAtIndexPath(_highlightedRow).Highlighted = true;
-            }
-
-            if (_highlightedRow != null)
-            {
-                this.CellForRowAtIndexPath(_highlightedRow).Highlighted = false;
-                this._setUserSelectedRowAtIndexPath(_highlightedRow);
-                _highlightedRow = null;
-            }
-        }
-
-        public override void TouchesCancelled(NSSet touches, UIEvent evt)
-        {
-            base.TouchesCancelled(touches, evt);
-            if (_highlightedRow != null)
-            {
-                this.CellForRowAtIndexPath(_highlightedRow).Highlighted = false;
-                _highlightedRow = null;
-            }
-        }*/
     }
 }
