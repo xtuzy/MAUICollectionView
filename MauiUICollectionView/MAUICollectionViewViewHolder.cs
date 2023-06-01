@@ -1,11 +1,6 @@
 ﻿namespace MauiUICollectionView
 {
-    public enum TableViewCellSelectionStyle
-    {
-        None, Blue, Gray
-    }
-
-    public class TableViewViewHolder
+    public class MAUICollectionViewViewHolder
     {
         public const float MeasureSelf = -1;
         /// <summary>
@@ -15,7 +10,7 @@
 
         #region https://github.com/BigZaphod/Chameleon/blob/master/UIKit/Classes/UITableViewCell.h
 
-        TableViewCellSelectionStyle _selectionStyle;
+        SelectionStyle _selectionStyle;
         bool _selected;
         bool _highlighted;
 
@@ -23,13 +18,13 @@
         public string ReuseIdentifier => _reuseIdentifier;
         #endregion
 
-        public TableViewViewHolder(View itemView)
+        public MAUICollectionViewViewHolder(View itemView)
         {
             ContentView = itemView;
-            _selectionStyle = TableViewCellSelectionStyle.Blue;
+            _selectionStyle = SelectionStyle.Blue;
         }
 
-        public TableViewViewHolder(View itemView, string reuseIdentifier) : this(itemView)
+        public MAUICollectionViewViewHolder(View itemView, string reuseIdentifier) : this(itemView)
         {
             _reuseIdentifier = reuseIdentifier;
         }
@@ -49,7 +44,7 @@
 
         public void SetSelected(bool selected, bool animated)
         {
-            if (selected != _selected && _selectionStyle != TableViewCellSelectionStyle.None)
+            if (selected != _selected && _selectionStyle != SelectionStyle.None)
             {
                 _selected = selected;
                 this._updateSelectionState();
@@ -63,7 +58,7 @@
 
         public void SetHighlighted(bool highlighted, bool animated)
         {
-            if (_highlighted != highlighted && _selectionStyle != TableViewCellSelectionStyle.None)
+            if (_highlighted != highlighted && _selectionStyle != SelectionStyle.None)
             {
                 _highlighted = highlighted;
                 this._updateSelectionState();

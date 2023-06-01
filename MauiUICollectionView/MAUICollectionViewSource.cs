@@ -1,12 +1,12 @@
 ﻿namespace MauiUICollectionView
 {
-    public class TableViewSource : ITableViewSource
+    public class MAUICollectionViewSource : IMAUICollectionViewSource
     {
         public numberOfRowsInSectionDelegate numberOfRowsInSection { get; set; }
 
         public cellForRowAtIndexPathDelegate cellForRowAtIndexPath { get; set; }
 
-        public numberOfSectionsInTableViewDelegate numberOfSectionsInTableView { get; set; }
+        public numberOfSectionsInTableViewDelegate numberOfSectionsInCollectionView { get; set; }
 
         public willXRowAtIndexPathDelegate willSelectRowAtIndexPath { get; set; }
 

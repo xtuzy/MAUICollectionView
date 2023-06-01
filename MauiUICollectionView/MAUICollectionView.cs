@@ -3,53 +3,36 @@ using System.Diagnostics;
 using UIView = Microsoft.Maui.Controls.Layout;
 namespace MauiUICollectionView
 {
-    public enum TableViewScrollPosition
+    public partial class MAUICollectionView : ScrollView
     {
-        None, Top, Middle, Bottom
-    }
-
-    public enum TableViewRowAnimation
-    {
-        Fade, Right, Left, Top, Bottom, None, Middle, Automatic = 100
-    }
-
-    public partial class TableView : ScrollView
-    {
-        // http://stackoverflow.com/questions/235120/whats-the-uitableview-index-magnifying-glass-character
-        const string UITableViewIndexSearch = @"{search}";
-
-        static readonly float _UITableViewDefaultRowHeight = 43;
-
         #region https://github.com/BigZaphod/Chameleon/blob/master/UIKit/Classes/UITableView.h
 
-        Color separatorColor;
-
-        TableViewViewHolder _tableHeaderView;
-        public TableViewViewHolder TableHeaderView
+        MAUICollectionViewViewHolder _headerView;
+        public MAUICollectionViewViewHolder HeaderView
         {
-            get => _tableHeaderView;
+            get => _headerView;
             set
             {
-                if (value != _tableHeaderView)
+                if (value != _headerView)
                 {
-                    _tableHeaderView = null;// _tableHeaderView?.Dispose();
-                    _tableHeaderView = value;
-                    this.AddSubview(_tableHeaderView.ContentView);
+                    _headerView = null;
+                    _headerView = value;
+                    this.AddSubview(_headerView.ContentView);
                 }
             }
         }
 
-        TableViewViewHolder _tableFooterView;
-        public TableViewViewHolder TableFooterView
+        MAUICollectionViewViewHolder _footerView;
+        public MAUICollectionViewViewHolder FooterView
         {
-            get => _tableFooterView;
+            get => _footerView;
             set
             {
-                if (value != _tableFooterView)
+                if (value != _footerView)
                 {
-                    _tableFooterView = null;//_tableFooterView?.Dispose();
-                    _tableFooterView = value;
-                    this.AddSubview(_tableFooterView.ContentView);
+                    _footerView = null;
+                    _footerView = value;
+                    this.AddSubview(_footerView.ContentView);
                 }
             }
         }
@@ -69,16 +52,16 @@ namespace MauiUICollectionView
         /// <summary>
         /// 当前正在显示区域中的Cell
         /// </summary>
-        public Dictionary<NSIndexPath, TableViewViewHolder> _cachedCells;
+        public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> _cachedCells;
         /// <summary>
         /// 回收的等待重复利用的Cell
         /// </summary>
-        public List<TableViewViewHolder> _reusableCells;
+        public List<MAUICollectionViewViewHolder> _reusableCells;
 
         SourceHas _sourceHas;
         struct SourceHas
         {
-            public bool numberOfSectionsInTableView = true;
+            public bool numberOfSectionsInCollectionView = true;
 
             public bool heightForRowAtIndexPath = true;
             public bool willSelectRowAtIndexPath = true;
@@ -95,7 +78,6 @@ namespace MauiUICollectionView
         {
             this._cachedCells = new();
             this._reusableCells = new();
-            this.separatorColor = new Color(red: 0.88f, green: 0.88f, blue: 0.88f, alpha: 1);
             this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
             this.allowsSelection = true;
             this.allowsSelectionDuringEditing = false;
@@ -104,15 +86,15 @@ namespace MauiUICollectionView
             this._setNeedsReload();
         }
 
-        ITableViewSource _source;
-        public ITableViewSource Source
+        IMAUICollectionViewSource _source;
+        public IMAUICollectionViewSource Source
         {
             get { return this._source; }
             set
             {
                 _source = value;
 
-                _sourceHas.numberOfSectionsInTableView = _source.numberOfSectionsInTableView != null;
+                _sourceHas.numberOfSectionsInCollectionView = _source.numberOfSectionsInCollectionView != null;
 
                 _sourceHas.heightForRowAtIndexPath = _source.heightForRowAtIndexPath != null;
                 _sourceHas.willSelectRowAtIndexPath = _source.willSelectRowAtIndexPath != null;
@@ -132,18 +114,18 @@ namespace MauiUICollectionView
 #if IOS || MACCATALYST
         public int ExtendHeight = 0;
 #else
-        public int ExtendHeight => (int)TableViewConstraintSize.Height;
+        public int ExtendHeight => (int)CollectionViewConstraintSize.Height;
 #endif
         Rect _CGRectFromVerticalOffset(float offset, float height)
         {
-            return new Rect(0, offset, this.Bounds.Width > 0 ? this.Bounds.Width : TableViewConstraintSize.Width, height);
+            return new Rect(0, offset, this.Bounds.Width > 0 ? this.Bounds.Width : CollectionViewConstraintSize.Width, height);
         }
 
         void beginUpdates() { }
 
         void endUpdates() { }
 
-        public TableViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
+        public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
             // this is allowed to return nil if the cell isn't visible and is not restricted to only returning visible cells
             // so this simple call should be good enough.
@@ -163,9 +145,9 @@ namespace MauiUICollectionView
 
         public int NumberOfSections()
         {
-            if (_sourceHas.numberOfSectionsInTableView)
+            if (_sourceHas.numberOfSectionsInCollectionView)
             {
-                return _source.numberOfSectionsInTableView(this);
+                return _source.numberOfSectionsInCollectionView(this);
             }
             else
             {
@@ -234,16 +216,16 @@ namespace MauiUICollectionView
         }
 
         Stopwatch stopwatch = new Stopwatch();
-        public partial Size OnMeasure(double widthConstraint, double heightConstraint)
+        public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
         {
             stopwatch.Restart();
             this._reloadDataIfNeeded();
             Size size;
             if (ItemsLayout != null)
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
-                    size = ItemsLayout.MeasureContents(widthConstraint, TableViewConstraintSize.Height);
+                    size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
                 else
-                    size = ItemsLayout.MeasureContents(TableViewConstraintSize.Width, heightConstraint);
+                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
             else
                 size = new Size(0, 0);
             stopwatch.Stop();
@@ -256,7 +238,7 @@ namespace MauiUICollectionView
             return (element as IView).Measure(widthConstraint, heightConstraint);
         }
 
-        public partial void OnLayout()
+        public partial void OnContentViewLayout()
         {
             if (_backgroundView != null)
                 LayoutChild(_backgroundView, Bounds);
@@ -276,7 +258,7 @@ namespace MauiUICollectionView
             return _selectedRow;
         }
 
-        public NSIndexPath IndexPathForCell(TableViewViewHolder cell)
+        public NSIndexPath IndexPathForCell(MAUICollectionViewViewHolder cell)
         {
             foreach (NSIndexPath index in _cachedCells.Keys)
             {
@@ -299,7 +281,7 @@ namespace MauiUICollectionView
             }
         }
 
-        public void SelectRowAtIndexPath(NSIndexPath indexPath, bool animated, TableViewScrollPosition scrollPosition)
+        public void SelectRowAtIndexPath(NSIndexPath indexPath, bool animated, ScrollPosition scrollPosition)
         {
             // unlike the other methods that I've tested, the real UIKit appears to call reload during selection if the table hasn't been reloaded
             // yet. other methods all appear to rebuild the section cache "on-demand" but don't do a "proper" reload. for the sake of attempting
@@ -322,7 +304,7 @@ namespace MauiUICollectionView
 
         void _setUserSelectedRowAtIndexPath(NSIndexPath rowToSelect)
         {
-            var source = (this.Source as ITableViewSource);
+            var source = (this.Source as IMAUICollectionViewSource);
             if (_sourceHas.willSelectRowAtIndexPath)
             {
                 rowToSelect = source.willSelectRowAtIndexPath(this, rowToSelect);
@@ -347,7 +329,7 @@ namespace MauiUICollectionView
                 }
             }
 
-            this.SelectRowAtIndexPath(rowToSelect, false, TableViewScrollPosition.None);
+            this.SelectRowAtIndexPath(rowToSelect, false, ScrollPosition.None);
 
             if (_sourceHas.didSelectRowAtIndexPath)
             {
@@ -355,26 +337,26 @@ namespace MauiUICollectionView
             }
         }
 
-        void _scrollRectToVisible(Rect aRect, TableViewScrollPosition scrollPosition, bool animated)
+        void _scrollRectToVisible(Rect aRect, ScrollPosition scrollPosition, bool animated)
         {
             if (!(aRect == Rect.Zero) && aRect.Size.Height > 0)
             {
                 // adjust the rect based on the desired scroll position setting
                 switch (scrollPosition)
                 {
-                    case TableViewScrollPosition.None:
+                    case ScrollPosition.None:
                         break;
 
-                    case TableViewScrollPosition.Top:
+                    case ScrollPosition.Top:
                         aRect.Height = this.Bounds.Size.Height;
                         break;
 
-                    case TableViewScrollPosition.Middle:
+                    case ScrollPosition.Middle:
                         aRect.Y -= (this.Bounds.Size.Height / 2.0f) - aRect.Size.Height;
                         aRect.Height = this.Bounds.Size.Height;
                         break;
 
-                    case TableViewScrollPosition.Bottom:
+                    case ScrollPosition.Bottom:
                         aRect.Y -= this.Bounds.Size.Height - aRect.Size.Height;
                         aRect.Height = this.Bounds.Size.Height;
                         break;
@@ -385,31 +367,31 @@ namespace MauiUICollectionView
             }
         }
 
-        public void ScrollToRowAtIndexPath(NSIndexPath indexPath, TableViewScrollPosition scrollPosition, bool animated)
+        public void ScrollToRowAtIndexPath(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
             var rect = ItemsLayout.RectForRowOfIndexPathInContentView(indexPath);
             switch (scrollPosition)
             {
-                case TableViewScrollPosition.None:
-                case TableViewScrollPosition.Top:
+                case ScrollPosition.None:
+                case ScrollPosition.Top:
                     ScrollToAsync(0, rect.Top, animated);
                     break;
-                case TableViewScrollPosition.Middle:
+                case ScrollPosition.Middle:
                     ScrollToAsync(0, rect.Y + rect.Height / 2, animated);
                     break;
-                case TableViewScrollPosition.Bottom:
+                case ScrollPosition.Bottom:
                     ScrollToAsync(0, rect.Bottom, animated);
                     break;
             }
         }
 
-        public TableViewViewHolder dequeueReusableCellWithIdentifier(string identifier)
+        public MAUICollectionViewViewHolder dequeueReusableCellWithIdentifier(string identifier)
         {
-            foreach (TableViewViewHolder cell in _reusableCells)
+            foreach (MAUICollectionViewViewHolder cell in _reusableCells)
             {
                 if (cell.ReuseIdentifier == identifier)
                 {
-                    TableViewViewHolder strongCell = cell;
+                    MAUICollectionViewViewHolder strongCell = cell;
 
                     // the above strongCell reference seems totally unnecessary, but without it ARC apparently
                     // ends up releasing the cell when it's removed on this line even though we're referencing it
@@ -424,27 +406,22 @@ namespace MauiUICollectionView
             return null;
         }
 
-        public void InsertSections(int[] sections, TableViewRowAnimation animation)
+        public void InsertSections(int[] sections, RowAnimation animation)
         {
             this.ReloadData();
         }
 
-        public void DeleteSections(int[] sections, TableViewRowAnimation animation)
+        public void DeleteSections(int[] sections, RowAnimation animation)
         {
             this.ReloadData();
         }
 
-        /// <summary>
-        /// See <see cref="UIKit.UITableView.InsertRows(NSIndexPath[], UIKit.UITableViewRowAnimation)"/>
-        /// </summary>
-        /// <param name="indexPaths"></param>
-        /// <param name="animation"></param>
-        public void InsertRowsAtIndexPaths(NSIndexPath[] indexPaths, TableViewRowAnimation animation)
+        public void InsertRowsAtIndexPaths(NSIndexPath[] indexPaths, RowAnimation animation)
         {
             this.ReloadData();
         }
 
-        public void DeleteRowsAtIndexPaths(NSIndexPath[] indexPaths, TableViewRowAnimation animation)
+        public void DeleteRowsAtIndexPaths(NSIndexPath[] indexPaths, RowAnimation animation)
         {
             this.ReloadData();
         }

@@ -2,7 +2,7 @@
 {
     public class CollectionViewListLayout : CollectionViewLayout
     {
-        public CollectionViewListLayout(TableView collectionView) : base(collectionView)
+        public CollectionViewListLayout(MAUICollectionView collectionView) : base(collectionView)
         {
         }
 
@@ -12,9 +12,9 @@
             var contentOffset = CollectionView.ScrollY; //ContentOffset.Y;
             Rect visibleBounds = new Rect(0, contentOffset, boundsSize.Width, boundsSize.Height);
 
-            if (CollectionView.TableHeaderView != null)
+            if (CollectionView.HeaderView != null)
             {
-                CollectionView.LayoutChild(CollectionView.TableHeaderView.ContentView, new Rect(0, CollectionView.TableHeaderView.PositionInLayout.Y, visibleBounds.Width, CollectionView.TableHeaderView.ContentView.DesiredSize.Height));
+                CollectionView.LayoutChild(CollectionView.HeaderView.ContentView, new Rect(0, CollectionView.HeaderView.PositionInLayout.Y, visibleBounds.Width, CollectionView.HeaderView.ContentView.DesiredSize.Height));
             }
 
             // layout sections and rows
@@ -22,12 +22,12 @@
                 CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
 
 
-            if (CollectionView.TableFooterView != null)
+            if (CollectionView.FooterView != null)
             {
-                CollectionView.LayoutChild(CollectionView.TableFooterView.ContentView, new Rect(0, CollectionView.TableFooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.TableFooterView.ContentView.DesiredSize.Height));
+                CollectionView.LayoutChild(CollectionView.FooterView.ContentView, new Rect(0, CollectionView.FooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.FooterView.ContentView.DesiredSize.Height));
             }
 
-            foreach (TableViewViewHolder cell in CollectionView._reusableCells)
+            foreach (MAUICollectionViewViewHolder cell in CollectionView._reusableCells)
             {
                 CollectionView.LayoutChild(cell.ContentView, new Rect(0, -3000, cell.ContentView.DesiredSize.Width, cell.ContentView.DesiredSize.Height));
             }
@@ -66,15 +66,15 @@
             double tableHeight = 0;
 
             //表头的View是确定的, 我们可以直接测量
-            if (CollectionView.TableHeaderView != null)
+            if (CollectionView.HeaderView != null)
             {
-                var _tableHeaderViewH = CollectionView.MeasureChild(CollectionView.TableHeaderView.ContentView, tableViewWidth, double.PositiveInfinity).Request.Height;
-                CollectionView.TableHeaderView.PositionInLayout = new Point(0, 0);
+                var _tableHeaderViewH = CollectionView.MeasureChild(CollectionView.HeaderView.ContentView, tableViewWidth, double.PositiveInfinity).Request.Height;
+                CollectionView.HeaderView.PositionInLayout = new Point(0, 0);
                 tableHeight += _tableHeaderViewH;
             }
 
             // 需要重新布局后, cell会变动, 先将之前显示的cell放入可供使用的cell字典
-            Dictionary<NSIndexPath, TableViewViewHolder> availableCells = new();
+            Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells = new();
             foreach (var cell in CollectionView._cachedCells)
                 availableCells.Add(cell.Key, cell.Value);
             CollectionView._cachedCells.Clear();
@@ -141,7 +141,7 @@
                     var rowMaybeTop = tableHeight;
                     var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
 
-                    var rowMaybeHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                     var rowMaybeBottom = tableHeight + rowMaybeHeight;
                     //如果在可见区域, 就详细测量
                     if ((rowMaybeTop >= visibleBounds.Top - topExtandHeight && rowMaybeTop <= visibleBounds.Bottom + bottomExtandHeight)
@@ -149,7 +149,7 @@
                        || (rowMaybeTop <= visibleBounds.Top - topExtandHeight && rowMaybeBottom >= visibleBounds.Bottom + bottomExtandHeight))
                     {
                         //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                        TableViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, tableViewWidth, false);
+                        MAUICollectionViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, tableViewWidth, false);
 
                         if (cell != null)
                         {
@@ -164,7 +164,7 @@
                             if (!CollectionView.ContentView.Children.Contains(cell.ContentView))
                                 CollectionView.AddSubview(cell.ContentView);
                             //测量高度
-                            if (rowHeightWant != TableViewViewHolder.MeasureSelf)//固定高度
+                            if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//固定高度
                             {
                                 cell.ContentView.HeightRequest = rowHeightWant;
                                 var measureSize = CollectionView.MeasureChild(cell.ContentView, tableViewBoundsSize.Width, rowHeightWant).Request;
@@ -194,7 +194,7 @@
                             }
 
                             cell.PositionInLayout = new Point(0, tableHeight);
-                            var finalHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                            var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                             tableHeight += finalHeight;
                         }
                     }
@@ -216,7 +216,7 @@
             }
 
             // 重新测量后, 需要显示的已经存入缓存的字典, 剩余的放入可重用列表
-            foreach (TableViewViewHolder cell in availableCells.Values)
+            foreach (MAUICollectionViewViewHolder cell in availableCells.Values)
             {
                 if (cell.ReuseIdentifier != default)
                 {
@@ -243,7 +243,7 @@
             // the cells suddenly disappear instead of seemingly animating down and out of view like they should. This tries to leave them
             // on screen as long as possible, but only if they don't get in the way.
             var allCachedCells = CollectionView._cachedCells.Values;
-            foreach (TableViewViewHolder cell in CollectionView._reusableCells)
+            foreach (MAUICollectionViewViewHolder cell in CollectionView._reusableCells)
             {
                 if (cell.ContentView.Frame.IntersectsWith(visibleBounds) && !allCachedCells.Contains(cell))
                 {
@@ -252,10 +252,10 @@
             }
 
             //表尾的View是确定的, 我们可以直接测量
-            if (CollectionView.TableFooterView != null)
+            if (CollectionView.FooterView != null)
             {
-                var footMeasureSize = CollectionView.MeasureChild(CollectionView.TableFooterView.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
-                CollectionView.TableFooterView.PositionInLayout = new Point(0, tableHeight);
+                var footMeasureSize = CollectionView.MeasureChild(CollectionView.FooterView.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
+                CollectionView.FooterView.PositionInLayout = new Point(0, tableHeight);
                 tableHeight += footMeasureSize.Height;
             }
             //Debug.WriteLine("TableView Content Height:" + tableHeight);
@@ -268,7 +268,7 @@
         /// </summary>
         /// <param name="point">相对于TableView的位置, 可以是在TableView上设置手势获取的位置</param>
         /// <returns></returns>
-        public override NSIndexPath IndexPathForVisibaleRowAtPointOfTableView(Point point)
+        public override NSIndexPath IndexPathForVisibaleRowAtPointOfCollectionView(Point point)
         {
             var contentOffset = CollectionView.ScrollY;
             point.Y = point.Y + contentOffset;//相对于content
@@ -284,9 +284,9 @@
         {
             double totalHeight = 0;
             double tempBottom = 0;
-            if (CollectionView.TableHeaderView != null)
+            if (CollectionView.HeaderView != null)
             {
-                tempBottom = totalHeight + CollectionView.TableHeaderView.ContentView.DesiredSize.Height;
+                tempBottom = totalHeight + CollectionView.HeaderView.ContentView.DesiredSize.Height;
                 if (totalHeight <= point.Y && tempBottom >= point.Y)
                 {
                     return null;
@@ -305,7 +305,7 @@
 
                     var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
 
-                    var rowMaybeHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                     tempBottom = totalHeight + rowMaybeHeight;
                     if (totalHeight <= point.Y && tempBottom >= point.Y)
                     {
@@ -325,9 +325,9 @@
         {
             double totalHeight = 0;
             double tempBottom = 0;
-            if (CollectionView.TableHeaderView != null)
+            if (CollectionView.HeaderView != null)
             {
-                tempBottom = totalHeight + CollectionView.TableHeaderView.ContentView.DesiredSize.Height;
+                tempBottom = totalHeight + CollectionView.HeaderView.ContentView.DesiredSize.Height;
                 totalHeight = tempBottom;
             }
 
@@ -342,7 +342,7 @@
 
                     var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
 
-                    var rowMaybeHeight = (rowHeightWant == TableViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                     tempBottom = totalHeight + rowMaybeHeight;
 
                     if (indexPath.Section == indexPathTarget.Section && indexPath.Row == indexPathTarget.Row)

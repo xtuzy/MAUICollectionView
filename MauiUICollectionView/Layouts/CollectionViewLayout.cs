@@ -5,13 +5,13 @@
     /// </summary>
     public abstract class CollectionViewLayout
     {
-        public CollectionViewLayout(TableView collectionView)
+        public CollectionViewLayout(MAUICollectionView collectionView)
         {
             this.CollectionView = collectionView;
         }
 
-        private TableView _collectionView;
-        public TableView CollectionView
+        private MAUICollectionView _collectionView;
+        public MAUICollectionView CollectionView
         {
             get { return _collectionView; }
             private set => _collectionView = value;
@@ -33,12 +33,12 @@
         /// <summary>
         /// 测量内容总共占据的大小.
         /// </summary>
-        /// <param name="tableViewWidth"></param>
-        /// <param name="tableViewHeight"></param>
+        /// <param name="collectionViewWidth"></param>
+        /// <param name="collectionViewHeight"></param>
         /// <returns></returns>
-        public abstract Size MeasureContents(double tableViewWidth, double tableViewHeight);
+        public abstract Size MeasureContents(double collectionViewWidth, double collectionViewHeight);
 
-        public abstract NSIndexPath IndexPathForVisibaleRowAtPointOfTableView(Point point);
+        public abstract NSIndexPath IndexPathForVisibaleRowAtPointOfCollectionView(Point point);
         public abstract NSIndexPath IndexPathForRowAtPointOfContentView(Point point);
         /// <summary>
         /// 返回IndexPath对应的行在ContentView中的位置. 在某些Item大小不固定的Layout中, 其可能是不精确的, 会变化的. 可能只是即时状态, 比如滑动后数据会变化.

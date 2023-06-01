@@ -4,7 +4,7 @@ using MauiUICollectionView.Layouts;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
 using Yang.Maui.Helper.Image;
-using TableView = MauiUICollectionView.TableView;
+using MAUICollectionView = MauiUICollectionView.MAUICollectionView;
 namespace DemoTest.Pages;
 
 public partial class DefaultTestPage : ContentPage
@@ -12,7 +12,7 @@ public partial class DefaultTestPage : ContentPage
     public DefaultTestPage()
     {
         InitializeComponent();
-        var tableView = new TableView();
+        var tableView = new MAUICollectionView();
         Content = tableView;
         tableView.VerticalScrollBarVisibility = ScrollBarVisibility.Always;
         tableView.Source = new Source();
@@ -27,27 +27,27 @@ public partial class DefaultTestPage : ContentPage
 #if IOS
             var indexPath = tableView.ItemsLayout.IndexPathForRowAtPointOfContentView(p.Value);
 #else
-            var indexPath = tableView.ItemsLayout.IndexPathForVisibaleRowAtPointOfTableView(p.Value);
+            var indexPath = tableView.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(p.Value);
 #endif
             if (indexPath != null)
-                tableView.SelectRowAtIndexPath(indexPath, false, TableViewScrollPosition.None);
+                tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
         };
         tableView.Content.GestureRecognizers.Add(click);
         var headerButton = new Button() { Text = "Header", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), TableViewScrollPosition.Top, true);
+            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
             Console.WriteLine("Clicked Header");
         };
-        var headerView = new TableViewViewHolder(headerButton, "Header");
-        tableView.TableHeaderView = headerView;
+        var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
+        tableView.HeaderView = headerView;
         var footerButton = new Button() { Text = "Footer", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), TableViewScrollPosition.Top, true);
+            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
             Console.WriteLine("Clicked Footer");
         };
-        tableView.TableFooterView = new TableViewViewHolder(footerButton, "Footer");
+        tableView.FooterView = new MAUICollectionViewViewHolder(footerButton, "Footer");
         this.Loaded += (sender, e) =>
         {
             Console.WriteLine("Loaded");
@@ -59,7 +59,7 @@ public partial class DefaultTestPage : ContentPage
         };
     }
 
-    class Source : TableViewSource
+    class Source : MAUICollectionViewSource
     {
         List<Model> models;
         public Source()
@@ -81,21 +81,21 @@ public partial class DefaultTestPage : ContentPage
             heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
             numberOfRowsInSection += numberOfRowsInSectionMethod;
             cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
-            numberOfSectionsInTableView += numberOfSectionsInTableViewMethod;
+            numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
             reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
         }
 
-        public int numberOfSectionsInTableViewMethod(TableView tableView)
+        public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
         {
             return 1;
         }
 
-        public int numberOfRowsInSectionMethod(TableView tableView, int section)
+        public int numberOfRowsInSectionMethod(MAUICollectionView tableView, int section)
         {
             return models.Count;
         }
 
-        public string reuseIdentifierForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath)
+        public string reuseIdentifierForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
             if (indexPath.Row == 0)
             {
@@ -104,7 +104,7 @@ public partial class DefaultTestPage : ContentPage
             return botCell;
         }
 
-        public float heightForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath)
+        public float heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
             switch (type)
@@ -112,7 +112,7 @@ public partial class DefaultTestPage : ContentPage
                 case sectionCell:
                     return 40;
                 case botCell:
-                    return TableViewViewHolder.MeasureSelf;
+                    return MAUICollectionViewViewHolder.MeasureSelf;
                 default:
                     return 100;
             }
@@ -122,11 +122,11 @@ public partial class DefaultTestPage : ContentPage
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
         const string botCell = "botCell";
-        public TableViewViewHolder cellForRowAtIndexPathMethod(TableView tableView, NSIndexPath indexPath, double widthConstrain, bool blank)
+        public MAUICollectionViewViewHolder cellForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath, double widthConstrain, bool blank)
         {
             //从tableView的一个队列里获取一个cell
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
-            TableViewViewHolder cell = tableView.dequeueReusableCellWithIdentifier(type);
+            MAUICollectionViewViewHolder cell = tableView.dequeueReusableCellWithIdentifier(type);
 
             if (type == sectionCell)
             {
@@ -190,7 +190,7 @@ public partial class DefaultTestPage : ContentPage
             public string ShareIconUrl { get; set; }
         }
 
-        internal class TextCell : TableViewViewHolder
+        internal class TextCell : MAUICollectionViewViewHolder
         {
             public int NewCellIndex;
 
@@ -222,7 +222,7 @@ public partial class DefaultTestPage : ContentPage
             }
         }
 
-        internal class ImageCell : TableViewViewHolder
+        internal class ImageCell : MAUICollectionViewViewHolder
         {
             public int NewCellIndex;
 

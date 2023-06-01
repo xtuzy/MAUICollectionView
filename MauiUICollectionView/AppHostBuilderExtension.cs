@@ -7,9 +7,9 @@
             builder.ConfigureMauiHandlers(handlers =>
             {
 #if ANDROID
-                handlers.AddHandler(typeof(TableView), typeof(MyScrollViewHandler));
+                handlers.AddHandler(typeof(MAUICollectionView), typeof(MyScrollViewHandler));
 #elif WINDOWS
-                handlers.AddHandler(typeof(TableView), typeof(MyScrollViewHandler));
+                handlers.AddHandler(typeof(MAUICollectionView), typeof(MyScrollViewHandler));
 #endif
             });
 
