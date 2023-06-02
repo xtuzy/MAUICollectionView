@@ -40,6 +40,7 @@ public partial class GridLayoutTestPage : ContentPage
                 (tableView.ItemsLayout as CollectionViewGridLayout).ColumnCount = 2;
             else
                 (tableView.ItemsLayout as CollectionViewGridLayout).ColumnCount = 1;
+            tableView.ContentView.ReMeasure();
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
         tableView.HeaderView = headerView;
