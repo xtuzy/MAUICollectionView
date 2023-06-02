@@ -215,10 +215,8 @@ namespace MauiUICollectionView
             this.InvalidateMeasure();
         }
 
-        Stopwatch stopwatch = new Stopwatch();
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
         {
-            stopwatch.Restart();
             this._reloadDataIfNeeded();
             Size size;
             if (ItemsLayout != null)
@@ -228,8 +226,6 @@ namespace MauiUICollectionView
                     size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
             else
                 size = new Size(0, 0);
-            stopwatch.Stop();
-            //Console.WriteLine($"Measure:{stopwatch.ElapsedMilliseconds}");
             return size;
         }
 
@@ -242,10 +238,7 @@ namespace MauiUICollectionView
         {
             if (_backgroundView != null)
                 LayoutChild(_backgroundView, Bounds);
-            stopwatch.Restart();
             ItemsLayout?.ArrangeContents();
-            stopwatch.Stop();
-            //Console.WriteLine($"Layout:{stopwatch.ElapsedMilliseconds}");
         }
 
         public void LayoutChild(Element element, Rect rect)
