@@ -1,7 +1,8 @@
 # MauiUICollectionView
-This is an experiment with a custom CollectionView, which does not use the native UICollectionView/RecyclerView, but is based on Maui's ScrollView, and the FlatList in ReactNative is also based on ScrollView, so it is feasible.
+- This is an experiment with a custom CollectionView, which does not use the native UICollectionView/RecyclerView, but is based on Maui's ScrollView. This idea from FlatList in ReactNative and iOS's TableView, they are base on ScrollView.
 
-We know UICollectionView/RecyclerView is a high performance way to show list, they get high performance by recycle view. In this library, i also do it.
+- We know UICollectionView/RecyclerView is a high performance way to show list, they get high performance by recycle view. In this library, i also do it.
+- We can control all detail about CollectionView, you can custom a layout to get best performance to show your data.
 
 Demo:
 
