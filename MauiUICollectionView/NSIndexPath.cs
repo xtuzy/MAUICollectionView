@@ -13,12 +13,12 @@
         public virtual int Compare(NSIndexPath other)
         {
             //相等
-            if(Section == other.Section && Row == other.Row)
+            if (Section == other.Section && Row == other.Row)
             {
                 return 0;
             }
             //升序
-            if (Section < other.Section || (Section == other.Section && Row < other.Row)) 
+            if (Section < other.Section || (Section == other.Section && Row < other.Row))
             {
                 return -1;
             }
@@ -42,6 +42,7 @@
         /// <returns></returns>
         public override bool Equals(object obj)
         {
+            if(obj == null) return false;
             var other = obj as NSIndexPath;
             return Section == other.Section && Row == other.Row;
         }
@@ -53,6 +54,26 @@
         public override int GetHashCode()
         {
             return Section.GetHashCode() + Row.GetHashCode();
+        }
+
+        public static List<NSIndexPath> InRange((int start, int end) range, int section)
+        {
+            var ips = new List<NSIndexPath>();
+            for (var idx = range.start; idx <= range.end; idx++)
+            {
+                ips.Add(NSIndexPath.FromRowSection(idx, section));
+            }
+            return ips;
+        }
+
+        public static bool operator <(NSIndexPath lhs, NSIndexPath rhs)
+        {
+            return lhs.Compare(rhs) == -1;
+        }
+        
+        public static bool operator >(NSIndexPath lhs, NSIndexPath rhs)
+        {
+            return lhs.Compare(rhs) == 1;
         }
     }
 }

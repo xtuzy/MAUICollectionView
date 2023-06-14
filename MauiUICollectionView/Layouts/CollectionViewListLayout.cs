@@ -17,11 +17,24 @@
                 CollectionView.LayoutChild(CollectionView.HeaderView.ContentView, new Rect(0, CollectionView.HeaderView.PositionInLayout.Y, visibleBounds.Width, CollectionView.HeaderView.ContentView.DesiredSize.Height));
             }
 
+            var removeDelt = 0;
             // layout sections and rows
             foreach (var cell in CollectionView._cachedCells)
-                CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
+            {
+                //要移除的
+                if (cell.Key.Equals(removed) && editing)
+                {
+                    removeDelt = 1;
+                    CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
 
-
+                    continue;
+                }
+                //非要移除的
+                if (removeDelt != 0)//后续Item根据移除的Item高度发生偏移动画
+                    CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y - removeDelt, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
+                else
+                    CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
+            }
             if (CollectionView.FooterView != null)
             {
                 CollectionView.LayoutChild(CollectionView.FooterView.ContentView, new Rect(0, CollectionView.FooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.FooterView.ContentView.DesiredSize.Height));
@@ -54,8 +67,14 @@
         /// </summary>
         int measureTimes = 0;
 
+        public Dictionary<NSIndexPath, MAUICollectionViewViewHolder.ItemAttribute> Updates = new Dictionary<NSIndexPath, MAUICollectionViewViewHolder.ItemAttribute>();
         public override Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
+            //编辑模式, 需等待旧的Item动画结束再更新新的数据
+            if (editing)
+            {
+                return lastMeasure;
+            }
             if (measureTimes <= 3)
                 measureTimes++;
 
@@ -97,7 +116,7 @@
                     }
                 }
             }
-            else//往下滑, 下面的需要回收
+            else if (scrollOffset < 0)//往下滑, 下面的需要回收
             {
                 scrollOffset = -scrollOffset;
                 for (int i = tempCells.Count - 1; i >= 0; i--)
@@ -112,6 +131,43 @@
                     {
                         break;
                     }
+                }
+            }
+            else//0
+            {
+                if (removed != null)
+                {
+                    if (tempCells[0].Key > removed)
+                    {
+                        foreach (var cell in tempCells)
+                            needRemoveCell.Add(cell.Key);
+                    }
+                    else if (tempCells[tempCells.Count - 1].Key < removed)
+                    {
+
+                    }
+                    else
+                    {
+                        bool startRemove = false;
+                        for (int i = 0; i < tempCells.Count; i++)
+                        {
+                            var cell = tempCells[i];
+                            if (startRemove)
+                            {
+                                needRemoveCell.Add(cell.Key);
+                            }
+                            else
+                            {
+                                if (cell.Key.Compare(removed) == 0)
+                                {
+                                    startRemove = true;
+                                    needRemoveCell.Add(cell.Key);
+                                }
+                            }
+                        }
+                    }
+
+                    removed = null;
                 }
             }
             foreach (var indexPath in needRemoveCell)
@@ -131,7 +187,7 @@
             int numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
             {
-                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
 
                 for (int row = 0; row < numberOfRows; row++)
                 {
@@ -259,9 +315,11 @@
                 tableHeight += footMeasureSize.Height;
             }
             //Debug.WriteLine("TableView Content Height:" + tableHeight);
-            return new Size(tableViewBoundsSize.Width, tableHeight);
+            lastMeasure = new Size(tableViewBoundsSize.Width, tableHeight);
+            return lastMeasure;
         }
 
+        Size lastMeasure;
 
         /// <summary>
         /// 可见的区域中的点在哪一行
@@ -297,7 +355,7 @@
             var number = CollectionView.NumberOfSections();
             for (int section = 0; section < number; section++)
             {
-                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
@@ -334,7 +392,7 @@
             var number = CollectionView.NumberOfSections();
             for (int section = 0; section < number; section++)
             {
-                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
@@ -356,6 +414,19 @@
                 }
             }
             return Rect.Zero;
+        }
+
+        NSIndexPath removed;
+        bool editing = false;
+        public void NotifyItemChanged(NSIndexPath indexPath)
+        {
+            editing = true;
+            removed = indexPath;
+            //找到Item是否可见
+            if (CollectionView._cachedCells.Count > 0)
+            {
+
+            }
         }
     }
 }

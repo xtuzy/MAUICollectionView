@@ -82,7 +82,7 @@ public partial class GridLayoutTestPage : ContentPage
             models = testModel.Generate(100);
 
             heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
-            numberOfRowsInSection += numberOfRowsInSectionMethod;
+            numberOfItemsInSection += numberOfRowsInSectionMethod;
             cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
             numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
             reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;

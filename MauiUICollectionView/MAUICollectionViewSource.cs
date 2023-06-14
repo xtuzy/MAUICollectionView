@@ -2,7 +2,7 @@
 {
     public class MAUICollectionViewSource : IMAUICollectionViewSource
     {
-        public numberOfRowsInSectionDelegate numberOfRowsInSection { get; set; }
+        public numberOfRowsInSectionDelegate numberOfItemsInSection { get; set; }
 
         public cellForRowAtIndexPathDelegate cellForRowAtIndexPath { get; set; }
 

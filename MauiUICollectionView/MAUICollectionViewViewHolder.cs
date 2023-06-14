@@ -1,4 +1,6 @@
-﻿namespace MauiUICollectionView
+﻿using Microsoft.Maui.Controls;
+
+namespace MauiUICollectionView
 {
     public class MAUICollectionViewViewHolder
     {
@@ -70,12 +72,37 @@
         public static Point EmptyPoint = new Point(-1, -1);
 
         public bool IsEmpty = true;
+        internal ItemAttribute Attributes;
 
         public virtual void PrepareForReuse()
         {
             IsEmpty = true;
             PositionInLayout = EmptyPoint;
             ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
+        }
+
+        public void Apply(ItemAttribute attribute, bool animate)
+        {
+            if(animate)
+            {
+                ContentView.ZIndex = attribute.ZIndex;
+                ContentView.FadeTo(attribute.Alpha);
+            }
+            else
+            {
+                ContentView.ZIndex = attribute.ZIndex;
+                ContentView.Opacity = attribute.Alpha;
+                ContentView.IsVisible = !attribute.Hiden;
+            }
+        }
+
+        public class ItemAttribute
+        {
+            public NSIndexPath IndexPath { get; set; }
+            public Rect Bounds { get; set; }
+            public int ZIndex { get; set; }
+            public bool Hiden { get; set; }
+            public int Alpha { get; set; }
         }
     }
 

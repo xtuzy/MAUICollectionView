@@ -145,7 +145,7 @@
             int numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
             {
-                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
 
                 for (int row = 0; row < numberOfRows; row = row + ColumnCount)
                 {
@@ -288,7 +288,7 @@
             int numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
             {
-                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
 
                 for (int row = 0; row < numberOfRows; row = row + ColumnCount)
                 {
@@ -328,7 +328,7 @@
             int numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
             {
-                int numberOfRows = CollectionView.NumberOfRowsInSection(section);
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
 
                 for (int row = 0; row < numberOfRows; row = row + ColumnCount)
                 {

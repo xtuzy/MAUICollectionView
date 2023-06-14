@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DemoTest.Pages.DefaultTestPage"
-             Title="DefaultTestPage">
-    <VerticalStackLayout>
-        <Label 
-            Text="Welcome to .NET MAUI!"
-            VerticalOptions="Center" 
-            HorizontalOptions="Center" />
-    </VerticalStackLayout>
+<ContentPage
+    x:Class="DemoTest.Pages.DefaultTestPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="DefaultTestPage">
+    <Grid x:Name="grid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <HorizontalStackLayout Grid.Row="0">
+            <Button x:Name="Add" Text="Add" />
+            <Button x:Name="Remove" Text="Remove" />
+            <Button x:Name="Change" Text="Change" />
+            <Button x:Name="Move" Text="Move" />
+        </HorizontalStackLayout>
+        <ContentView x:Name="content" Grid.Row="1" />
+    </Grid>
 </ContentPage>

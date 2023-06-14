@@ -13,13 +13,14 @@ public partial class DefaultTestPage : ContentPage
     {
         InitializeComponent();
         var tableView = new MAUICollectionView();
-        Content = tableView;
+        content.Content = tableView;
         tableView.VerticalScrollBarVisibility = ScrollBarVisibility.Always;
-        tableView.Source = new Source();
+        tableView.Source = new Source(tableView);
         tableView.ItemsLayout = new CollectionViewListLayout(tableView)
         {
         };
 
+        //选择Item
         var click = new TapGestureRecognizer();
         click.Tapped += (s, e) =>
         {
@@ -33,6 +34,8 @@ public partial class DefaultTestPage : ContentPage
                 tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
         };
         tableView.Content.GestureRecognizers.Add(click);
+        
+        //Header
         var headerButton = new Button() { Text = "Header", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
@@ -41,6 +44,8 @@ public partial class DefaultTestPage : ContentPage
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
         tableView.HeaderView = headerView;
+
+        //Footer
         var footerButton = new Button() { Text = "Footer", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
@@ -54,16 +59,26 @@ public partial class DefaultTestPage : ContentPage
         };
         this.Appearing += (sender, e) =>
         {
-            tableView.ReAppear();
+            tableView.ReAppear();//切换Page时可能Item不可见, 需要重新加载
             Console.WriteLine("Appearing");
+        };
+
+        //Add
+        Remove.Clicked += (sender, e) =>
+        {
+            (tableView.Source as Source).RemoveData(1);
+            (tableView.ItemsLayout as CollectionViewListLayout).NotifyItemChanged(NSIndexPath.FromRowSection(1, 0));
         };
     }
 
     class Source : MAUICollectionViewSource
     {
         List<Model> models;
-        public Source()
+        MAUICollectionView CollectionView;
+        public Source(MAUICollectionView tableView)
         {
+            CollectionView = tableView;
+
             var testModel = new Faker<Model>();
             testModel
                 .RuleFor(m => m.PersonIconUrl, f => f.Person.Avatar)
@@ -79,10 +94,31 @@ public partial class DefaultTestPage : ContentPage
             models = testModel.Generate(100);
 
             heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
-            numberOfRowsInSection += numberOfRowsInSectionMethod;
+            numberOfItemsInSection += numberOfRowsInSectionMethod;
             cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
             numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
             reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
+        }
+
+        public void RemoveData(int index)
+        {
+            models.RemoveAt(index);
+            //CollectionView.DeleteItems(new[] { NSIndexPath.FromRowSection(10, 1) }, false);
+        }
+
+        public void AddData()
+        {
+
+        }
+
+        public void ChangeData()
+        {
+
+        }
+
+        public void MoveData()
+        {
+
         }
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)

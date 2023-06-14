@@ -15,7 +15,7 @@
     /// </summary>
     public interface IMAUICollectionViewSource
     {
-        public numberOfRowsInSectionDelegate numberOfRowsInSection { get; }
+        public numberOfRowsInSectionDelegate numberOfItemsInSection { get; }
         /// <summary>
         /// 获取对应IndexPath的ViewHolder
         /// </summary>
