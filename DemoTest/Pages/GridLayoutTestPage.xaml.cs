@@ -129,7 +129,7 @@ public partial class GridLayoutTestPage : ContentPage
         {
             //从tableView的一个队列里获取一个cell
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
-            MAUICollectionViewViewHolder cell = tableView.dequeueReusableCellWithIdentifier(type);
+            MAUICollectionViewViewHolder cell = tableView.DequeueRecycledViewHolderWithIdentifier(type);
 
             if (type == sectionCell)
             {

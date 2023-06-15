@@ -19,34 +19,20 @@
 
             var removeDelt = 0;
             // layout sections and rows
-            foreach (var cell in CollectionView._cachedCells)
+            foreach (var cell in CollectionView.PreparedItems)
             {
-                //要移除的
-                if (cell.Key.Equals(removed) && editing)
-                {
-                    removeDelt = 1;
-                    CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
-
-                    continue;
-                }
-                //非要移除的
-                if (removeDelt != 0)//后续Item根据移除的Item高度发生偏移动画
-                    CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y - removeDelt, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
-                else
-                    CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
+                CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
             }
             if (CollectionView.FooterView != null)
             {
                 CollectionView.LayoutChild(CollectionView.FooterView.ContentView, new Rect(0, CollectionView.FooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.FooterView.ContentView.DesiredSize.Height));
             }
 
-            foreach (MAUICollectionViewViewHolder cell in CollectionView._reusableCells)
+            foreach (MAUICollectionViewViewHolder cell in CollectionView.ReusableViewHolders)
             {
                 CollectionView.LayoutChild(cell.ContentView, new Rect(0, -3000, cell.ContentView.DesiredSize.Width, cell.ContentView.DesiredSize.Height));
             }
         }
-
-        List<NSIndexPath> needRemoveCell = new List<NSIndexPath>();
 
         /// <summary>
         /// 存储同类型的已经显示的Row的行高, 用于估计未显示的行.
@@ -67,14 +53,8 @@
         /// </summary>
         int measureTimes = 0;
 
-        public Dictionary<NSIndexPath, MAUICollectionViewViewHolder.ItemAttribute> Updates = new Dictionary<NSIndexPath, MAUICollectionViewViewHolder.ItemAttribute>();
         public override Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            //编辑模式, 需等待旧的Item动画结束再更新新的数据
-            if (editing)
-            {
-                return lastMeasure;
-            }
             if (measureTimes <= 3)
                 measureTimes++;
 
@@ -92,22 +72,23 @@
                 tableHeight += _tableHeaderViewH;
             }
 
-            // 需要重新布局后, cell会变动, 先将之前显示的cell放入可供使用的cell字典
+            // 需要重新布局后, cell会变动, 先将之前显示的cell放入可供使用的cell字典, 如果数据源更新, 这里的IndexPath都还是对应旧的
             Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells = new();
-            foreach (var cell in CollectionView._cachedCells)
+            foreach (var cell in CollectionView.PreparedItems)
                 availableCells.Add(cell.Key, cell.Value);
-            CollectionView._cachedCells.Clear();
+            CollectionView.PreparedItems.Clear();
 
             //复用是从_reusableCells获取的, 需要让不可见的先回收
-            var tempCells = availableCells.ToList();
+            var tempOrderedCells = availableCells.ToList();//创建一个临时的有序列表, 有序可以知道上下显示的item
+            var needRecycleCell = new List<NSIndexPath>();
             var scrollOffset = CollectionView.scrollOffset;
             if (scrollOffset > 0)//往上滑, 上面的需要回收
             {
-                foreach (var cell in tempCells)
+                foreach (var cell in tempOrderedCells)
                 {
                     if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
                     {
-                        needRemoveCell.Add(cell.Key);
+                        needRecycleCell.Add(cell.Key);
                         scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
                     }
                     else
@@ -119,12 +100,12 @@
             else if (scrollOffset < 0)//往下滑, 下面的需要回收
             {
                 scrollOffset = -scrollOffset;
-                for (int i = tempCells.Count - 1; i >= 0; i--)
+                for (int i = tempOrderedCells.Count - 1; i >= 0; i--)
                 {
-                    var cell = tempCells[i];
+                    var cell = tempOrderedCells[i];
                     if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
                     {
-                        needRemoveCell.Add(cell.Key);
+                        needRecycleCell.Add(cell.Key);
                         scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
                     }
                     else
@@ -133,56 +114,110 @@
                     }
                 }
             }
-            else//0
-            {
-                if (removed != null)
-                {
-                    if (tempCells[0].Key > removed)
-                    {
-                        foreach (var cell in tempCells)
-                            needRemoveCell.Add(cell.Key);
-                    }
-                    else if (tempCells[tempCells.Count - 1].Key < removed)
-                    {
-
-                    }
-                    else
-                    {
-                        bool startRemove = false;
-                        for (int i = 0; i < tempCells.Count; i++)
+            /*            else//0
                         {
-                            var cell = tempCells[i];
-                            if (startRemove)
+                            if (removed != null)
                             {
-                                needRemoveCell.Add(cell.Key);
-                            }
-                            else
-                            {
-                                if (cell.Key.Compare(removed) == 0)
+                                if (tempCells[0].Key > removed)
                                 {
-                                    startRemove = true;
-                                    needRemoveCell.Add(cell.Key);
+                                    foreach (var cell in tempCells)
+                                        needRemoveCell.Add(cell.Key);
                                 }
-                            }
-                        }
-                    }
+                                else if (tempCells[tempCells.Count - 1].Key < removed)
+                                {
 
-                    removed = null;
-                }
-            }
-            foreach (var indexPath in needRemoveCell)
+                                }
+                                else
+                                {
+                                    bool startRemove = false;
+                                    for (int i = 0; i < tempCells.Count; i++)
+                                    {
+                                        var cell = tempCells[i];
+                                        if (startRemove)
+                                        {
+                                            needRemoveCell.Add(cell.Key);
+                                        }
+                                        else
+                                        {
+                                            if (cell.Key.Compare(removed) == 0)
+                                            {
+                                                startRemove = true;
+                                                needRemoveCell.Add(cell.Key);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                removed = null;
+                            }
+                        }*/
+            foreach (var indexPath in needRecycleCell)//需要回收的
             {
                 var cell = availableCells[indexPath];
-                CollectionView._reusableCells.Add(cell);
+                CollectionView.RecycleViewHolder(cell);
                 availableCells.Remove(indexPath);
             }
 
+            //顶部和底部扩展的高度, 头2次布局不扩展, 防止初次显示计算太多item
             var topExtandHeight = measureTimes < 3 ? 0 : CollectionView.ExtendHeight;
             var bottomExtandHeight = measureTimes < 3 ? 0 : measureTimes == 3 ? CollectionView.ExtendHeight * 2 : CollectionView.ExtendHeight;//第一次测量时, 可能顶部缺少空间, 不会创建那么多Extend, 我们在底部先创建好
 
-            tempCells.Clear();
-            needRemoveCell.Clear();
+            tempOrderedCells.Clear();
+            needRecycleCell.Clear();
             scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
+
+            //如果更新了数据源, 这里迭代时获取的是最新的IndexPath, 那么为了复用就需要知道新IndexPath和旧IndexPath的对应关系, 我们这里把缓存的item的旧Index替换为新的
+
+            for (int index = Updates.Count - 1; index >= 0; index--)
+            {
+                var update = Updates[index];
+                if (update.operateType == OperateItem.OperateType.remove)//需要移除的先移除, move后的IndexPath与之相同
+                {
+                    if (availableCells.ContainsKey(update.source))
+                    {
+                        CollectionView.RecycleViewHolder(availableCells[update.source]);
+                        availableCells.Remove(update.source);
+                        Updates.RemoveAt(index);
+                    }
+                }
+                else if (update.operateType == OperateItem.OperateType.update)
+                {
+                    if (availableCells.ContainsKey(update.source))
+                    {
+                        CollectionView.RecycleViewHolder(availableCells[update.source]);
+                        availableCells.Remove(update.source);
+                        Updates.RemoveAt(index);
+                    }
+                }
+            }
+
+            Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
+            for (int index = Updates.Count - 1; index >= 0; index--)
+            {
+                var update = Updates[index];
+
+                if (update.operateType == OperateItem.OperateType.move)//移动的且显示的直接替换
+                {
+                    if (availableCells.ContainsKey(update.source))
+                    {
+                        var oldView = availableCells[update.source];
+                        availableCells.Remove(update.source);
+                        if (availableCells.ContainsKey(update.target))
+                            tempAvailableCells.Add(update.target, oldView);
+                        else
+                            availableCells.Add(update.target, oldView);
+                        Updates.RemoveAt(index);
+                    }
+                }
+                else if (update.operateType == OperateItem.OperateType.insert)//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
+                {
+
+                }
+            }
+            foreach (var item in tempAvailableCells)
+                availableCells.Add(item.Key, item.Value);
+
+            Updates.Clear();
 
             int numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
@@ -210,7 +245,7 @@
                         if (cell != null)
                         {
                             //将Cell添加到正在显示的Cell字典
-                            CollectionView._cachedCells[indexPath] = cell;
+                            CollectionView.PreparedItems[indexPath] = cell;
                             if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
                             //Cell是否是正在被选择的
                             cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
@@ -261,7 +296,7 @@
                             var cell = availableCells[indexPath];
                             if (cell.ReuseIdentifier != default)
                             {
-                                CollectionView._reusableCells.Add(cell);
+                                CollectionView.RecycleViewHolder(cell);
                                 availableCells.Remove(indexPath);
                             }
                             cell.PrepareForReuse();
@@ -276,12 +311,12 @@
             {
                 if (cell.ReuseIdentifier != default)
                 {
-                    if (CollectionView._reusableCells.Count > 3)
+                    if (CollectionView.ReusableViewHolders.Count > 3)
                     {
                         cell.ContentView.RemoveFromSuperview();
                     }
                     else
-                        CollectionView._reusableCells.Add(cell);
+                        CollectionView.RecycleViewHolder(cell);
                 }
                 else
                 {
@@ -298,8 +333,8 @@
             // the frame of the table view has actually animated down to the new, shorter size. So the animation is jumpy/ugly because
             // the cells suddenly disappear instead of seemingly animating down and out of view like they should. This tries to leave them
             // on screen as long as possible, but only if they don't get in the way.
-            var allCachedCells = CollectionView._cachedCells.Values;
-            foreach (MAUICollectionViewViewHolder cell in CollectionView._reusableCells)
+            var allCachedCells = CollectionView.PreparedItems.Values;
+            foreach (MAUICollectionViewViewHolder cell in CollectionView.ReusableViewHolders)
             {
                 if (cell.ContentView.Frame.IntersectsWith(visibleBounds) && !allCachedCells.Contains(cell))
                 {
@@ -416,17 +451,162 @@
             return Rect.Zero;
         }
 
-        NSIndexPath removed;
-        bool editing = false;
-        public void NotifyItemChanged(NSIndexPath indexPath)
-        {
-            editing = true;
-            removed = indexPath;
-            //找到Item是否可见
-            if (CollectionView._cachedCells.Count > 0)
-            {
+        #region 操作
+        /*
+         * 需要汇总所有操作, 因为多个操作一起时, 我们需要同时更新动画.
+         * 汇总所有操作需要把数据不变的, 只是IndexPath变了的Item找出来, 因为它显示时如果更新数据, 会有加载过程, 导致不像连续的动画.
+         */
 
+        public List<OperateItem> Updates = new();
+
+        public class OperateItem
+        {
+            public enum OperateType
+            {
+                /// <summary>
+                /// 移除de
+                /// </summary>
+                remove,
+                /// <summary>
+                /// 新增的
+                /// </summary>
+                insert,
+                /// <summary>
+                /// 移动的, 代表IndexPath改变的
+                /// </summary>
+                move,
+                /// <summary>
+                /// 内容更新的
+                /// </summary>
+                update
+            }
+            //旧Index
+            public NSIndexPath source;
+            //新的Index
+            public NSIndexPath target;
+            public OperateType operateType;
+        }
+
+        /// <summary>
+        /// 通知CollectionView移除某Item, 需要做出改变.
+        /// 移除会让移除项后面的Item需要调节高度, 这个高度需要动画改变
+        /// </summary>
+        /// <param name="indexPaths"></param>
+        public void RemoveItems(NSIndexPath indexPaths)
+        {
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = indexPaths });
+
+            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+            foreach (var visiableItem in CollectionView.PreparedItems)
+            {
+                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
+                {
+                    if (visiableItem.Key.Row > indexPaths.Row)//大于移除item的row的需要更新IndexPath
+                    {
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                    }
+                }
+            }
+            CollectionView._reloadDataCounts();
+        }
+
+        /// <summary>
+        /// 通知CollectionView插入了Item, 需要做出改变.
+        /// </summary>
+        /// <param name="indexPaths">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
+        public void InsertItems(NSIndexPath indexPaths)
+        {
+            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+            foreach (var visiableItem in CollectionView.PreparedItems)
+            {
+                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
+                {
+                    if (visiableItem.Key.Row >= indexPaths.Row)//大于等于item的row的需要更新IndexPath
+                    {
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                    }
+                }
+            }
+            //先move后面的, 再插入
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.insert, source = indexPaths });
+
+            CollectionView._reloadDataCounts();
+        }
+
+        public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
+        {
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = indexPath, target = toIndexPath });
+
+            //如果同Section, Move影响的只是之间的
+            if (indexPath.Section == toIndexPath.Section)
+            {
+                var isUpMove = indexPath.Row > toIndexPath.Row;
+                //先移除
+                foreach (var visiableItem in CollectionView.PreparedItems)
+                {
+                    if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
+                    {
+                        if (isUpMove)//从底部向上移动, 目标位置下面的都需要向下移动
+                        {
+                            if (visiableItem.Key.Row >= toIndexPath.Row && visiableItem.Key.Row < indexPath.Row)
+                            {
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                            }
+                        }
+                        else
+                        {
+                            if (visiableItem.Key.Row > indexPath.Row && visiableItem.Key.Row <= toIndexPath.Row)
+                            {
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                            }
+                        }
+                        
+                    }
+                }
+            }
+            //如果不同Section, 则影响不同的section后面的
+            else
+            {
+                //先移除, 移除的Item后面的Item需要向前移动
+                foreach (var visiableItem in CollectionView.PreparedItems)
+                {
+                    if (visiableItem.Key.Section == indexPath.Section)
+                    {
+                        if (visiableItem.Key.Row > indexPath.Row)
+                        {
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                        }
+                    }
+                }
+                //后插入, 后面的需要向后移动
+                foreach (var visiableItem in CollectionView.PreparedItems)
+                {
+                    if (visiableItem.Key.Section == toIndexPath.Section)
+                    {
+                        if (visiableItem.Key.Row >= toIndexPath.Row)
+                        {
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                        }
+                    }
+                }
+            }
+            CollectionView._reloadDataCounts();
+        }
+
+        public void ChangeItem(NSIndexPath indexPath)
+        {
+            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+            foreach (var visiableItem in CollectionView.PreparedItems)
+            {
+                if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
+                {
+                    if (visiableItem.Key.Row == indexPath.Row)//大于等于item的row的需要更新IndexPath
+                    {
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.update, source = visiableItem.Key });
+                    }
+                }
             }
         }
+        #endregion
     }
 }

@@ -49,13 +49,13 @@ namespace MauiUICollectionView
         public NSIndexPath _selectedRow;
         public NSIndexPath _highlightedRow;
         /// <summary>
-        /// 当前正在显示区域中的Cell
+        /// 当前正在显示区域中的Items
         /// </summary>
-        public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> _cachedCells;
+        public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> PreparedItems;
         /// <summary>
-        /// 回收的等待重复利用的Cell
+        /// 回收的等待重复利用的ViewHolder
         /// </summary>
-        public List<MAUICollectionViewViewHolder> _reusableCells;
+        public List<MAUICollectionViewViewHolder> ReusableViewHolders;
 
         SourceHas _sourceHas;
         struct SourceHas
@@ -75,8 +75,8 @@ namespace MauiUICollectionView
 
         void Init()
         {
-            this._cachedCells = new();
-            this._reusableCells = new();
+            this.PreparedItems = new();
+            this.ReusableViewHolders = new();
             this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
             this.allowsSelection = true;
             this.allowsSelectionDuringEditing = false;
@@ -126,7 +126,7 @@ namespace MauiUICollectionView
             // this is allowed to return nil if the cell isn't visible and is not restricted to only returning visible cells
             // so this simple call should be good enough.
             if (indexPath == null) return null;
-            return _cachedCells.ContainsKey(indexPath) ? _cachedCells[indexPath] : null;
+            return PreparedItems.ContainsKey(indexPath) ? PreparedItems[indexPath] : null;
         }
 
         public void setBackgroundView(UIView backgroundView)
@@ -145,13 +145,13 @@ namespace MauiUICollectionView
         public void ReloadData()
         {
             // clear the caches and remove the cells since everything is going to change
-            foreach (var cell in _cachedCells.Values)
+            foreach (var cell in PreparedItems.Values)
             {
                 cell.PrepareForReuse();
-                _reusableCells.Add(cell);
+                ReusableViewHolders.Add(cell);
             }
 
-            _cachedCells.Clear();
+            PreparedItems.Clear();
 
             // clear prior selection
             this._selectedRow = null;
@@ -168,13 +168,13 @@ namespace MauiUICollectionView
         /// </summary>
         public void ReAppear()
         {
-            foreach (var cell in _cachedCells.Values)
+            foreach (var cell in PreparedItems.Values)
             {
                 cell.PrepareForReuse();
-                _reusableCells.Add(cell);
+                ReusableViewHolders.Add(cell);
             }
 
-            _cachedCells.Clear();
+            PreparedItems.Clear();
 
             _reloadDataCounts();
             this._needsReload = false;
@@ -234,9 +234,9 @@ namespace MauiUICollectionView
 
         public NSIndexPath IndexPathForCell(MAUICollectionViewViewHolder cell)
         {
-            foreach (NSIndexPath index in _cachedCells.Keys)
+            foreach (NSIndexPath index in PreparedItems.Keys)
             {
-                if (_cachedCells[index] == cell)
+                if (PreparedItems[index] == cell)
                 {
                     return index;
                 }
@@ -359,26 +359,30 @@ namespace MauiUICollectionView
             }
         }
 
-        public MAUICollectionViewViewHolder dequeueReusableCellWithIdentifier(string identifier)
+        #region 复用
+        public MAUICollectionViewViewHolder DequeueRecycledViewHolderWithIdentifier(string identifier)
         {
-            foreach (MAUICollectionViewViewHolder cell in _reusableCells)
+            foreach (MAUICollectionViewViewHolder viewHolder in ReusableViewHolders)
             {
-                if (cell.ReuseIdentifier == identifier)
+                if (viewHolder.ReuseIdentifier == identifier)
                 {
-                    MAUICollectionViewViewHolder strongCell = cell;
+                    ReusableViewHolders.Remove(viewHolder);
 
-                    // the above strongCell reference seems totally unnecessary, but without it ARC apparently
-                    // ends up releasing the cell when it's removed on this line even though we're referencing it
-                    // later in this method by way of the cell variable. I do not like this.
-                    _reusableCells.Remove(cell);
-
-                    strongCell.PrepareForReuse();
-                    return strongCell;
+                    viewHolder.PrepareForReuse();
+                    return viewHolder;
                 }
             }
 
             return null;
         }
+
+        public void RecycleViewHolder(MAUICollectionViewViewHolder viewHolder)
+        {
+            ReusableViewHolders.Add(viewHolder);
+            viewHolder.ContentView.RemoveFromSuperview();
+        }
+
+        #endregion
 
         #region 数据
         /// <summary>
@@ -386,7 +390,7 @@ namespace MauiUICollectionView
         /// </summary>
         private List<int> sections = new();
 
-        private void _reloadDataCounts()
+        public void _reloadDataCounts()
         {
             this.sections = fetchDataCounts();
         }

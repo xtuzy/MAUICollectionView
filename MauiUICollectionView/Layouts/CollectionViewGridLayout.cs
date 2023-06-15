@@ -31,7 +31,7 @@
             }
 
             // layout sections and rows
-            foreach (var cell in CollectionView._cachedCells)
+            foreach (var cell in CollectionView.PreparedItems)
                 CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
 
 
@@ -40,7 +40,7 @@
                 CollectionView.LayoutChild(CollectionView.FooterView.ContentView, new Rect(0, CollectionView.FooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.FooterView.ContentView.DesiredSize.Height));
             }
 
-            foreach (MAUICollectionViewViewHolder cell in CollectionView._reusableCells)
+            foreach (MAUICollectionViewViewHolder cell in CollectionView.ReusableViewHolders)
             {
                 CollectionView.LayoutChild(cell.ContentView, new Rect(0, -3000, cell.ContentView.DesiredSize.Width, cell.ContentView.DesiredSize.Height));
             }
@@ -87,9 +87,9 @@
 
             // 需要重新布局后, cell会变动, 先将之前显示的cell放入可供使用的cell字典
             Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells = new();
-            foreach (var cell in CollectionView._cachedCells)
+            foreach (var cell in CollectionView.PreparedItems)
                 availableCells.Add(cell.Key, cell.Value);
-            CollectionView._cachedCells.Clear();
+            CollectionView.PreparedItems.Clear();
 
             //复用是从_reusableCells获取的, 需要让不可见的先回收
             var tempCells = availableCells.ToList();
@@ -129,7 +129,7 @@
             foreach (var indexPath in needRemoveCell)
             {
                 var cell = availableCells[indexPath];
-                CollectionView._reusableCells.Add(cell);
+                CollectionView.ReusableViewHolders.Add(cell);
                 availableCells.Remove(indexPath);
             }
 
@@ -167,7 +167,7 @@
                             if (cell != null)
                             {
                                 //将Cell添加到正在显示的Cell字典
-                                CollectionView._cachedCells[indexPath] = cell;
+                                CollectionView.PreparedItems[indexPath] = cell;
                                 if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
                                 //Cell是否是正在被选择的
                                 cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
@@ -191,7 +191,7 @@
                                 var cell = availableCells[indexPath];
                                 if (cell.ReuseIdentifier != default)
                                 {
-                                    CollectionView._reusableCells.Add(cell);
+                                    CollectionView.ReusableViewHolders.Add(cell);
                                     availableCells.Remove(indexPath);
                                 }
                                 cell.PrepareForReuse();
@@ -208,12 +208,12 @@
             {
                 if (cell.ReuseIdentifier != default)
                 {
-                    if (CollectionView._reusableCells.Count > 3)
+                    if (CollectionView.ReusableViewHolders.Count > 3)
                     {
                         cell.ContentView.RemoveFromSuperview();
                     }
                     else
-                        CollectionView._reusableCells.Add(cell);
+                        CollectionView.ReusableViewHolders.Add(cell);
                 }
                 else
                 {
@@ -230,8 +230,8 @@
             // the frame of the table view has actually animated down to the new, shorter size. So the animation is jumpy/ugly because
             // the cells suddenly disappear instead of seemingly animating down and out of view like they should. This tries to leave them
             // on screen as long as possible, but only if they don't get in the way.
-            var allCachedCells = CollectionView._cachedCells.Values;
-            foreach (MAUICollectionViewViewHolder cell in CollectionView._reusableCells)
+            var allCachedCells = CollectionView.PreparedItems.Values;
+            foreach (MAUICollectionViewViewHolder cell in CollectionView.ReusableViewHolders)
             {
                 if (cell.ContentView.Frame.IntersectsWith(visibleBounds) && !allCachedCells.Contains(cell))
                 {

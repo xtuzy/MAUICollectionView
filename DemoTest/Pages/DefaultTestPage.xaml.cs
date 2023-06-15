@@ -34,7 +34,7 @@ public partial class DefaultTestPage : ContentPage
                 tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
         };
         tableView.Content.GestureRecognizers.Add(click);
-        
+
         //Header
         var headerButton = new Button() { Text = "Header", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
@@ -64,10 +64,37 @@ public partial class DefaultTestPage : ContentPage
         };
 
         //Add
+        Add.Clicked += (sender, e) =>
+        {
+            var index = 2;
+            (tableView.Source as Source).InsertData(index);
+            (tableView.ItemsLayout as CollectionViewListLayout).InsertItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.ContentView.ReMeasure();
+        };
+
         Remove.Clicked += (sender, e) =>
         {
-            (tableView.Source as Source).RemoveData(1);
-            (tableView.ItemsLayout as CollectionViewListLayout).NotifyItemChanged(NSIndexPath.FromRowSection(1, 0));
+            var index = 2;
+            (tableView.Source as Source).RemoveData(index);
+            (tableView.ItemsLayout as CollectionViewListLayout).RemoveItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.ContentView.ReMeasure();
+        };
+
+        Move.Clicked += (sender, e) =>
+        {
+            var index = 3;
+            var target = 1;
+            (tableView.Source as Source).MoveData(index, target);
+            (tableView.ItemsLayout as CollectionViewListLayout).MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
+            tableView.ContentView.ReMeasure();
+        };
+
+        Change.Clicked += (sender, e) =>
+        {
+            var index = 2;
+            (tableView.Source as Source).ChangeData(index);
+            (tableView.ItemsLayout as CollectionViewListLayout).ChangeItem(NSIndexPath.FromRowSection(index, 0));
+            tableView.ContentView.ReMeasure();
         };
     }
 
@@ -75,11 +102,13 @@ public partial class DefaultTestPage : ContentPage
     {
         List<Model> models;
         MAUICollectionView CollectionView;
+        private Faker<Model> testModel;
+
         public Source(MAUICollectionView tableView)
         {
             CollectionView = tableView;
 
-            var testModel = new Faker<Model>();
+            testModel = new Faker<Model>();
             testModel
                 .RuleFor(m => m.PersonIconUrl, f => f.Person.Avatar)
                 .RuleFor(m => m.PersonName, f => f.Person.FullName)
@@ -106,19 +135,21 @@ public partial class DefaultTestPage : ContentPage
             //CollectionView.DeleteItems(new[] { NSIndexPath.FromRowSection(10, 1) }, false);
         }
 
-        public void AddData()
+        public void InsertData(int index)
         {
-
+            models.Insert(index, testModel.Generate(1)[0]);
         }
 
-        public void ChangeData()
+        public void ChangeData(int index)
         {
-
+            models[index] = testModel.Generate(1)[0];
         }
 
-        public void MoveData()
+        public void MoveData(int index, int toIndex)
         {
-
+            var item = models[index];
+            models.RemoveAt(index);
+            models.Insert(toIndex, item);
         }
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
@@ -162,7 +193,7 @@ public partial class DefaultTestPage : ContentPage
         {
             //从tableView的一个队列里获取一个cell
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
-            MAUICollectionViewViewHolder cell = tableView.dequeueReusableCellWithIdentifier(type);
+            MAUICollectionViewViewHolder cell = tableView.DequeueRecycledViewHolderWithIdentifier(type);
 
             if (type == sectionCell)
             {
@@ -202,7 +233,7 @@ public partial class DefaultTestPage : ContentPage
                         imageCell.ModelView.PersonPhone.Text = models[indexPath.Row].PersonPhone;
                         imageCell.ModelView.PersonTextBlog.Text = models[indexPath.Row].PersonTextBlog;
                         imageCell.ModelView.PersonImageBlog.Source = models[indexPath.Row].PersonImageBlogUrl;
-                        imageCell.ModelView.LikeIcon.Source =  new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
+                        imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
                     }
                     imageCell.IsEmpty = false;
                 }
