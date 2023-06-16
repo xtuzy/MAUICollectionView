@@ -120,7 +120,7 @@ public partial class DefaultTestPage : ContentPage
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
-            models = testModel.Generate(100);
+            models = testModel.Generate(20);
 
             heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
             numberOfItemsInSection += numberOfRowsInSectionMethod;
