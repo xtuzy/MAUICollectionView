@@ -68,7 +68,7 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).InsertData(index);
-            (tableView.ItemsLayout as CollectionViewListLayout).InsertItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.InsertItems(NSIndexPath.FromRowSection(index, 0));
             tableView.ContentView.ReMeasure();
         };
 
@@ -76,7 +76,7 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).RemoveData(index);
-            (tableView.ItemsLayout as CollectionViewListLayout).RemoveItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0));
             tableView.ContentView.ReMeasure();
         };
 
@@ -85,7 +85,7 @@ public partial class DefaultTestPage : ContentPage
             var index = 3;
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
-            (tableView.ItemsLayout as CollectionViewListLayout).MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
+            tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
             tableView.ContentView.ReMeasure();
         };
 
@@ -93,7 +93,7 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            (tableView.ItemsLayout as CollectionViewListLayout).ChangeItem(NSIndexPath.FromRowSection(index, 0));
+            tableView.ChangeItem(new[] { NSIndexPath.FromRowSection(index, 0) });
             tableView.ContentView.ReMeasure();
         };
     }

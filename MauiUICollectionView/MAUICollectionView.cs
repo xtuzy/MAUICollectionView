@@ -433,12 +433,12 @@ namespace MauiUICollectionView
 
         #region 操作
 
-        public void InsertSections(int[] sections, RowAnimation animation)
+        private void InsertSections(int[] sections, RowAnimation animation)
         {
             this.ReloadData();
         }
 
-        public void DeleteSections(int[] sections, RowAnimation animation)
+        private void DeleteSections(int[] sections, RowAnimation animation)
         {
             this.ReloadData();
         }
@@ -448,7 +448,7 @@ namespace MauiUICollectionView
         /// </summary>
         /// <param name="indexPaths">The index paths at which to insert items.</param>
         /// <param name="animation"></param>
-        public void InsertItems(NSIndexPath[] indexPaths, bool animate)
+        private void InsertItems(NSIndexPath[] indexPaths, bool animate)
         {
             if (indexPaths == null || indexPaths.Length == 0) { return; }
             beginUpdates();
@@ -456,7 +456,7 @@ namespace MauiUICollectionView
             endUpdates(animate);
         }
 
-        public void DeleteItems(NSIndexPath[] indexPaths, bool animation)
+        private void DeleteItems(NSIndexPath[] indexPaths, bool animation)
         {
             this.ReloadData();
         }
@@ -626,7 +626,7 @@ namespace MauiUICollectionView
             }
         }
 
-        public struct ItemUpdate : IEquatable<ItemUpdate>
+        private struct ItemUpdate : IEquatable<ItemUpdate>
         {
             public enum UpdateType
             {
@@ -651,7 +651,7 @@ namespace MauiUICollectionView
 
                 MAUICollectionViewViewHolder.ItemAttribute a = null;
                 a = cv.LayoutAttributesForItem(IndexPath);
-                
+
                 a = a ?? View.Attributes;
                 if (a == null)
                 {
@@ -672,6 +672,130 @@ namespace MauiUICollectionView
         {
             //ItemsLayout.LayoutAttributesForItem(indexPath);
             return null;
+        }
+        #endregion
+
+        #region 操作
+
+        /// <summary>
+        /// 通知CollectionView移除某Item, 需要做出改变.
+        /// 移除会让移除项后面的Item需要调节高度, 这个高度需要动画改变
+        /// </summary>
+        /// <param name="indexPaths"></param>
+        public void RemoveItems(NSIndexPath indexPaths)
+        {
+            var Updates = ItemsLayout.Updates;
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = indexPaths });
+
+            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+            foreach (var visiableItem in PreparedItems)
+            {
+                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
+                {
+                    if (visiableItem.Key.Row > indexPaths.Row)//大于移除item的row的需要更新IndexPath
+                    {
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                    }
+                }
+            }
+            _reloadDataCounts();
+        }
+
+        /// <summary>
+        /// 通知CollectionView插入了Item, 需要做出改变.
+        /// </summary>
+        /// <param name="indexPaths">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
+        public void InsertItems(NSIndexPath indexPaths)
+        {
+            var Updates = ItemsLayout.Updates;
+            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+            foreach (var visiableItem in PreparedItems)
+            {
+                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
+                {
+                    if (visiableItem.Key.Row >= indexPaths.Row)//大于等于item的row的需要更新IndexPath
+                    {
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                    }
+                }
+            }
+            //先move后面的, 再插入
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.insert, source = indexPaths });
+
+            _reloadDataCounts();
+        }
+
+        public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
+        {
+            var Updates = ItemsLayout.Updates;
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = indexPath, target = toIndexPath });
+
+            //如果同Section, Move影响的只是之间的
+            if (indexPath.Section == toIndexPath.Section)
+            {
+                var isUpMove = indexPath.Row > toIndexPath.Row;
+                //先移除
+                foreach (var visiableItem in PreparedItems)
+                {
+                    if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
+                    {
+                        if (isUpMove)//从底部向上移动, 目标位置下面的都需要向下移动
+                        {
+                            if (visiableItem.Key.Row >= toIndexPath.Row && visiableItem.Key.Row < indexPath.Row)
+                            {
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                            }
+                        }
+                        else
+                        {
+                            if (visiableItem.Key.Row > indexPath.Row && visiableItem.Key.Row <= toIndexPath.Row)
+                            {
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                            }
+                        }
+
+                    }
+                }
+            }
+            //如果不同Section, 则影响不同的section后面的
+            else
+            {
+                //先移除, 移除的Item后面的Item需要向前移动
+                foreach (var visiableItem in PreparedItems)
+                {
+                    if (visiableItem.Key.Section == indexPath.Section)
+                    {
+                        if (visiableItem.Key.Row > indexPath.Row)
+                        {
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                        }
+                    }
+                }
+                //后插入, 后面的需要向后移动
+                foreach (var visiableItem in PreparedItems)
+                {
+                    if (visiableItem.Key.Section == toIndexPath.Section)
+                    {
+                        if (visiableItem.Key.Row >= toIndexPath.Row)
+                        {
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                        }
+                    }
+                }
+            }
+            _reloadDataCounts();
+        }
+
+        public void ChangeItem(IEnumerable<NSIndexPath> indexPaths)
+        {
+            var Updates = ItemsLayout.Updates;
+            foreach (var visiableItem in PreparedItems)
+            {
+                if (indexPaths.Contains(visiableItem.Key))//如果可见的Items包含需要更新的Item
+                {
+                    Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.update, source = visiableItem.Key });
+                }
+            }
         }
         #endregion
     }

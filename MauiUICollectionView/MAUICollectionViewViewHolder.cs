@@ -1,14 +1,12 @@
-﻿using Microsoft.Maui.Controls;
-
-namespace MauiUICollectionView
+﻿namespace MauiUICollectionView
 {
     public class MAUICollectionViewViewHolder
     {
         public const float MeasureSelf = -1;
         /// <summary>
-        /// 存储Cell的位置, 
+        /// 存储Item的位置和大小, 在Measure时设置, Arrange时使用它作为最终的参数
         /// </summary>
-        public Point PositionInLayout;
+        public Rect BoundsInLayout;
 
         #region https://github.com/BigZaphod/Chameleon/blob/master/UIKit/Classes/UITableViewCell.h
 
@@ -69,7 +67,7 @@ namespace MauiUICollectionView
 
         public bool Highlighted { set => this.SetHighlighted(value, false); get => _highlighted; }
 
-        public static Point EmptyPoint = new Point(-1, -1);
+        public static Rect EmptyRect = new Rect(-1, -1, 0, 0);
 
         public bool IsEmpty = true;
         internal ItemAttribute Attributes;
@@ -77,13 +75,13 @@ namespace MauiUICollectionView
         public virtual void PrepareForReuse()
         {
             IsEmpty = true;
-            PositionInLayout = EmptyPoint;
+            BoundsInLayout = EmptyRect;
             ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
         }
 
         public void Apply(ItemAttribute attribute, bool animate)
         {
-            if(animate)
+            if (animate)
             {
                 ContentView.ZIndex = attribute.ZIndex;
                 ContentView.FadeTo(attribute.Alpha);

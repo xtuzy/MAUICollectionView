@@ -19,33 +19,6 @@
         /// </summary>
         public Size AspectRatio { get; set; } = new Size(1, 1);
 
-        public override void ArrangeContents()
-        {
-            Size boundsSize = CollectionView.Bounds.Size;
-            var contentOffset = CollectionView.ScrollY; //ContentOffset.Y;
-            Rect visibleBounds = new Rect(0, contentOffset, boundsSize.Width, boundsSize.Height);
-
-            if (CollectionView.HeaderView != null)
-            {
-                CollectionView.LayoutChild(CollectionView.HeaderView.ContentView, new Rect(0, CollectionView.HeaderView.PositionInLayout.Y, visibleBounds.Width, CollectionView.HeaderView.ContentView.DesiredSize.Height));
-            }
-
-            // layout sections and rows
-            foreach (var cell in CollectionView.PreparedItems)
-                CollectionView.LayoutChild(cell.Value.ContentView, new Rect(cell.Value.PositionInLayout.X, cell.Value.PositionInLayout.Y, cell.Value.ContentView.DesiredSize.Width, cell.Value.ContentView.DesiredSize.Height));
-
-
-            if (CollectionView.FooterView != null)
-            {
-                CollectionView.LayoutChild(CollectionView.FooterView.ContentView, new Rect(0, CollectionView.FooterView.PositionInLayout.Y, visibleBounds.Width, CollectionView.FooterView.ContentView.DesiredSize.Height));
-            }
-
-            foreach (MAUICollectionViewViewHolder cell in CollectionView.ReusableViewHolders)
-            {
-                CollectionView.LayoutChild(cell.ContentView, new Rect(0, -3000, cell.ContentView.DesiredSize.Width, cell.ContentView.DesiredSize.Height));
-            }
-        }
-
         List<NSIndexPath> needRemoveCell = new List<NSIndexPath>();
 
         /// <summary>
@@ -62,84 +35,11 @@
         /// Image测量可能首先获得的高度为0, 造成要显示Item数目过多. 这个值尽量接近最终高度.
         /// </summary>
         public double EstimatedRowHeight = 100;
-        /// <summary>
-        /// 第一次显示我们尽量少创建Cell
-        /// </summary>
-        int measureTimes = 0;
-        public override Size MeasureContents(double tableViewWidth, double tableViewHeight)
+
+        protected override double MeasureItems(double top, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
         {
-            if (measureTimes <= 3)
-                measureTimes++;
-
-            //tableView自身的大小
-            Size tableViewBoundsSize = new Size(tableViewWidth, tableViewHeight);
-            //当前可见区域在ContentView中的位置
-            Rect visibleBounds = new Rect(0, CollectionView.ScrollY, tableViewBoundsSize.Width, tableViewBoundsSize.Height);
-            double tableHeight = 0;
-
-            //表头的View是确定的, 我们可以直接测量
-            if (CollectionView.HeaderView != null)
-            {
-                var _tableHeaderViewH = CollectionView.MeasureChild(CollectionView.HeaderView.ContentView, tableViewWidth, double.PositiveInfinity).Request.Height;
-                CollectionView.HeaderView.PositionInLayout = new Point(0, 0);
-                tableHeight += _tableHeaderViewH;
-            }
-
-            // 需要重新布局后, cell会变动, 先将之前显示的cell放入可供使用的cell字典
-            Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells = new();
-            foreach (var cell in CollectionView.PreparedItems)
-                availableCells.Add(cell.Key, cell.Value);
-            CollectionView.PreparedItems.Clear();
-
-            //复用是从_reusableCells获取的, 需要让不可见的先回收
-            var tempCells = availableCells.ToList();
-            var scrollOffset = CollectionView.scrollOffset;
-            if (scrollOffset > 0)//往上滑, 上面的需要回收
-            {
-                foreach (var cell in tempCells)
-                {
-                    if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
-                    {
-                        needRemoveCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-            else//往下滑, 下面的需要回收
-            {
-                scrollOffset = -scrollOffset;
-                for (int i = tempCells.Count - 1; i >= 0; i--)
-                {
-                    var cell = tempCells[i];
-                    if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
-                    {
-                        needRemoveCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-            foreach (var indexPath in needRemoveCell)
-            {
-                var cell = availableCells[indexPath];
-                CollectionView.ReusableViewHolders.Add(cell);
-                availableCells.Remove(indexPath);
-            }
-
-            var topExtandHeight = measureTimes < 3 ? 0 : CollectionView.ExtendHeight;
-            var bottomExtandHeight = measureTimes < 3 ? 0 : measureTimes == 3 ? CollectionView.ExtendHeight * 2 : CollectionView.ExtendHeight;//第一次测量时, 可能顶部缺少空间, 不会创建那么多Extend, 我们在底部先创建好
-
-            tempCells.Clear();
-            needRemoveCell.Clear();
-            scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
-            var itemWidth = tableViewWidth / ColumnCount;
+            double itemsHeight = 0;
+            var itemWidth = inRect.Width / ColumnCount;
             var itemHeight = itemWidth * AspectRatio.Height / AspectRatio.Width;
             //Console.WriteLine($"itemWidth:{itemWidth} itemHeight:{itemHeight}");
             int numberOfSections = CollectionView.NumberOfSections();
@@ -149,20 +49,20 @@
 
                 for (int row = 0; row < numberOfRows; row = row + ColumnCount)
                 {
-                    var rowMaybeTop = tableHeight;
+                    var rowMaybeTop = itemsHeight + top;
                     var rowMaybeHeight = itemHeight;
-                    var rowMaybeBottom = tableHeight + rowMaybeHeight;
+                    var rowMaybeBottom = rowMaybeTop + rowMaybeHeight;
                     for (var currentRow = row; currentRow < numberOfRows && currentRow < row + ColumnCount; currentRow++)
                     {
                         NSIndexPath indexPath = NSIndexPath.FromRowSection(currentRow, section);
 
                         //如果在可见区域, 就详细测量
-                        if ((rowMaybeTop >= visibleBounds.Top - topExtandHeight && rowMaybeTop <= visibleBounds.Bottom + bottomExtandHeight)
-                           || (rowMaybeBottom >= visibleBounds.Top - topExtandHeight && rowMaybeBottom <= visibleBounds.Bottom + bottomExtandHeight)
-                           || (rowMaybeTop <= visibleBounds.Top - topExtandHeight && rowMaybeBottom >= visibleBounds.Bottom + bottomExtandHeight))
+                        if ((rowMaybeTop >= inRect.Top && rowMaybeTop <= inRect.Bottom)
+                           || (rowMaybeBottom >= inRect.Top && rowMaybeBottom <= inRect.Bottom)
+                           || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))
                         {
                             //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                            MAUICollectionViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, tableViewWidth, false);
+                            MAUICollectionViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, inRect.Width, false);
 
                             if (cell != null)
                             {
@@ -181,7 +81,7 @@
                                 cell.ContentView.HeightRequest = itemHeight;
                                 var measureSize = CollectionView.MeasureChild(cell.ContentView, itemWidth, itemHeight).Request;
 
-                                cell.PositionInLayout = new Point(itemWidth * (currentRow - row), tableHeight);
+                                cell.BoundsInLayout = new Rect(itemWidth * (currentRow - row), itemsHeight + top, measureSize.Width, measureSize.Height);
                             }
                         }
                         else//如果不可见
@@ -191,65 +91,18 @@
                                 var cell = availableCells[indexPath];
                                 if (cell.ReuseIdentifier != default)
                                 {
-                                    CollectionView.ReusableViewHolders.Add(cell);
+                                    CollectionView.RecycleViewHolder(cell);
                                     availableCells.Remove(indexPath);
                                 }
                                 cell.PrepareForReuse();
                             }
-
                         }
                     }
-                    tableHeight = rowMaybeBottom;
+                    itemsHeight += rowMaybeHeight;
                 }
             }
-
-            // 重新测量后, 需要显示的已经存入缓存的字典, 剩余的放入可重用列表
-            foreach (MAUICollectionViewViewHolder cell in availableCells.Values)
-            {
-                if (cell.ReuseIdentifier != default)
-                {
-                    if (CollectionView.ReusableViewHolders.Count > 3)
-                    {
-                        cell.ContentView.RemoveFromSuperview();
-                    }
-                    else
-                        CollectionView.ReusableViewHolders.Add(cell);
-                }
-                else
-                {
-                    cell.ContentView.RemoveFromSuperview();
-                }
-            }
-
-            // non-reusable cells should end up dealloced after at this point, but reusable ones live on in _reusableCells.
-
-            // now make sure that all available (but unused) reusable cells aren't on screen in the visible area.
-            // this is done becaue when resizing a table view by shrinking it's height in an animation, it looks better. The reason is that
-            // when an animation happens, it sets the frame to the new (shorter) size and thus recalcuates which cells should be visible.
-            // If it removed all non-visible cells, then the cells on the bottom of the table view would disappear immediately but before
-            // the frame of the table view has actually animated down to the new, shorter size. So the animation is jumpy/ugly because
-            // the cells suddenly disappear instead of seemingly animating down and out of view like they should. This tries to leave them
-            // on screen as long as possible, but only if they don't get in the way.
-            var allCachedCells = CollectionView.PreparedItems.Values;
-            foreach (MAUICollectionViewViewHolder cell in CollectionView.ReusableViewHolders)
-            {
-                if (cell.ContentView.Frame.IntersectsWith(visibleBounds) && !allCachedCells.Contains(cell))
-                {
-                    //cell.RemoveFromSuperview();
-                }
-            }
-
-            //表尾的View是确定的, 我们可以直接测量
-            if (CollectionView.FooterView != null)
-            {
-                var footMeasureSize = CollectionView.MeasureChild(CollectionView.FooterView.ContentView, tableViewBoundsSize.Width, double.PositiveInfinity).Request;
-                CollectionView.FooterView.PositionInLayout = new Point(0, tableHeight);
-                tableHeight += footMeasureSize.Height;
-            }
-            //Debug.WriteLine("TableView Content Height:" + tableHeight);
-            return new Size(tableViewBoundsSize.Width, tableHeight);
+            return itemsHeight;
         }
-
 
         /// <summary>
         /// 可见的区域中的点在哪一行
