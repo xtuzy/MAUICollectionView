@@ -94,7 +94,6 @@
                                     CollectionView.RecycleViewHolder(cell);
                                     availableCells.Remove(indexPath);
                                 }
-                                cell.PrepareForReuse();
                             }
                         }
                     }

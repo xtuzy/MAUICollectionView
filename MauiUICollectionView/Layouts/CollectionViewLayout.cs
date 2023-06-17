@@ -146,8 +146,9 @@
                 {
                     if (availableCells.ContainsKey(update.source))
                     {
-                        CollectionView.RecycleViewHolder(availableCells[update.source]);
+                        var cell = availableCells[update.source];
                         availableCells.Remove(update.source);
+                        CollectionView.RecycleViewHolder(cell);
                         Updates.RemoveAt(index);
                     }
                 }
@@ -155,8 +156,9 @@
                 {
                     if (availableCells.ContainsKey(update.source))
                     {
-                        CollectionView.RecycleViewHolder(availableCells[update.source]);
+                        var cell = availableCells[update.source];
                         availableCells.Remove(update.source);
+                        CollectionView.RecycleViewHolder(cell);
                         Updates.RemoveAt(index);
                     }
                 }

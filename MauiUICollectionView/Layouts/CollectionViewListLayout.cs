@@ -106,10 +106,9 @@
                             var cell = availableCells[indexPath];
                             if (cell.ReuseIdentifier != default)
                             {
-                                CollectionView.RecycleViewHolder(cell);
                                 availableCells.Remove(indexPath);
+                                CollectionView.RecycleViewHolder(cell);
                             }
-                            cell.PrepareForReuse();
                         }
                         itemsHeight += rowMaybeHeight;
                     }

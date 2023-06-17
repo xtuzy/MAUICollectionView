@@ -147,8 +147,8 @@ namespace MauiUICollectionView
             // clear the caches and remove the cells since everything is going to change
             foreach (var cell in PreparedItems.Values)
             {
+                RecycleViewHolder(cell);
                 cell.PrepareForReuse();
-                ReusableViewHolders.Add(cell);
             }
 
             PreparedItems.Clear();
@@ -170,8 +170,7 @@ namespace MauiUICollectionView
         {
             foreach (var cell in PreparedItems.Values)
             {
-                cell.PrepareForReuse();
-                ReusableViewHolders.Add(cell);
+                RecycleViewHolder(cell);
             }
 
             PreparedItems.Clear();

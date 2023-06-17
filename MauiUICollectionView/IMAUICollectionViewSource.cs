@@ -6,7 +6,7 @@
     public delegate string reuseIdentifierForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath);
 
     public delegate int numberOfRowsInSectionDelegate(MAUICollectionView tableView, int section);
-    public delegate MAUICollectionViewViewHolder cellForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath, double widthConstrain, bool isEmpty);
+    public delegate MAUICollectionViewViewHolder cellForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath, double widthConstrain, bool needEmpty);
     public delegate int numberOfSectionsInTableViewDelegate(MAUICollectionView tableView);
 
     /// <summary>
