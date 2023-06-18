@@ -53,6 +53,7 @@
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
 		<PackageReference Include="SharpConstraintLayout.Maui" Version="2.2.1" />
+		<PackageReference Include="WaffleGenerator.Bogus" Version="4.2.1" />
 		<PackageReference Include="Yang.Maui.Helper" Version="1.0.3.7" />
 	</ItemGroup>
 

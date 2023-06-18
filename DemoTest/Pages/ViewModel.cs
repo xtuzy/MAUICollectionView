@@ -17,9 +17,9 @@ namespace DemoTest.Pages
                 .RuleFor(m => m.PersonIconUrl, f => f.Person.Avatar)
                 .RuleFor(m => m.PersonName, f => f.Person.FullName)
                 .RuleFor(m => m.PersonPhone, f => f.Person.Phone)
-                .RuleFor(m => m.PersonTextBlog, f => f.Random.String())
+                .RuleFor(m => m.PersonTextBlog, f => f.WaffleText(1, false))
                 .RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
-                .RuleFor(m => m.FirstComment, f => f.Random.String())
+                .RuleFor(m => m.FirstComment, f => f.WaffleText(1, false))
                 //.RuleFor(m => m.LikeIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
@@ -102,7 +102,7 @@ namespace DemoTest.Pages
             }
         }
 
-        static int newCellCount = 0;
+        int newCellCount = 0;
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
         const string botCell = "botCell";
@@ -144,7 +144,7 @@ namespace DemoTest.Pages
                     if (type == botCell)
                     {
                         //imageCell.ModelView.PersonIcon.Source = ViewModel.models[indexPath.Row].PersonIconUrl;
-                        imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
+                         imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
                         imageCell.ModelView.PersonPhone.Text = ViewModel.models[indexPath.Row].PersonPhone;
                         imageCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
                         //imageCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
@@ -272,8 +272,8 @@ namespace DemoTest.Pages
             PersonName = new Label() { TextColor = Colors.White };
             PersonPhone = new Label() { TextColor = Colors.White };
             ViewHolderIndex = new Label() { TextColor = Colors.White };
-            PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.TailTruncation, MaxLines = 3, TextColor = Colors.White };
-            PersonImageBlog = new Image();
+            PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap,  MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
+            PersonImageBlog = new Image() { BackgroundColor = Colors.AliceBlue };
             FirstComment = new Label();
             LikeIcon = new Image() { };
             var tab = new TapGestureRecognizer();
@@ -290,10 +290,10 @@ namespace DemoTest.Pages
                     .Select(PersonName).LeftToRight(PersonIconContainer, 5).TopToTop(PersonIconContainer)
                     .Select(PersonPhone).LeftToLeft(PersonName).BottomToBottom(PersonIconContainer)
                     .Select(ViewHolderIndex).RightToRight(null, 5).TopToTop(null, 5)
-                    .Select(PersonTextBlog).LeftToLeft(PersonIconContainer).TopToBottom(PersonIconContainer, 5)
-                    .Select(PersonImageBlog).LeftToLeft(PersonTextBlog).TopToBottom(PersonTextBlog, 5).Width(100).Height(100)
+                    .Select(PersonTextBlog).LeftToLeft(PersonIconContainer).TopToBottom(PersonIconContainer)
+                    .Select(PersonImageBlog).LeftToLeft(PersonTextBlog).TopToBottom(PersonTextBlog).Width(100).Height(100)
                     .Select(LikeIcon, CommentIcon, ShareIcon).CreateXChain(rootLayout, Edge.Left, rootLayout, Edge.Right, ChainStyle.Spread, new (View, float)[] { (LikeIcon, 1), (CommentIcon, 1), (ShareIcon, 1) })
-                    .TopToBottom(PersonImageBlog, 5).BottomToBottom(null, 5).Width(20).Height(20)
+                    .TopToBottom(PersonImageBlog).BottomToBottom(null, 5).Width(20).Height(20)
                     ;
                 set.ApplyTo(rootLayout);
             }
