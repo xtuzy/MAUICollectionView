@@ -48,12 +48,17 @@
                        || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))
                     {
                         //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                        MAUICollectionViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, inRect.Width, false);
+                        MAUICollectionViewViewHolder cell;
+                        if (availableCells.ContainsKey(indexPath))
+                            cell = availableCells[indexPath];
+                        else
+                            cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, inRect.Width, false);
 
                         if (cell != null)
                         {
                             //将Cell添加到正在显示的Cell字典
-                            CollectionView.PreparedItems[indexPath] = cell;
+                            CollectionView.PreparedItems.Add(indexPath, cell);
+                            //CollectionView.PreparedItems[indexPath] = cell;
                             if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
                             //Cell是否是正在被选择的
                             cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
@@ -94,8 +99,17 @@
                             }
 
                             var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
-                            cell.BoundsInLayout = new Rect(0, itemsHeight + top, measureSize.Width!=0? measureSize.Width : inRect.Width, finalHeight);
-
+                            var bounds = new Rect(0, itemsHeight + top, measureSize.Width != 0 ? measureSize.Width : inRect.Width, finalHeight);
+                            if (cell.Operation == (int)OperateItem.OperateType.move)
+                            {
+                                cell.OldBoundsInLayout = cell.BoundsInLayout;
+                                cell.BoundsInLayout = bounds;
+                            }
+                            else
+                            {
+                                cell.OldBoundsInLayout = Rect.Zero;
+                                cell.BoundsInLayout = bounds;
+                            }
                             itemsHeight += finalHeight;
                         }
                     }
@@ -116,7 +130,6 @@
             }
             return itemsHeight;
         }
-
 
         /// <summary>
         /// 可见的区域中的点在哪一行

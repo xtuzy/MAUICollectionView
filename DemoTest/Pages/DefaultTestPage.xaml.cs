@@ -39,7 +39,7 @@ public partial class DefaultTestPage : ContentPage
         tableView.Content.GestureRecognizers.Add(click);
 
         //Header
-        var headerButton = new Button() { Text = "Header", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var headerButton = new Button() { Text = "Header GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
             tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
@@ -49,7 +49,7 @@ public partial class DefaultTestPage : ContentPage
         tableView.HeaderView = headerView;
 
         //Footer
-        var footerButton = new Button() { Text = "Footer", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var footerButton = new Button() { Text = "Footer GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
             tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
@@ -98,6 +98,11 @@ public partial class DefaultTestPage : ContentPage
             (tableView.Source as Source).ChangeData(index);
             tableView.ChangeItem(new[] { NSIndexPath.FromRowSection(index, 0) });
             tableView.ContentView.ReMeasure();
+        };
+
+        Reload.Clicked += (sender, e) =>
+        {
+            tableView.ReloadData();
         };
     }
 }

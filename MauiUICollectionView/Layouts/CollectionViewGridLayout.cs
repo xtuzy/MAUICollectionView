@@ -80,8 +80,18 @@
                                 cell.ContentView.WidthRequest = itemWidth;
                                 cell.ContentView.HeightRequest = itemHeight;
                                 var measureSize = CollectionView.MeasureChild(cell.ContentView, itemWidth, itemHeight).Request;
+                                var bounds = new Rect(itemWidth * (currentRow - row), itemsHeight + top, measureSize.Width, measureSize.Height);
 
-                                cell.BoundsInLayout = new Rect(itemWidth * (currentRow - row), itemsHeight + top, measureSize.Width, measureSize.Height);
+                                if (cell.Operation == (int)OperateItem.OperateType.move)
+                                {
+                                    cell.OldBoundsInLayout = cell.BoundsInLayout;
+                                    cell.BoundsInLayout = bounds;
+                                }
+                                else
+                                {
+                                    cell.OldBoundsInLayout = Rect.Zero;
+                                    cell.BoundsInLayout = bounds;
+                                }
                             }
                         }
                         else//如果不可见

@@ -2,6 +2,11 @@
 {
     public class MAUICollectionViewViewHolder
     {
+        /// <summary>
+        /// Debug
+        /// </summary>
+        public NSIndexPath NSIndexPath;
+
         public const float MeasureSelf = -1;
         /// <summary>
         /// 存储Item的位置和大小, 在Measure时设置, Arrange时使用它作为最终的参数
@@ -79,6 +84,14 @@
             ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
         }
 
+        /// <summary>
+        /// 用于需要移动Item的操作, 为动画提供位置
+        /// </summary>
+        public Rect OldBoundsInLayout = Rect.Zero;
+        /// <summary>
+        /// <see cref="OperateItem.OperateType"/>, if no operate, set to -1
+        /// </summary>
+        public int Operation;
         public void Apply(ItemAttribute attribute, bool animate)
         {
             if (animate)

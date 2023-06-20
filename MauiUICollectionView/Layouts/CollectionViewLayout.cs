@@ -1,13 +1,18 @@
-﻿namespace MauiUICollectionView.Layouts
+﻿using System.Diagnostics;
+
+namespace MauiUICollectionView.Layouts
 {
     /// <summary>
     /// 布局的逻辑放在此处
     /// </summary>
     public abstract class CollectionViewLayout
     {
+        public LayoutAnimationManager AnimationManager;
         public CollectionViewLayout(MAUICollectionView collectionView)
         {
             this.CollectionView = collectionView;
+            AnimationManager = new LayoutAnimationManager();
+            AnimationManager.CollectionView = collectionView;
         }
 
         private MAUICollectionView _collectionView;
@@ -37,6 +42,16 @@
         /// </summary>
         public virtual void ArrangeContents()
         {
+            if (animating)
+            {
+                Debug.WriteLine("Anim ArrangeContents");
+                AnimationManager.RunBeforeReLayout();
+                return;
+            }
+
+            Debug.WriteLine("ArrangeContents");
+            AnimationManager.RunAfterReLayout();
+
             if (CollectionView.HeaderView != null)
             {
                 CollectionView.LayoutChild(CollectionView.HeaderView.ContentView, CollectionView.HeaderView.BoundsInLayout);
@@ -44,7 +59,39 @@
 
             // layout sections and rows
             foreach (var cell in CollectionView.PreparedItems)
+            {
                 CollectionView.LayoutChild(cell.Value.ContentView, cell.Value.BoundsInLayout);
+                //回收时把不透明度都设置为了0, 显示时需要设置回来
+                if (cell.Value.Operation == (int)OperateItem.OperateType.move ||//RunAfterReLayout中可能执行不到
+                cell.Value.Operation == -1)//默认的, Scroll时
+                {
+                    cell.Value.ContentView.TranslationX = 0;
+                    cell.Value.ContentView.TranslationY = 0;
+                    if (cell.Value.ContentView.Opacity != 1)
+                    {
+                        cell.Value.ContentView.Opacity = 1;
+                    }
+                }
+                else if(cell.Value.Operation == (int)OperateItem.OperateType.insert)
+                {
+                    //如果动画管理器不能执行动画
+                    if(cell.Value.ContentView.Opacity != 1 && !AnimationManager.HasAnim)
+                    {
+                        cell.Value.ContentView.FadeTo(1);
+                    }
+                }
+
+                if (CollectionView.ReusableViewHolders.Contains(cell.Value))
+                {
+                    CollectionView.ReusableViewHolders.Remove(cell.Value);
+                }
+            }
+
+            foreach (var item in CollectionView.ReusableViewHolders)
+            {
+                if (item.ContentView.Opacity != 0)
+                    item.ContentView.Opacity = 0;
+            }
 
             if (CollectionView.FooterView != null)
             {
@@ -57,6 +104,7 @@
         /// </summary>
         int measureTimes = 0;
 
+        bool animating = false;
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
         /// </summary>
@@ -65,6 +113,14 @@
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
+            Debug.WriteLine("Measure");
+            if (Updates.Count > 0)
+            {
+                animating = true;
+            }
+            else
+                animating = false;
+
             if (measureTimes <= 3)
                 measureTimes++;
 
@@ -139,6 +195,7 @@
             needRecycleCell.Clear();
             scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
 
+            //被remove的Item需要加入动画管理器, 动画后再回收
             for (int index = Updates.Count - 1; index >= 0; index--)
             {
                 var update = Updates[index];
@@ -147,23 +204,28 @@
                     if (availableCells.ContainsKey(update.source))
                     {
                         var cell = availableCells[update.source];
+                        cell.Operation = (int)OperateItem.OperateType.remove;
                         availableCells.Remove(update.source);
-                        CollectionView.RecycleViewHolder(cell);
+                        AnimationManager.Add(cell);
                         Updates.RemoveAt(index);
                     }
                 }
                 else if (update.operateType == OperateItem.OperateType.update)
                 {
+                    //更新的我觉得不需要动画
                     if (availableCells.ContainsKey(update.source))
                     {
                         var cell = availableCells[update.source];
+                        cell.Operation = (int)OperateItem.OperateType.update;
+                        AnimationManager.Add(cell);
                         availableCells.Remove(update.source);
-                        CollectionView.RecycleViewHolder(cell);
+                        //CollectionView.RecycleViewHolder(cell);
                         Updates.RemoveAt(index);
                     }
                 }
             }
 
+            //move的需要获取在之前可见区域的viewHolder, 更新indexPath为最新的, 然后进行动画.
             Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
             for (int index = Updates.Count - 1; index >= 0; index--)
             {
@@ -174,6 +236,8 @@
                     if (availableCells.ContainsKey(update.source))
                     {
                         var oldView = availableCells[update.source];
+                        oldView.Operation = (int)OperateItem.OperateType.move;
+                        AnimationManager.Add(oldView);
                         availableCells.Remove(update.source);
                         if (availableCells.ContainsKey(update.target))
                             tempAvailableCells.Add(update.target, oldView);
@@ -182,15 +246,9 @@
                         Updates.RemoveAt(index);
                     }
                 }
-                else if (update.operateType == OperateItem.OperateType.insert)//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
-                {
-
-                }
             }
             foreach (var item in tempAvailableCells)
                 availableCells.Add(item.Key, item.Value);
-
-            Updates.Clear();
 
             /*
              * Items
@@ -198,17 +256,32 @@
             Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
             tableHeight += MeasureItems(tableHeight, layoutItemsInRect, availableCells);
 
+            //标记insert
+
+            var insertList = new List<NSIndexPath>();
+            foreach (var item in Updates)
+            {
+                if (item.operateType == OperateItem.OperateType.insert)
+                {
+                    insertList.Add(item.source);
+                }
+            }
+            foreach (var item in CollectionView.PreparedItems)
+            {
+                if (insertList.Contains(item.Key))//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
+                {
+                    item.Value.Operation = (int)OperateItem.OperateType.insert;
+                    AnimationManager.Add(item.Value);
+                }
+            }
+            Updates.Clear();
+
             // 重新测量后, 需要显示的已经存入缓存的字典, 剩余的放入可重用列表
             foreach (MAUICollectionViewViewHolder cell in availableCells.Values)
             {
                 if (cell.ReuseIdentifier != default)
                 {
-                    if (CollectionView.ReusableViewHolders.Count > 3)
-                    {
-                        cell.ContentView.RemoveFromSuperview();
-                    }
-                    else
-                        CollectionView.RecycleViewHolder(cell);
+                    CollectionView.RecycleViewHolder(cell);
                 }
                 else
                 {
@@ -216,6 +289,10 @@
                 }
             }
 
+            if (CollectionView.ReusableViewHolders.Count > CollectionView.MaxReusableViewHolderCount)
+            {
+                //CollectionView.ReusableViewHolders.RemoveRange(CollectionView.MaxReusableViewHolderCount - 1, CollectionView.ReusableViewHolders.Count - CollectionView.MaxReusableViewHolderCount);
+            }
             /*
              * Footer
              */
@@ -259,4 +336,5 @@
         /// <returns></returns>
         public abstract Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPath);
     }
+
 }

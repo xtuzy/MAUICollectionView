@@ -27,6 +27,7 @@ namespace MauiUICollectionView
             scrollOffset = e.ScrollY - lastScrollY;
             lastScrollY = e.ScrollY;
             //Console.WriteLine($"Scrolled {e.ScrollY}");
+            ItemsLayout.AnimationManager.StopRunWhenScroll();
             (this as IView).InvalidateMeasure();
         }
 

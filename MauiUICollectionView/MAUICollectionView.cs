@@ -56,6 +56,7 @@ namespace MauiUICollectionView
         /// 回收的等待重复利用的ViewHolder
         /// </summary>
         public List<MAUICollectionViewViewHolder> ReusableViewHolders;
+        public int MaxReusableViewHolderCount = 5;
 
         SourceHas _sourceHas;
         struct SourceHas
@@ -148,7 +149,6 @@ namespace MauiUICollectionView
             foreach (var cell in PreparedItems.Values)
             {
                 RecycleViewHolder(cell);
-                cell.PrepareForReuse();
             }
 
             PreparedItems.Clear();
@@ -198,14 +198,21 @@ namespace MauiUICollectionView
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
         {
             this._reloadDataIfNeeded();
-            Size size;
-            if (ItemsLayout != null)
-                if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
-                    size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
+            Size size = new Size(0, 0);
+            try
+            {
+                if (ItemsLayout != null)
+                    if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
+                        size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
+                    else
+                        size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
                 else
-                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
-            else
-                size = new Size(0, 0);
+                    size = new Size(0, 0);
+            }
+            catch (Exception ex)
+            {
+
+            }
             return size;
         }
 
@@ -214,11 +221,18 @@ namespace MauiUICollectionView
             return (element as IView).Measure(widthConstraint, heightConstraint);
         }
 
+        bool animating = false;
         public partial void OnContentViewLayout()
         {
             if (_backgroundView != null)
                 LayoutChild(_backgroundView, Bounds);
-            ItemsLayout?.ArrangeContents();
+            try
+            {
+                ItemsLayout?.ArrangeContents();
+            }catch(Exception ex)
+            {
+
+            }
         }
 
         public void LayoutChild(Element element, Rect rect)
@@ -359,26 +373,42 @@ namespace MauiUICollectionView
         }
 
         #region 复用
+        object _obj = new object();
         public MAUICollectionViewViewHolder DequeueRecycledViewHolderWithIdentifier(string identifier)
         {
-            foreach (MAUICollectionViewViewHolder viewHolder in ReusableViewHolders)
+            lock (_obj)
             {
-                if (viewHolder.ReuseIdentifier == identifier)
+                for (var index = ReusableViewHolders.Count - 1; index >= 0; index--)
                 {
-                    ReusableViewHolders.Remove(viewHolder);
-
-                    viewHolder.PrepareForReuse();
-                    return viewHolder;
+                    MAUICollectionViewViewHolder viewHolder = ReusableViewHolders[index];
+                    if (viewHolder.ReuseIdentifier == identifier)
+                    {
+                        ReusableViewHolders.RemoveAt(index);
+                        viewHolder.ContentView.TranslationX = 0;
+                        viewHolder.ContentView.TranslationY = 0;
+                        viewHolder.PrepareForReuse();
+                        return viewHolder;
+                    }
                 }
             }
-
             return null;
         }
 
+        /// <summary>
+        /// 没有操作动画的Item直接回收
+        /// </summary>
+        /// <param name="viewHolder"></param>
         public void RecycleViewHolder(MAUICollectionViewViewHolder viewHolder)
         {
-            ReusableViewHolders.Add(viewHolder);
-            viewHolder.ContentView.RemoveFromSuperview();
+            viewHolder.OldBoundsInLayout = Rect.Zero;
+            viewHolder.BoundsInLayout = Rect.Zero;
+            viewHolder.ContentView.Opacity = 0;
+            viewHolder.Operation = -1;
+            lock (_obj)
+            {
+                ReusableViewHolders.Add(viewHolder);
+            }
+            //viewHolder.ContentView.RemoveFromSuperview(); 移除会触发Measure, 导致动画流程混乱
         }
 
         #endregion
@@ -684,6 +714,8 @@ namespace MauiUICollectionView
         public void RemoveItems(NSIndexPath indexPaths)
         {
             var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.StopRunWhenScroll();
             Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = indexPaths });
 
             //找到已经可见的Item和它们的IndexPath,和目标IndexPath
@@ -707,6 +739,8 @@ namespace MauiUICollectionView
         public void InsertItems(NSIndexPath indexPaths)
         {
             var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.StopRunWhenScroll();
             //找到已经可见的Item和它们的IndexPath,和目标IndexPath
             foreach (var visiableItem in PreparedItems)
             {
@@ -727,6 +761,8 @@ namespace MauiUICollectionView
         public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
         {
             var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.StopRunWhenScroll();
             Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = indexPath, target = toIndexPath });
 
             //如果同Section, Move影响的只是之间的
@@ -788,6 +824,8 @@ namespace MauiUICollectionView
         public void ChangeItem(IEnumerable<NSIndexPath> indexPaths)
         {
             var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.StopRunWhenScroll();
             foreach (var visiableItem in PreparedItems)
             {
                 if (indexPaths.Contains(visiableItem.Key))//如果可见的Items包含需要更新的Item

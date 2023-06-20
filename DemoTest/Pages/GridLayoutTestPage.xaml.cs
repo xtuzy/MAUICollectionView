@@ -44,7 +44,7 @@ public partial class GridLayoutTestPage : ContentPage
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
         tableView.HeaderView = headerView;
-        var footerButton = new Button() { Text = "Footer", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var footerButton = new Button() { Text = "Footer GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
             tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);

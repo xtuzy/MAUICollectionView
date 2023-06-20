@@ -145,7 +145,7 @@ namespace DemoTest.Pages
                     {
                         //imageCell.ModelView.PersonIcon.Source = ViewModel.models[indexPath.Row].PersonIconUrl;
                          imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
-                        imageCell.ModelView.PersonPhone.Text = ViewModel.models[indexPath.Row].PersonPhone;
+                        imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                         imageCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
                         //imageCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
                         imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
@@ -155,7 +155,7 @@ namespace DemoTest.Pages
 
                 cell = imageCell;
             }
-
+            cell.NSIndexPath = indexPath;
             return cell;
         }
     }
