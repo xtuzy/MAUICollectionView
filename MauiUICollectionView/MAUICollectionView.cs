@@ -36,7 +36,28 @@ namespace MauiUICollectionView
             }
         }
 
-        UIView _backgroundView;
+        View _backgroundView;
+        public View BackgroundView
+        {
+            set
+            {
+                //如果已经存在, 先移除
+                if (_backgroundView != null && _backgroundView != value)
+                {
+                    if (ContentView.Contains(_backgroundView))
+                    {
+                        ContentView.Remove(_backgroundView);
+                    }
+                }
+
+                if (value != null && _backgroundView != value)
+                {
+                    _backgroundView = value;
+                    ContentView.Insert(0, _backgroundView);//插入到底部
+                }
+            }
+        }
+
         bool allowsSelection;
         bool allowsSelectionDuringEditing;
         bool editing;
@@ -130,16 +151,6 @@ namespace MauiUICollectionView
             return PreparedItems.ContainsKey(indexPath) ? PreparedItems[indexPath] : null;
         }
 
-        public void setBackgroundView(UIView backgroundView)
-        {
-            if (_backgroundView != backgroundView)
-            {
-                _backgroundView = null;//_backgroundView?.Dispose();
-                _backgroundView = backgroundView;
-                this.InsertSubview(_backgroundView, 0);
-            }
-        }
-
         /// <summary>
         /// Reloads all the data and views in the collection view
         /// </summary>
@@ -198,7 +209,7 @@ namespace MauiUICollectionView
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
         {
             this._reloadDataIfNeeded();
-            Size size = new Size(0, 0);
+            Size size = Size.Zero;
             try
             {
                 if (ItemsLayout != null)
@@ -206,12 +217,17 @@ namespace MauiUICollectionView
                         size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
                     else
                         size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
-                else
-                    size = new Size(0, 0);
             }
             catch (Exception ex)
             {
 
+            }
+            if (_backgroundView != null)
+            {
+                if(size != Size.Zero)
+                    MeasureChild(_backgroundView, size.Width, size.Height);
+                else
+                    MeasureChild(_backgroundView, widthConstraint, heightConstraint);
             }
             return size;
         }
@@ -225,11 +241,12 @@ namespace MauiUICollectionView
         public partial void OnContentViewLayout()
         {
             if (_backgroundView != null)
-                LayoutChild(_backgroundView, Bounds);
+                LayoutChild(_backgroundView, ContentView.Bounds);
             try
             {
                 ItemsLayout?.ArrangeContents();
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
 
             }
@@ -354,6 +371,12 @@ namespace MauiUICollectionView
             }
         }
 
+        /// <summary>
+        /// 滑动到NSIndexPath对应的Item.
+        /// </summary>
+        /// <param name="indexPath"></param>
+        /// <param name="scrollPosition"></param>
+        /// <param name="animated"></param>
         public void ScrollToRowAtIndexPath(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
             var rect = ItemsLayout.RectForRowOfIndexPathInContentView(indexPath);

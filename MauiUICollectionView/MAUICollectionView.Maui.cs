@@ -38,8 +38,6 @@ namespace MauiUICollectionView
             ContentView.Add(subview);
         }
 
-        public void InsertSubview(View view, int index) { }
-
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint);
 
         public partial void OnContentViewLayout();

@@ -56,6 +56,9 @@ public partial class DefaultTestPage : ContentPage
             Console.WriteLine("Clicked Footer");
         };
         tableView.FooterView = new MAUICollectionViewViewHolder(footerButton, "Footer");
+
+        tableView.BackgroundView = new Grid() { BackgroundColor = Colors.LightPink };
+
         this.Loaded += (sender, e) =>
         {
             Console.WriteLine("Loaded");
