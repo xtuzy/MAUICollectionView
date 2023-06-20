@@ -1,4 +1,5 @@
-﻿using Microsoft.Maui.Layouts;
+﻿using System.Diagnostics;
+using Microsoft.Maui.Layouts;
 
 namespace MauiUICollectionView
 {
@@ -24,6 +25,7 @@ namespace MauiUICollectionView
         public double scrollOffset { get; private set; } = 0;
         private void TableView_Scrolled(object sender, ScrolledEventArgs e)
         {
+            Debug.WriteLine("Scrolled");
             scrollOffset = e.ScrollY - lastScrollY;
             lastScrollY = e.ScrollY;
             //Console.WriteLine($"Scrolled {e.ScrollY}");
@@ -59,6 +61,7 @@ namespace MauiUICollectionView
     {
         public void ReMeasure()
         {
+             Debug.WriteLine("ReMeasure");
             (this as IView).InvalidateMeasure();
         }
 
