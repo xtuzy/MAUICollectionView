@@ -208,9 +208,17 @@ namespace MauiUICollectionView
 
             if (ItemsLayout != null)
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
+                {
+                    if (CollectionViewConstraintSize.Height == 0)
+                        CollectionViewConstraintSize.Height = DeviceDisplay.Current.MainDisplayInfo.Height;
                     size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
+                }
                 else
+                {
+                    if (CollectionViewConstraintSize.Width == 0)
+                        CollectionViewConstraintSize.Width = DeviceDisplay.Current.MainDisplayInfo.Width;
                     size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
+                }
 
             if (_backgroundView != null)
             {

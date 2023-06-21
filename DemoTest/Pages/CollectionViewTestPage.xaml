@@ -16,42 +16,40 @@
             <Button x:Name="Change" Text="Change" />
             <Button x:Name="Move" Text="Move" />
         </HorizontalStackLayout>
-
-        <CollectionView
-            x:Name="collectionView"
-            Grid.Row="1"
-            ItemSizingStrategy="MeasureAllItems">
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="5,5,5,5" BackgroundColor="Gray">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Image
-                                Grid.Column="0"
-                                HeightRequest="40"
-                                Source="{Binding PersonIconUrl}" />
-                            <VerticalStackLayout Grid.Column="1">
-                                <Label Text="{Binding PersonName}" />
-                                <Label Text="{Binding PersonPhone}" />
-                            </VerticalStackLayout>
+        <RefreshView Grid.Row="1">
+            <CollectionView x:Name="collectionView" ItemSizingStrategy="MeasureAllItems">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="5,5,5,5" BackgroundColor="Gray">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Image
+                                    Grid.Column="0"
+                                    HeightRequest="40"
+                                    Source="{Binding PersonIconUrl}" />
+                                <VerticalStackLayout Grid.Column="1">
+                                    <Label Text="{Binding PersonName}" />
+                                    <Label Text="{Binding PersonPhone}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <HorizontalStackLayout Grid.Row="1">
+                                <Image
+                                    Aspect="AspectFit"
+                                    HeightRequest="100"
+                                    Source="{Binding PersonImageBlogUrl}" />
+                            </HorizontalStackLayout>
                         </Grid>
-                        <HorizontalStackLayout Grid.Row="1">
-                            <Image
-                                Aspect="AspectFit"
-                                HeightRequest="100"
-                                Source="{Binding PersonImageBlogUrl}" />
-                        </HorizontalStackLayout>
-                    </Grid>
 
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
     </Grid>
 </ContentPage>

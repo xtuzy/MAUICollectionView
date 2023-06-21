@@ -17,6 +17,8 @@
             <Button x:Name="Reload" Text="Reload" />
             <Button x:Name="ChangeLayout" Text="ReLayout" />
         </HorizontalStackLayout>
-        <ContentView x:Name="content" Grid.Row="1" />
+        <ContentView Grid.Row="1">
+            <RefreshView x:Name="content" />
+        </ContentView>
     </Grid>
 </ContentPage>

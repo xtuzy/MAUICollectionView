@@ -19,6 +19,16 @@ namespace MauiUICollectionView
 
             Init();
             this.Scrolled += TableView_Scrolled;
+
+            this.SizeChanged += MAUICollectionView_SizeChanged;
+        }
+
+        private void MAUICollectionView_SizeChanged(object sender, EventArgs e)
+        {
+            if (CollectionViewConstraintSize != this.Bounds.Size)
+            {
+                CollectionViewConstraintSize = this.Bounds.Size;
+            }
         }
 
         double lastScrollY;
@@ -47,10 +57,16 @@ namespace MauiUICollectionView
 
         /// <summary>
         /// TableView的大小应该是有限制的, 而它的内容可以是无限大小, 因此提前在这里获取这个有限值.
-        /// 其用于判断可见区域大小.
+        /// 其用于判断可见区域大小. 内部在MeasureOverride中设置它, 可能不会执行. 内部也在SizeChanged中设置它, 其在第一次布局之后执行, 因此可能不显示Item. 建议调试时看Item是否正常显示, 没有的话建议设置其为Page大小作为初始值.
         /// </summary>
-        Size CollectionViewConstraintSize;
+        public Size CollectionViewConstraintSize;
 
+        /// <summary>
+        /// 将CollectionView添加到RefreshView里时, 这个方法不被调用, 我另外也在SizeChanged中设置了.
+        /// </summary>
+        /// <param name="widthConstraint"></param>
+        /// <param name="heightConstraint"></param>
+        /// <returns></returns>
         protected override Size MeasureOverride(double widthConstraint, double heightConstraint)
         {
             CollectionViewConstraintSize = new Size(widthConstraint, heightConstraint);

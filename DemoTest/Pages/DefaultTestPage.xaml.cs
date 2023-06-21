@@ -110,11 +110,18 @@ public partial class DefaultTestPage : ContentPage
 
         ChangeLayout.Clicked += (sender, e) =>
         {
-            if(tableView.ItemsLayout is CollectionViewListLayout)
+            if (tableView.ItemsLayout is CollectionViewListLayout)
                 tableView.ItemsLayout = new CollectionViewGridLayout(tableView);
             else
                 tableView.ItemsLayout = new CollectionViewListLayout(tableView);
             tableView.ReMeasure();
         };
+
+        content.Command = new Command(() =>
+        {
+            (tableView.Source as Source).LoadMoreOnFirst();
+            tableView.ReloadData();
+            content.IsRefreshing = false;
+        });
     }
 }

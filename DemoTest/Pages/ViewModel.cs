@@ -31,6 +31,11 @@ namespace DemoTest.Pages
         {
             return testModel.Generate(1)[0];
         }
+
+        public List<Model> Generate(int count)
+        {
+            return testModel.Generate(count);
+        }
     }
 
     class Source : MAUICollectionViewSource
@@ -67,6 +72,12 @@ namespace DemoTest.Pages
             var item = ViewModel.models[index];
             ViewModel.models.RemoveAt(index);
             ViewModel.models.Insert(toIndex, item);
+        }
+
+        public void LoadMoreOnFirst()
+        {
+            var models = ViewModel.Generate(20);
+            ViewModel.models.InsertRange(0, models);
         }
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
@@ -144,7 +155,7 @@ namespace DemoTest.Pages
                     if (type == botCell)
                     {
                         //imageCell.ModelView.PersonIcon.Source = ViewModel.models[indexPath.Row].PersonIconUrl;
-                         imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
+                        imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
                         imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                         imageCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
                         //imageCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
@@ -272,7 +283,7 @@ namespace DemoTest.Pages
             PersonName = new Label() { TextColor = Colors.White };
             PersonPhone = new Label() { TextColor = Colors.White };
             ViewHolderIndex = new Label() { TextColor = Colors.White };
-            PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap,  MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
+            PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap, MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
             PersonImageBlog = new Image() { BackgroundColor = Colors.AliceBlue };
             FirstComment = new Label();
             LikeIcon = new Image() { };
