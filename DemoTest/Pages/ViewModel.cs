@@ -177,11 +177,11 @@ namespace DemoTest.Pages
     {
         public int NewCellIndex;
 
-        public Entry TextView;
+        public Label TextView;
         public TextCell(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
             var grid = itemView as Grid;
-            TextView = new Entry();
+            TextView = new Label();
             grid.Add(TextView);
             TextView.HorizontalOptions = LayoutOptions.Center;
             TextView.VerticalOptions = LayoutOptions.Center;

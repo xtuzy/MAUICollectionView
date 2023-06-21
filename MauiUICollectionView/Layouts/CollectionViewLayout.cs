@@ -38,19 +38,39 @@ namespace MauiUICollectionView.Layouts
         } = ItemsLayoutOrientation.Vertical;
 
         /// <summary>
+        /// 标志需要remove, move的item的动画开始.
+        /// </summary>
+        protected bool isStartDisappearOrMoveOrChangeAnimate = false;
+
+        /// <summary>
+        /// 标志insert的item动画开始.
+        /// </summary>
+        protected bool isStartAppearingAnimation = false;
+
+        /// <summary>
         /// Arrange Header, Items and Footer. They will be arranged according to <see cref="MAUICollectionViewViewHolder.BoundsInLayout"/>
         /// </summary>
         public virtual void ArrangeContents()
         {
-            if (animating)
+            if (isStartDisappearOrMoveOrChangeAnimate)
             {
-                Debug.WriteLine("Anim ArrangeContents");
+                Debug.WriteLine("Anim disappear ArrangeContents");
+
                 AnimationManager.RunBeforeReLayout();
+
+                isStartDisappearOrMoveOrChangeAnimate = false;//disappear动画结束
+                isStartAppearingAnimation = true;//appear动画开始
                 return;
             }
 
+            if (isStartAppearingAnimation)
+            {
+                Debug.WriteLine("Anim appear ArrangeContents");
+                //AnimationManager.RunAfterReLayout();
+                isStartAppearingAnimation = false;
+            }
+
             Debug.WriteLine("ArrangeContents");
-            AnimationManager.RunAfterReLayout();
 
             if (CollectionView.HeaderView != null)
             {
@@ -62,7 +82,7 @@ namespace MauiUICollectionView.Layouts
             {
                 CollectionView.LayoutChild(cell.Value.ContentView, cell.Value.BoundsInLayout);
                 //回收时把不透明度都设置为了0, 显示时需要设置回来
-                if (cell.Value.Operation == (int)OperateItem.OperateType.move ||//RunAfterReLayout中可能执行不到
+                if (//cell.Value.Operation == (int)OperateItem.OperateType.move ||//RunAfterReLayout中可能执行不到
                 cell.Value.Operation == -1)//默认的, Scroll时
                 {
                     cell.Value.ContentView.TranslationX = 0;
@@ -72,12 +92,12 @@ namespace MauiUICollectionView.Layouts
                         cell.Value.ContentView.Opacity = 1;
                     }
                 }
-                else if(cell.Value.Operation == (int)OperateItem.OperateType.insert)
+                else if (cell.Value.Operation == (int)OperateItem.OperateType.insert)
                 {
                     //如果动画管理器不能执行动画
-                    if(cell.Value.ContentView.Opacity != 1 && !AnimationManager.HasAnim)
+                    if (cell.Value.ContentView.Opacity != 1 && !AnimationManager.HasAnim)
                     {
-                        cell.Value.ContentView.FadeTo(1);
+                        //cell.Value.ContentView.FadeTo(1);
                     }
                 }
 
@@ -104,7 +124,6 @@ namespace MauiUICollectionView.Layouts
         /// </summary>
         int measureTimes = 0;
 
-        bool animating = false;
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
         /// </summary>
@@ -116,10 +135,9 @@ namespace MauiUICollectionView.Layouts
             Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
-                animating = true;
+                isStartDisappearOrMoveOrChangeAnimate = true;
             }
-            else
-                animating = false;
+
 
             if (measureTimes <= 3)
                 measureTimes++;

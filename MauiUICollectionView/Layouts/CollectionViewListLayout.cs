@@ -59,7 +59,10 @@
                             //将Cell添加到正在显示的Cell字典
                             CollectionView.PreparedItems.Add(indexPath, cell);
                             //CollectionView.PreparedItems[indexPath] = cell;
-                            if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
+                            if (availableCells.ContainsKey(indexPath))
+                            {
+                                availableCells.Remove(indexPath);
+                            }
                             //Cell是否是正在被选择的
                             cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
                             cell.Selected = CollectionView._selectedRow == null ? false : CollectionView._selectedRow.IsEqual(indexPath);
@@ -100,14 +103,13 @@
 
                             var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                             var bounds = new Rect(0, itemsHeight + top, measureSize.Width != 0 ? measureSize.Width : inRect.Width, finalHeight);
-                            if (cell.Operation == (int)OperateItem.OperateType.move)
+                            if (cell.Operation == (int)OperateItem.OperateType.move && isStartDisappearOrMoveOrChangeAnimate)
                             {
-                                cell.OldBoundsInLayout = cell.BoundsInLayout;
+                                cell.OldBoundsInLayout = cell.BoundsInLayout;//move动画需要旧的位置
                                 cell.BoundsInLayout = bounds;
                             }
                             else
                             {
-                                cell.OldBoundsInLayout = Rect.Zero;
                                 cell.BoundsInLayout = bounds;
                             }
                             itemsHeight += finalHeight;

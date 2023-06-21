@@ -224,7 +224,7 @@ namespace MauiUICollectionView
             }
             if (_backgroundView != null)
             {
-                if(size != Size.Zero)
+                if (size != Size.Zero)
                     MeasureChild(_backgroundView, size.Width, size.Height);
                 else
                     MeasureChild(_backgroundView, widthConstraint, heightConstraint);
@@ -421,10 +421,13 @@ namespace MauiUICollectionView
         public void RecycleViewHolder(MAUICollectionViewViewHolder viewHolder)
         {
             //回收时重置ViewHolder
-            viewHolder.PrepareForReuse();
-            lock (_obj)
+            if (!ReusableViewHolders.Contains(viewHolder))
             {
-                ReusableViewHolders.Add(viewHolder);
+                viewHolder.PrepareForReuse();
+                lock (_obj)
+                {
+                    ReusableViewHolders.Add(viewHolder);
+                }
             }
             //viewHolder.ContentView.RemoveFromSuperview(); 移除会触发Measure, 导致动画流程混乱
         }

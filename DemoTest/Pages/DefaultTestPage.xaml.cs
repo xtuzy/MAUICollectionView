@@ -23,7 +23,7 @@ public partial class DefaultTestPage : ContentPage
         {
         };
 
-        //Ñ¡ÔñItem
+        //Ñ¡ï¿½ï¿½Item
         var click = new TapGestureRecognizer();
         click.Tapped += (s, e) =>
         {
@@ -65,9 +65,21 @@ public partial class DefaultTestPage : ContentPage
         };
         this.Appearing += (sender, e) =>
         {
-            tableView.ReAppear();//ÇÐ»»PageÊ±¿ÉÄÜItem²»¿É¼û, ÐèÒªÖØÐÂ¼ÓÔØ
+            tableView.ReAppear();//ï¿½Ð»ï¿½PageÊ±ï¿½ï¿½ï¿½ï¿½Itemï¿½ï¿½ï¿½É¼ï¿½, ï¿½ï¿½Òªï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½
             Console.WriteLine("Appearing");
         };
+
+        void r()
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(3000);
+                tableView.Dispatcher.Dispatch(() =>
+                {
+                    tableView.ContentView.ReMeasure();
+                });
+            });
+        }
 
         //Add
         Add.Clicked += (sender, e) =>
@@ -75,6 +87,7 @@ public partial class DefaultTestPage : ContentPage
             var index = 2;
             (tableView.Source as Source).InsertData(index);
             tableView.InsertItems(NSIndexPath.FromRowSection(index, 0));
+            r();
             tableView.ContentView.ReMeasure();
         };
 
@@ -82,7 +95,7 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).RemoveData(index);
-            tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0)); r();
             tableView.ContentView.ReMeasure();
         };
 
@@ -92,6 +105,7 @@ public partial class DefaultTestPage : ContentPage
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
             tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
+            r();
             tableView.ContentView.ReMeasure();
         };
 
@@ -100,7 +114,9 @@ public partial class DefaultTestPage : ContentPage
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
             tableView.ChangeItem(new[] { NSIndexPath.FromRowSection(index, 0) });
+            r();
             tableView.ContentView.ReMeasure();
+
         };
 
         Reload.Clicked += (sender, e) =>
