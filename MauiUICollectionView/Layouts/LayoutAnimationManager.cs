@@ -1,17 +1,26 @@
 ﻿namespace MauiUICollectionView.Layouts
 {
-    public class LayoutAnimationManager
+    public class LayoutAnimationManager: IDisposable
     {
-        public MAUICollectionView CollectionView;
+        MAUICollectionView CollectionView;
         public Action Finished;
+        /// <summary>
+        /// 存储需要操作的item, 会对它们实施动画.
+        /// </summary>
         List<MAUICollectionViewViewHolder> items = new List<MAUICollectionViewViewHolder>();
         private Animation moveAnimation;
         private Animation removeAnimation;
         private Animation insertAnimation;
         /// <summary>
-        /// Animation直接停止时, 我们用这个tag间接停止动画.
+        /// 需要Animation立即停止时, 我们用这个tag立即停止动画循环, 让其不设置值.
         /// </summary>
         bool stopAnim = true;
+
+        public LayoutAnimationManager(MAUICollectionView collectionView)
+        {
+            CollectionView = collectionView;
+        }
+
         public void Add(MAUICollectionViewViewHolder viewHolder)
         {
             items.Add(viewHolder);
@@ -22,7 +31,7 @@
         /// <summary>
         /// 多次操作时为避免动画冲突, 对之前的动画直接设置最终状态
         /// </summary>
-        public void StopRunWhenScroll()
+        public void Stop()
         {
             stopAnim = true;
 
@@ -41,14 +50,14 @@
 
             if (items.Count == 0)
                 return;
-            SetRemoveAndUpdateItemsStateAfterAnimateFinished();
-            //直接设置最终的状态
+            //这里调用它是为了确保回收
+            SetItemsStateAfterAnimateFinished();
             items.Clear();
         }
 
         void AnimateFinished()
         {
-            SetRemoveAndUpdateItemsStateAfterAnimateFinished();
+            SetItemsStateAfterAnimateFinished();
             items.Clear();
             Finished?.Invoke();
         }
@@ -56,7 +65,7 @@
         /// <summary>
         /// 重新布局之前运行, 运行完需恢复正常布局流程. 像move和remove都是移动当前的item, 其在重新布局之前
         /// </summary>
-        public void RunBeforeReLayout()
+        public void Run()
         {
             stopAnim = false;
 
@@ -85,7 +94,6 @@
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.remove)
                 {
-                    items.RemoveAt(i);
                     listRemoveViewHolder.Add(item);
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.move)
@@ -113,6 +121,20 @@
                 }, 0, 1);
             }
 
+            //move Items的初始状态应该是Arrange在目标位置, tanslate后在之前的位置
+            if (listMoveViewHolder.Count > 0)
+            {
+                for (var i = listMoveViewHolder.Count - 1; i >= 0; i--)
+                {
+                    var item = listMoveViewHolder[i];
+                    if (item.OldBoundsInLayout != Rect.Zero &&
+                    item.OldBoundsInLayout != item.BoundsInLayout)
+                    {
+                        item.ContentView.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * 1;
+                        item.ContentView.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * 1;
+                    }
+                };
+            }
             if (listMoveViewHolder.Count > 0)
             {
                 moveAnimation = new Animation(v =>
@@ -126,11 +148,11 @@
                         item.OldBoundsInLayout != item.BoundsInLayout)
                         {
                             //Debug.WriteLine(v);
-                            item.ContentView.TranslationX = (item.BoundsInLayout.Left - item.OldBoundsInLayout.Left) * v;
-                            item.ContentView.TranslationY = (item.BoundsInLayout.Top - item.OldBoundsInLayout.Top) * v;
+                            item.ContentView.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * v;
+                            item.ContentView.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * v;
                         }
                     };
-                }, 0, 1);
+                }, 1, 0);
             }
 
             if (listRemoveViewHolder.Count > 0)
@@ -156,6 +178,7 @@
                     //结束时回收
                     foreach (var item in listRemoveViewHolder)
                     {
+                        items.Remove(item);
                         CollectionView.Dispatcher.Dispatch(() =>
                         {
                             CollectionView.RecycleViewHolder(item);
@@ -168,7 +191,7 @@
                         {
                             CollectionView.Dispatcher.Dispatch(() =>
                             {
-                                CollectionView.ContentView.ReMeasure();
+                                CollectionView.ReMeasure();
                             });
                             AnimateFinished();
                         });
@@ -187,7 +210,7 @@
                     {
                         CollectionView.Dispatcher.Dispatch(() =>
                         {
-                            CollectionView.ContentView.ReMeasure();
+                            CollectionView.ReMeasure();
                         });
                         //插入到中间时, 既有move又有insert
                         if (insertAnimation != null)
@@ -221,22 +244,11 @@
         }
 
         /// <summary>
-        /// move操作在上次布局时拦截布局, 使用tranlate动画move的位置, 当下一次布局时, 需要设置其到目标位置, tranlate需要设置为0
+        /// 标记Item的操作为默认值
         /// </summary>
-        public void SetMoveItemsStateAfterAnimateFinishedWhenNextLayout()
+        void SetItemsStateAfterAnimateFinished()
         {
-
-        }
-        public void SetInsertItemsStateAfterAnimateFinishedWhenNextLayout()
-        {
-
-        }
-        /// <summary>
-        /// 重新布局之后运行, 如insert后新Item逐渐出现的过程. 此时应该都在正确的位置
-        /// </summary>
-        void SetRemoveAndUpdateItemsStateAfterAnimateFinished()
-        {
-            //注意, items可能因未知情况为空, 必要的步骤需要直接在Arrange中设置
+            //注意, items可能因未知情况为空, 必要的步骤如move item的最终translate需要直接在Arrange中设置
             if (items.Count == 0)
             {
                 return;
@@ -245,25 +257,21 @@
             {
                 foreach (var item in items)
                 {
-                    if (item.Operation == (int)OperateItem.OperateType.remove
-                        || item.Operation == (int)OperateItem.OperateType.update)
+                    if (item.Operation == (int)OperateItem.OperateType.remove)
                     {
-                        CollectionView.RecycleViewHolder(item);
+                        CollectionView.RecycleViewHolder(item);//如果动画步骤有问题, 此处确保回收
                     }
-                    // else if (item.Operation == (int)OperateItem.OperateType.move)
-                    // {
-                    //     item.ContentView.TranslationX = 0;
-                    //     item.ContentView.TranslationY = 0;
-                    //     item.ContentView.Opacity = 1;
-                    // }
-                    // else if (item.Operation == (int)OperateItem.OperateType.insert
-                    //     || item.Operation == -1)
-                    // {
-                    //     item.ContentView.Opacity = 1;
-                    // }
+
                     item.Operation = -1;
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            Stop();
+            Finished = null;
+            CollectionView = null;
         }
     }
 }

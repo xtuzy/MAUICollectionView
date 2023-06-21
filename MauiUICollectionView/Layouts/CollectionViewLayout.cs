@@ -5,17 +5,16 @@ namespace MauiUICollectionView.Layouts
     /// <summary>
     /// 布局的逻辑放在此处
     /// </summary>
-    public abstract class CollectionViewLayout
+    public abstract class CollectionViewLayout: IDisposable
     {
-        public LayoutAnimationManager AnimationManager;
         public CollectionViewLayout(MAUICollectionView collectionView)
         {
             this.CollectionView = collectionView;
-            AnimationManager = new LayoutAnimationManager();
-            AnimationManager.CollectionView = collectionView;
+            AnimationManager = new LayoutAnimationManager(collectionView);
         }
 
-        private MAUICollectionView _collectionView;
+        public LayoutAnimationManager AnimationManager;
+
 
         /*
          * 需要汇总所有操作, 因为多个操作一起时, 我们需要同时更新动画.
@@ -23,6 +22,7 @@ namespace MauiUICollectionView.Layouts
          */
         public List<OperateItem> Updates = new();
 
+        private MAUICollectionView _collectionView;
         public MAUICollectionView CollectionView
         {
             get { return _collectionView; }
@@ -40,34 +40,20 @@ namespace MauiUICollectionView.Layouts
         /// <summary>
         /// 标志需要remove, move的item的动画开始.
         /// </summary>
-        protected bool isStartDisappearOrMoveOrChangeAnimate = false;
-
-        /// <summary>
-        /// 标志insert的item动画开始.
-        /// </summary>
-        protected bool isStartAppearingAnimation = false;
+        protected bool isStartAnimate = false;
 
         /// <summary>
         /// Arrange Header, Items and Footer. They will be arranged according to <see cref="MAUICollectionViewViewHolder.BoundsInLayout"/>
         /// </summary>
         public virtual void ArrangeContents()
         {
-            if (isStartDisappearOrMoveOrChangeAnimate)
+            if (isStartAnimate)
             {
-                Debug.WriteLine("Anim disappear ArrangeContents");
+                Debug.WriteLine("Anim ArrangeContents");
 
-                AnimationManager.RunBeforeReLayout();
+                AnimationManager.Run();
 
-                isStartDisappearOrMoveOrChangeAnimate = false;//disappear动画结束
-                isStartAppearingAnimation = true;//appear动画开始
-                return;
-            }
-
-            if (isStartAppearingAnimation)
-            {
-                Debug.WriteLine("Anim appear ArrangeContents");
-                //AnimationManager.RunAfterReLayout();
-                isStartAppearingAnimation = false;
+                isStartAnimate = false;//disappear动画结束
             }
 
             Debug.WriteLine("ArrangeContents");
@@ -82,8 +68,7 @@ namespace MauiUICollectionView.Layouts
             {
                 CollectionView.LayoutChild(cell.Value.ContentView, cell.Value.BoundsInLayout);
                 //回收时把不透明度都设置为了0, 显示时需要设置回来
-                if (//cell.Value.Operation == (int)OperateItem.OperateType.move ||//RunAfterReLayout中可能执行不到
-                cell.Value.Operation == -1)//默认的, Scroll时
+                if (cell.Value.Operation == -1)//默认的状态, 这一步骤也对应于动画结束状态
                 {
                     cell.Value.ContentView.TranslationX = 0;
                     cell.Value.ContentView.TranslationY = 0;
@@ -92,15 +77,8 @@ namespace MauiUICollectionView.Layouts
                         cell.Value.ContentView.Opacity = 1;
                     }
                 }
-                else if (cell.Value.Operation == (int)OperateItem.OperateType.insert)
-                {
-                    //如果动画管理器不能执行动画
-                    if (cell.Value.ContentView.Opacity != 1 && !AnimationManager.HasAnim)
-                    {
-                        //cell.Value.ContentView.FadeTo(1);
-                    }
-                }
 
+                //避免Measure时处理错误回收了可见的Item
                 if (CollectionView.ReusableViewHolders.Contains(cell.Value))
                 {
                     CollectionView.ReusableViewHolders.Remove(cell.Value);
@@ -135,9 +113,8 @@ namespace MauiUICollectionView.Layouts
             Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
-                isStartDisappearOrMoveOrChangeAnimate = true;
+                isStartAnimate = true;
             }
-
 
             if (measureTimes <= 3)
                 measureTimes++;
@@ -275,7 +252,6 @@ namespace MauiUICollectionView.Layouts
             tableHeight += MeasureItems(tableHeight, layoutItemsInRect, availableCells);
 
             //标记insert
-
             var insertList = new List<NSIndexPath>();
             foreach (var item in Updates)
             {
@@ -307,10 +283,6 @@ namespace MauiUICollectionView.Layouts
                 }
             }
 
-            if (CollectionView.ReusableViewHolders.Count > CollectionView.MaxReusableViewHolderCount)
-            {
-                //CollectionView.ReusableViewHolders.RemoveRange(CollectionView.MaxReusableViewHolderCount - 1, CollectionView.ReusableViewHolders.Count - CollectionView.MaxReusableViewHolderCount);
-            }
             /*
              * Footer
              */
@@ -353,6 +325,11 @@ namespace MauiUICollectionView.Layouts
         /// </summary>
         /// <returns></returns>
         public abstract Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPath);
-    }
 
+        public void Dispose()
+        {
+            AnimationManager.Dispose();
+            _collectionView = null;
+        }
+    }
 }

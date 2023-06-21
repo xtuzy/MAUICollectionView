@@ -40,7 +40,7 @@ public partial class GridLayoutTestPage : ContentPage
                 (tableView.ItemsLayout as CollectionViewGridLayout).ColumnCount = 2;
             else
                 (tableView.ItemsLayout as CollectionViewGridLayout).ColumnCount = 1;
-            tableView.ContentView.ReMeasure();
+            tableView.ReMeasure();
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
         tableView.HeaderView = headerView;
@@ -67,7 +67,7 @@ public partial class GridLayoutTestPage : ContentPage
             var index = 2;
             (tableView.Source as Source).InsertData(index);
             tableView.InsertItems(NSIndexPath.FromRowSection(index, 0));
-            tableView.ContentView.ReMeasure();
+            tableView.ReMeasure();
         };
 
         Remove.Clicked += (sender, e) =>
@@ -75,7 +75,7 @@ public partial class GridLayoutTestPage : ContentPage
             var index = 2;
             (tableView.Source as Source).RemoveData(index);
             tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0));
-            tableView.ContentView.ReMeasure();
+            tableView.ReMeasure();
         };
 
         Move.Clicked += (sender, e) =>
@@ -84,7 +84,7 @@ public partial class GridLayoutTestPage : ContentPage
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
             tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
-            tableView.ContentView.ReMeasure();
+            tableView.ReMeasure();
         };
 
         Change.Clicked += (sender, e) =>
@@ -92,7 +92,7 @@ public partial class GridLayoutTestPage : ContentPage
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
             tableView.ChangeItem(new[] { NSIndexPath.FromRowSection(index, 0) });
-            tableView.ContentView.ReMeasure();
+            tableView.ReMeasure();
         };
     }
 }

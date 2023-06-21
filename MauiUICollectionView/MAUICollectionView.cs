@@ -1,5 +1,4 @@
 ﻿using MauiUICollectionView.Layouts;
-using UIView = Microsoft.Maui.Controls.Layout;
 namespace MauiUICollectionView
 {
     public partial class MAUICollectionView : ScrollView
@@ -138,10 +137,6 @@ namespace MauiUICollectionView
 #else
         public int ExtendHeight => (int)CollectionViewConstraintSize.Height;
 #endif
-        Rect _CGRectFromVerticalOffset(float offset, float height)
-        {
-            return new Rect(0, offset, this.Bounds.Width > 0 ? this.Bounds.Width : CollectionViewConstraintSize.Width, height);
-        }
 
         public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
@@ -210,18 +205,13 @@ namespace MauiUICollectionView
         {
             this._reloadDataIfNeeded();
             Size size = Size.Zero;
-            try
-            {
-                if (ItemsLayout != null)
-                    if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
-                        size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
-                    else
-                        size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
-            }
-            catch (Exception ex)
-            {
 
-            }
+            if (ItemsLayout != null)
+                if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
+                    size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
+                else
+                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
+
             if (_backgroundView != null)
             {
                 if (size != Size.Zero)
@@ -229,6 +219,7 @@ namespace MauiUICollectionView
                 else
                     MeasureChild(_backgroundView, widthConstraint, heightConstraint);
             }
+
             return size;
         }
 
@@ -242,14 +233,8 @@ namespace MauiUICollectionView
         {
             if (_backgroundView != null)
                 LayoutChild(_backgroundView, ContentView.Bounds);
-            try
-            {
-                ItemsLayout?.ArrangeContents();
-            }
-            catch (Exception ex)
-            {
 
-            }
+            ItemsLayout?.ArrangeContents();
         }
 
         public void LayoutChild(Element element, Rect rect)
@@ -492,7 +477,7 @@ namespace MauiUICollectionView
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.StopRunWhenScroll();
+                ItemsLayout.AnimationManager.Stop();
             Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = indexPaths });
 
             //找到已经可见的Item和它们的IndexPath,和目标IndexPath
@@ -517,7 +502,7 @@ namespace MauiUICollectionView
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.StopRunWhenScroll();
+                ItemsLayout.AnimationManager.Stop();
             //找到已经可见的Item和它们的IndexPath,和目标IndexPath
             foreach (var visiableItem in PreparedItems)
             {
@@ -539,7 +524,7 @@ namespace MauiUICollectionView
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.StopRunWhenScroll();
+                ItemsLayout.AnimationManager.Stop();
             Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = indexPath, target = toIndexPath });
 
             //如果同Section, Move影响的只是之间的
@@ -602,7 +587,7 @@ namespace MauiUICollectionView
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.StopRunWhenScroll();
+                ItemsLayout.AnimationManager.Stop();
             foreach (var visiableItem in PreparedItems)
             {
                 if (indexPaths.Contains(visiableItem.Key))//如果可见的Items包含需要更新的Item

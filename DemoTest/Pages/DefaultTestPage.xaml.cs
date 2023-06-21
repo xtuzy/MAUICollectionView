@@ -69,34 +69,21 @@ public partial class DefaultTestPage : ContentPage
             Console.WriteLine("Appearing");
         };
 
-        void r()
-        {
-            Task.Run(async () =>
-            {
-                await Task.Delay(3000);
-                tableView.Dispatcher.Dispatch(() =>
-                {
-                    tableView.ContentView.ReMeasure();
-                });
-            });
-        }
-
         //Add
         Add.Clicked += (sender, e) =>
         {
             var index = 2;
             (tableView.Source as Source).InsertData(index);
             tableView.InsertItems(NSIndexPath.FromRowSection(index, 0));
-            r();
-            tableView.ContentView.ReMeasure();
+            tableView.ReMeasure();
         };
 
         Remove.Clicked += (sender, e) =>
         {
             var index = 2;
             (tableView.Source as Source).RemoveData(index);
-            tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0)); r();
-            tableView.ContentView.ReMeasure();
+            tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.ReMeasure();
         };
 
         Move.Clicked += (sender, e) =>
@@ -105,8 +92,7 @@ public partial class DefaultTestPage : ContentPage
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
             tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
-            r();
-            tableView.ContentView.ReMeasure();
+            tableView.ReMeasure();
         };
 
         Change.Clicked += (sender, e) =>
@@ -114,14 +100,21 @@ public partial class DefaultTestPage : ContentPage
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
             tableView.ChangeItem(new[] { NSIndexPath.FromRowSection(index, 0) });
-            r();
-            tableView.ContentView.ReMeasure();
-
+            tableView.ReMeasure();
         };
 
         Reload.Clicked += (sender, e) =>
         {
             tableView.ReloadData();
+        };
+
+        ChangeLayout.Clicked += (sender, e) =>
+        {
+            if(tableView.ItemsLayout is CollectionViewListLayout)
+                tableView.ItemsLayout = new CollectionViewGridLayout(tableView);
+            else
+                tableView.ItemsLayout = new CollectionViewListLayout(tableView);
+            tableView.ReMeasure();
         };
     }
 }

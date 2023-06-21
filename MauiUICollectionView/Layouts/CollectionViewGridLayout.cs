@@ -19,8 +19,6 @@
         /// </summary>
         public Size AspectRatio { get; set; } = new Size(1, 1);
 
-        List<NSIndexPath> needRemoveCell = new List<NSIndexPath>();
-
         /// <summary>
         /// 存储同类型的已经显示的Row的行高, 用于估计未显示的行.
         /// </summary>
@@ -67,7 +65,8 @@
                             if (cell != null)
                             {
                                 //将Cell添加到正在显示的Cell字典
-                                CollectionView.PreparedItems[indexPath] = cell;
+                                CollectionView.PreparedItems.Add(indexPath, cell);
+                                //CollectionView.PreparedItems[indexPath] = cell;
                                 if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
                                 //Cell是否是正在被选择的
                                 cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
@@ -82,14 +81,13 @@
                                 var measureSize = CollectionView.MeasureChild(cell.ContentView, itemWidth, itemHeight).Request;
                                 var bounds = new Rect(itemWidth * (currentRow - row), itemsHeight + top, measureSize.Width, measureSize.Height);
 
-                                if (cell.Operation == (int)OperateItem.OperateType.move)
+                                if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate)
                                 {
                                     cell.OldBoundsInLayout = cell.BoundsInLayout;
                                     cell.BoundsInLayout = bounds;
                                 }
                                 else
                                 {
-                                    cell.OldBoundsInLayout = Rect.Zero;
                                     cell.BoundsInLayout = bounds;
                                 }
                             }
@@ -101,8 +99,8 @@
                                 var cell = availableCells[indexPath];
                                 if (cell.ReuseIdentifier != default)
                                 {
-                                    CollectionView.RecycleViewHolder(cell);
                                     availableCells.Remove(indexPath);
+                                    CollectionView.RecycleViewHolder(cell);
                                 }
                             }
                         }

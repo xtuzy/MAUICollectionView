@@ -5,6 +5,9 @@ namespace MauiUICollectionView
 {
     public partial class MAUICollectionView : ScrollView
     {
+        /// <summary>
+        /// 同<see cref="ScrollView.Content"/>, 直接使用<see cref="ContentViewForScrollView"/>, 避免转换.
+        /// </summary>
         public ContentViewForScrollView ContentView { get; protected set; }
         public MAUICollectionView()
         {
@@ -29,7 +32,7 @@ namespace MauiUICollectionView
             scrollOffset = e.ScrollY - lastScrollY;
             lastScrollY = e.ScrollY;
             //Console.WriteLine($"Scrolled {e.ScrollY}");
-            ItemsLayout.AnimationManager.StopRunWhenScroll();
+            ItemsLayout.AnimationManager.Stop();
             (this as IView).InvalidateMeasure();
         }
 
@@ -53,16 +56,19 @@ namespace MauiUICollectionView
             CollectionViewConstraintSize = new Size(widthConstraint, heightConstraint);
             return base.MeasureOverride(widthConstraint, heightConstraint);
         }
+
+        /// <summary>
+        /// 需要更新界面时, 调用它重新测量和布局
+        /// </summary>
+        public void ReMeasure()
+        {
+            Debug.WriteLine("ReMeasure");
+            (this as IView).InvalidateMeasure();
+        }
     }
 
     public class ContentViewForScrollView : Layout
     {
-        public void ReMeasure()
-        {
-             Debug.WriteLine("ReMeasure");
-            (this as IView).InvalidateMeasure();
-        }
-
         MAUICollectionView container;
         public ContentViewForScrollView(MAUICollectionView container)
         {
