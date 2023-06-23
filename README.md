@@ -5,10 +5,13 @@
 - And most importantly, we can control all detail about CollectionView, you can custom a layout to get best performance to show your data.
 
 Demo:
+- Android
+  
+https://user-images.githubusercontent.com/17793881/248198954-316b2734-fbe6-4dfd-a87d-9feaa1abd68c.mp4
+- Windows
 
 https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-964f-78616592ca62.mp4
 
-https://user-images.githubusercontent.com/17793881/242760737-01f26e4d-815f-4fee-aeb1-f1a75107043d.mp4
 
 ## Features
 - Cross Platform, as long as the ScrollView behaves consistently
