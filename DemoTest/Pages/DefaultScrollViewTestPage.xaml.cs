@@ -1,3 +1,5 @@
+using The49.Maui.ContextMenu;
+
 namespace DemoTest.Pages;
 
 public partial class DefaultScrollViewTestPage : ContentPage
@@ -32,6 +34,19 @@ public partial class DefaultScrollViewTestPage : ContentPage
             drop.AllowDrop = true;
             text.GestureRecognizers.Add(drag);
             text.GestureRecognizers.Add(drop);
+
+            var template = new DataTemplate(() => {
+                var menu = new Menu();
+                menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
+                {
+                    new The49.Maui.ContextMenu.Action()
+                    {
+                        Title = "Delete",
+                    }
+                };
+                return menu;
+            });
+            ContextMenu.SetMenu(youdaoCell, template);
         }
 
         ChangeY.Clicked += ChangeY_Clicked;
@@ -70,7 +85,7 @@ public partial class DefaultScrollViewTestPage : ContentPage
 
     private void Drop_Drop(object sender, DropEventArgs e)
     {
-        //(drag.Parent as Layout).Remove(drag);
+        (drag.Parent as Layout).Remove(drag);
         var target = (sender as DropGestureRecognizer).Parent as View;
         var targetIndex = (target.Parent as Layout).IndexOf(target);
         (target.Parent as Layout).Insert(targetIndex, drag);

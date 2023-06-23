@@ -3,6 +3,7 @@
     x:Class="DemoTest.Pages.CollectionViewTestPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
     Title="CollectionViewTestPage">
     <Grid>
         <Grid.RowDefinitions>
@@ -21,6 +22,16 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Grid Margin="5,5,5,5" BackgroundColor="Gray">
+                            <the49:ContextMenu.Menu>
+                                <DataTemplate>
+                                    <the49:Menu>
+                                        <the49:Action Title="Upload documents" />
+                                        <the49:Action Title="Copy" />
+                                        <the49:Action Title="Cut" />
+                                        <the49:Action Title="Paste" />
+                                    </the49:Menu>
+                                </DataTemplate>
+                            </the49:ContextMenu.Menu>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />

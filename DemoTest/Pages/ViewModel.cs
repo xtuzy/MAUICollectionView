@@ -1,7 +1,9 @@
 ﻿using Bogus;
+using Maui.BindableProperty.Generator.Core;
 using MauiUICollectionView;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
+using The49.Maui.ContextMenu;
 using Yang.Maui.Helper.Image;
 
 namespace DemoTest.Pages
@@ -183,6 +185,13 @@ namespace DemoTest.Pages
                     //if (!System.OperatingSystem.IsWindows()) imageCell.ImageView.MinimumHeightRequest = widthConstrain;
                     imageCell.NewCellIndex = ++newCellCount;
                     imageCell.ModelView.ViewHolderIndex.Text = imageCell.NewCellIndex.ToString();
+                    var command = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                    {
+                        RemoveData(arg.Row);
+                        tableView.RemoveItems(arg);
+                        tableView.ReMeasure();
+                    });
+                    imageCell.ModelView.InitMenu(command);
                 }
                 if (!needEmpty)
                 {
@@ -196,8 +205,8 @@ namespace DemoTest.Pages
                         imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
                     }
                     imageCell.IsEmpty = false;
+                    imageCell.ModelView.IndexPath = indexPath;
                 }
-
                 cell = imageCell;
             }
             cell.NSIndexPath = indexPath;
@@ -290,8 +299,11 @@ namespace DemoTest.Pages
         }
     }
 
-    public class ModelView : Border
+    public partial class ModelView : Border
     {
+        [AutoBindable]
+        NSIndexPath _indexPath;
+
         ConstraintLayout rootLayout;
         public Image PersonIcon;
         public Label PersonName;
@@ -342,6 +354,40 @@ namespace DemoTest.Pages
                     ;
                 set.ApplyTo(rootLayout);
             }
+        }
+
+        public void InitMenu(Command command)
+        {
+#if IOS || ANDROID
+            var template = new DataTemplate(() => {
+                var menu = new Menu();
+                var menuItem = new The49.Maui.ContextMenu.Action()
+                {
+                    Title = "Delete",
+                    Command = command,
+                };
+                menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+                menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
+                {
+                    menuItem
+                };
+                return menu;
+            });
+            ContextMenu.SetMenu(this, template);
+#elif ANDROID
+
+#else
+            var menu = new MenuFlyout();
+            var menuItem = new MenuFlyoutItem()
+            {
+                Text = "Delete",
+                Command = command,
+                CommandParameter = IndexPath
+            };
+            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Add(menuItem);
+            FlyoutBase.SetContextFlyout(this, menu);
+#endif
         }
 
         private void LikeIcon_Clicked(object sender, EventArgs e)
