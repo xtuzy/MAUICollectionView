@@ -3,15 +3,64 @@
     x:Class="DemoTest.Pages.CollectionViewTestPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:the49="https://schemas.the49.com/dotnet/2023/maui"
     Title="CollectionViewTestPage">
-    <CollectionView x:Name="collectionView" ItemSizingStrategy="MeasureAllItems">
-        <CollectionView.ItemTemplate>
-            <DataTemplate>
-                <Image
-                    Aspect="AspectFit"
-                    MinimumHeightRequest="300"
-                    Source="{Binding Url}" />
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
-    </CollectionView>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+
+        </Grid.RowDefinitions>
+        <HorizontalStackLayout>
+            <Button x:Name="Add" Text="Add" />
+            <Button x:Name="Remove" Text="Remove" />
+            <Button x:Name="Change" Text="Change" />
+            <Button x:Name="Move" Text="Move" />
+        </HorizontalStackLayout>
+        <RefreshView Grid.Row="1">
+            <CollectionView x:Name="collectionView" ItemSizingStrategy="MeasureAllItems">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="5,5,5,5" BackgroundColor="Gray">
+                            <the49:ContextMenu.Menu>
+                                <DataTemplate>
+                                    <the49:Menu>
+                                        <the49:Action Title="Upload documents" />
+                                        <the49:Action Title="Copy" />
+                                        <the49:Action Title="Cut" />
+                                        <the49:Action Title="Paste" />
+                                    </the49:Menu>
+                                </DataTemplate>
+                            </the49:ContextMenu.Menu>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Image
+                                    Grid.Column="0"
+                                    HeightRequest="40"
+                                    Source="{Binding PersonIconUrl}" />
+                                <VerticalStackLayout Grid.Column="1">
+                                    <Label Text="{Binding PersonName}" />
+                                    <Label Text="{Binding PersonPhone}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <HorizontalStackLayout Grid.Row="1">
+                                <Image
+                                    Aspect="AspectFit"
+                                    HeightRequest="100"
+                                    Source="{Binding PersonImageBlogUrl}" />
+                            </HorizontalStackLayout>
+                        </Grid>
+
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
 </ContentPage>

@@ -1,5 +1,4 @@
 ﻿using MauiUICollectionView.Layouts;
-using UIView = Microsoft.Maui.Controls.Layout;
 namespace MauiUICollectionView
 {
     public partial class MAUICollectionView : ScrollView
@@ -36,7 +35,28 @@ namespace MauiUICollectionView
             }
         }
 
-        UIView _backgroundView;
+        View _backgroundView;
+        public View BackgroundView
+        {
+            set
+            {
+                //如果已经存在, 先移除
+                if (_backgroundView != null && _backgroundView != value)
+                {
+                    if (ContentView.Contains(_backgroundView))
+                    {
+                        ContentView.Remove(_backgroundView);
+                    }
+                }
+
+                if (value != null && _backgroundView != value)
+                {
+                    _backgroundView = value;
+                    ContentView.Insert(0, _backgroundView);//插入到底部
+                }
+            }
+        }
+
         bool allowsSelection;
         bool allowsSelectionDuringEditing;
         bool editing;
@@ -49,13 +69,14 @@ namespace MauiUICollectionView
         public NSIndexPath _selectedRow;
         public NSIndexPath _highlightedRow;
         /// <summary>
-        /// 当前正在显示区域中的Cell
+        /// 当前正在布局区域中的Items, 与可见区域不同, 布局区域可能大于可见区域, 因为快速滑动时上下可能出现空白, 为了避免空白需要绘制大于可见区域的
         /// </summary>
-        public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> _cachedCells;
+        public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> PreparedItems;
         /// <summary>
-        /// 回收的等待重复利用的Cell
+        /// 回收的等待重复利用的ViewHolder
         /// </summary>
-        public List<MAUICollectionViewViewHolder> _reusableCells;
+        public List<MAUICollectionViewViewHolder> ReusableViewHolders;
+        public int MaxReusableViewHolderCount = 5;
 
         SourceHas _sourceHas;
         struct SourceHas
@@ -75,8 +96,8 @@ namespace MauiUICollectionView
 
         void Init()
         {
-            this._cachedCells = new();
-            this._reusableCells = new();
+            this.PreparedItems = new();
+            this.ReusableViewHolders = new();
             this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
             this.allowsSelection = true;
             this.allowsSelectionDuringEditing = false;
@@ -116,48 +137,33 @@ namespace MauiUICollectionView
 #else
         public int ExtendHeight => (int)CollectionViewConstraintSize.Height;
 #endif
-        Rect _CGRectFromVerticalOffset(float offset, float height)
-        {
-            return new Rect(0, offset, this.Bounds.Width > 0 ? this.Bounds.Width : CollectionViewConstraintSize.Width, height);
-        }
 
         public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
             // this is allowed to return nil if the cell isn't visible and is not restricted to only returning visible cells
             // so this simple call should be good enough.
             if (indexPath == null) return null;
-            return _cachedCells.ContainsKey(indexPath) ? _cachedCells[indexPath] : null;
-        }
-
-        public void setBackgroundView(UIView backgroundView)
-        {
-            if (_backgroundView != backgroundView)
-            {
-                _backgroundView = null;//_backgroundView?.Dispose();
-                _backgroundView = backgroundView;
-                this.InsertSubview(_backgroundView, 0);
-            }
+            return PreparedItems.ContainsKey(indexPath) ? PreparedItems[indexPath] : null;
         }
 
         /// <summary>
-        /// Reloads all the data and views in the collection view
+        /// Reloads all the data and views in the collection view. 常在非数据末尾的位置插入或者移除大量数据时使用.
         /// </summary>
         public void ReloadData()
         {
             // clear the caches and remove the cells since everything is going to change
-            foreach (var cell in _cachedCells.Values)
+            foreach (var cell in PreparedItems.Values)
             {
-                cell.PrepareForReuse();
-                _reusableCells.Add(cell);
+                RecycleViewHolder(cell);
             }
 
-            _cachedCells.Clear();
+            PreparedItems.Clear();
 
             // clear prior selection
             this._selectedRow = null;
             this._highlightedRow = null;
 
-            _reloadDataCounts();//Section或者Item数目可能变化了, 重新加载
+            ReloadDataCount();//Section或者Item数目可能变化了, 重新加载
 
             this._needsReload = false;
             (this as IView).InvalidateMeasure();
@@ -168,15 +174,14 @@ namespace MauiUICollectionView
         /// </summary>
         public void ReAppear()
         {
-            foreach (var cell in _cachedCells.Values)
+            foreach (var cell in PreparedItems.Values)
             {
-                cell.PrepareForReuse();
-                _reusableCells.Add(cell);
+                RecycleViewHolder(cell);
             }
 
-            _cachedCells.Clear();
+            PreparedItems.Clear();
 
-            _reloadDataCounts();
+            ReloadDataCount();
             this._needsReload = false;
 
             (this as IView).InvalidateMeasure();
@@ -199,14 +204,30 @@ namespace MauiUICollectionView
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
         {
             this._reloadDataIfNeeded();
-            Size size;
+            Size size = Size.Zero;
+
             if (ItemsLayout != null)
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
+                {
+                    if (CollectionViewConstraintSize.Height == 0)
+                        CollectionViewConstraintSize.Height = DeviceDisplay.Current.MainDisplayInfo.Height;
                     size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
+                }
                 else
+                {
+                    if (CollectionViewConstraintSize.Width == 0)
+                        CollectionViewConstraintSize.Width = DeviceDisplay.Current.MainDisplayInfo.Width;
                     size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
-            else
-                size = new Size(0, 0);
+                }
+
+            if (_backgroundView != null)
+            {
+                if (size != Size.Zero)
+                    MeasureChild(_backgroundView, size.Width, size.Height);
+                else
+                    MeasureChild(_backgroundView, widthConstraint, heightConstraint);
+            }
+
             return size;
         }
 
@@ -215,10 +236,12 @@ namespace MauiUICollectionView
             return (element as IView).Measure(widthConstraint, heightConstraint);
         }
 
+        bool animating = false;
         public partial void OnContentViewLayout()
         {
             if (_backgroundView != null)
-                LayoutChild(_backgroundView, Bounds);
+                LayoutChild(_backgroundView, ContentView.Bounds);
+
             ItemsLayout?.ArrangeContents();
         }
 
@@ -234,9 +257,9 @@ namespace MauiUICollectionView
 
         public NSIndexPath IndexPathForCell(MAUICollectionViewViewHolder cell)
         {
-            foreach (NSIndexPath index in _cachedCells.Keys)
+            foreach (NSIndexPath index in PreparedItems.Keys)
             {
-                if (_cachedCells[index] == cell)
+                if (PreparedItems[index] == cell)
                 {
                     return index;
                 }
@@ -341,6 +364,12 @@ namespace MauiUICollectionView
             }
         }
 
+        /// <summary>
+        /// 滑动到NSIndexPath对应的Item.
+        /// </summary>
+        /// <param name="indexPath"></param>
+        /// <param name="scrollPosition"></param>
+        /// <param name="animated"></param>
         public void ScrollToRowAtIndexPath(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
             var rect = ItemsLayout.RectForRowOfIndexPathInContentView(indexPath);
@@ -359,26 +388,44 @@ namespace MauiUICollectionView
             }
         }
 
-        public MAUICollectionViewViewHolder dequeueReusableCellWithIdentifier(string identifier)
+        #region 复用
+        object _obj = new object();
+        public MAUICollectionViewViewHolder DequeueRecycledViewHolderWithIdentifier(string identifier)
         {
-            foreach (MAUICollectionViewViewHolder cell in _reusableCells)
+            lock (_obj)
             {
-                if (cell.ReuseIdentifier == identifier)
+                for (var index = ReusableViewHolders.Count - 1; index >= 0; index--)
                 {
-                    MAUICollectionViewViewHolder strongCell = cell;
-
-                    // the above strongCell reference seems totally unnecessary, but without it ARC apparently
-                    // ends up releasing the cell when it's removed on this line even though we're referencing it
-                    // later in this method by way of the cell variable. I do not like this.
-                    _reusableCells.Remove(cell);
-
-                    strongCell.PrepareForReuse();
-                    return strongCell;
+                    MAUICollectionViewViewHolder viewHolder = ReusableViewHolders[index];
+                    if (viewHolder.ReuseIdentifier == identifier)
+                    {
+                        ReusableViewHolders.RemoveAt(index);
+                        return viewHolder;
+                    }
                 }
             }
-
             return null;
         }
+
+        /// <summary>
+        /// 没有操作动画的Item直接回收
+        /// </summary>
+        /// <param name="viewHolder"></param>
+        public void RecycleViewHolder(MAUICollectionViewViewHolder viewHolder)
+        {
+            //回收时重置ViewHolder
+            if (!ReusableViewHolders.Contains(viewHolder))
+            {
+                viewHolder.PrepareForReuse();
+                lock (_obj)
+                {
+                    ReusableViewHolders.Add(viewHolder);
+                }
+            }
+            //viewHolder.ContentView.RemoveFromSuperview(); 移除会触发Measure, 导致动画流程混乱
+        }
+
+        #endregion
 
         #region 数据
         /// <summary>
@@ -386,7 +433,10 @@ namespace MauiUICollectionView
         /// </summary>
         private List<int> sections = new();
 
-        private void _reloadDataCounts()
+        /// <summary>
+        /// 当数据被从末尾插入或删除时, 可以使用该方法加载更新后的数据.
+        /// </summary>
+        public void ReloadDataCount()
         {
             this.sections = fetchDataCounts();
         }
@@ -429,245 +479,133 @@ namespace MauiUICollectionView
 
         #region 操作
 
-        public void InsertSections(int[] sections, RowAnimation animation)
+        /// <summary>
+        /// 通知CollectionView移除某Item, 需要做出改变.
+        /// 移除会让移除项后面的Item需要调节高度, 这个高度需要动画改变
+        /// </summary>
+        /// <param name="indexPaths"></param>
+        public void RemoveItems(NSIndexPath indexPaths)
         {
-            this.ReloadData();
-        }
+            var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.Stop();
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = indexPaths });
 
-        public void DeleteSections(int[] sections, RowAnimation animation)
-        {
-            this.ReloadData();
+            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+            foreach (var visiableItem in PreparedItems)
+            {
+                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
+                {
+                    if (visiableItem.Key.Row > indexPaths.Row)//大于移除item的row的需要更新IndexPath
+                    {
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                    }
+                }
+            }
+            ReloadDataCount();
         }
 
         /// <summary>
-        /// Insert items at specific index paths
+        /// 通知CollectionView插入了Item, 需要做出改变.
         /// </summary>
-        /// <param name="indexPaths">The index paths at which to insert items.</param>
-        /// <param name="animation"></param>
-        public void InsertItems(NSIndexPath[] indexPaths, bool animate)
+        /// <param name="indexPaths">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
+        public void InsertItems(NSIndexPath indexPaths)
         {
-            if (indexPaths == null || indexPaths.Length == 0) { return; }
-            beginUpdates();
-            _updateContext.items.inserted.AddRange(indexPaths);
-            endUpdates(animate);
-        }
-
-        public void DeleteItems(NSIndexPath[] indexPaths, bool animation)
-        {
-            this.ReloadData();
-        }
-
-        private UpdateContext _updateContext = new UpdateContext();
-        private int _editing = 0;
-
-        void beginUpdates()
-        {
-            if (_editing == 0)
+            var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.Stop();
+            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+            foreach (var visiableItem in PreparedItems)
             {
-                _updateContext.Reset();
-            }
-            _editing += 1;
-        }
-
-        void endUpdates(bool animated, Action completion = null)
-        {
-            if (_editing > 1)
-            {
-                _editing -= 1;
-                return;
-            }
-            _editing = 0;
-
-            if (_updateContext.IsEmpty)
-            {
-                completion?.Invoke();
-                return;
-            }
-
-            var oldData = this.sections;
-            _reloadDataCounts();
-            var newData = this.sections;
-
-            foreach (var idx in _updateContext.reloadSections)
-            {
-                // Reuse existing operation to reload, delete, and insert items in the section as needed
-                var oldCount = oldData[idx];
-                var newCount = newData[idx];
-                var shared = Math.Min(oldCount, newCount);
-                var update = NSIndexPath.InRange((0, shared - 1), section: idx);
-                this._updateContext.reloadedItems.AddRange(update);
-                if (oldCount > newCount)
+                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
                 {
-                    var delete = NSIndexPath.InRange((shared, oldCount - 1), section: idx);
-                    this._updateContext.items.deleted.AddRange(delete);
-                }
-                else if (oldCount < newCount)
-                {
-                    var insert = NSIndexPath.InRange((shared, newCount - 1), section: idx);
-                    this._updateContext.items.inserted.AddRange(insert);
-                }
-            }
-
-            if (!this._updateContext.items.IsEmpty || !this._updateContext.sections.IsEmpty)
-            {
-                if (_updateContext.reloadedItems.Count != 0)
-                {
-                    foreach (var ip in _updateContext.reloadedItems)
+                    if (visiableItem.Key.Row >= indexPaths.Row)//大于等于item的row的需要更新IndexPath
                     {
-                        //if (!this.contentDocumentView.preparedCellIndex.TryGetValue(ip, out var cell)) continue;
-                        //this.contentDocumentView.preparedCellIndex[ip] = _prepareReplacementCell(cell, ip);
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
                     }
-                    //this.ReloadLayout(animated, ScrollPosition.None, completion);
                 }
-                else
-                {
-                    completion?.Invoke();
-                }
-                return;
             }
+            //先move后面的, 再插入
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.insert, source = indexPaths });
 
+            ReloadDataCount();
         }
 
-        private struct ItemTracker
+        public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
         {
-            public List<NSIndexPath> inserted;
-            public List<NSIndexPath> deleted;
-            public Dictionary<NSIndexPath, NSIndexPath> moved;
-            public bool IsEmpty
+            var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.Stop();
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = indexPath, target = toIndexPath });
+
+            //如果同Section, Move影响的只是之间的
+            if (indexPath.Section == toIndexPath.Section)
             {
-                get
+                var isUpMove = indexPath.Row > toIndexPath.Row;
+                //先移除
+                foreach (var visiableItem in PreparedItems)
                 {
-                    return deleted.Count == 0 && inserted.Count == 0 && moved.Count == 0;
+                    if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
+                    {
+                        if (isUpMove)//从底部向上移动, 目标位置下面的都需要向下移动
+                        {
+                            if (visiableItem.Key.Row >= toIndexPath.Row && visiableItem.Key.Row < indexPath.Row)
+                            {
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                            }
+                        }
+                        else
+                        {
+                            if (visiableItem.Key.Row > indexPath.Row && visiableItem.Key.Row <= toIndexPath.Row)
+                            {
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                            }
+                        }
+
+                    }
                 }
             }
+            //如果不同Section, 则影响不同的section后面的
+            else
+            {
+                //先移除, 移除的Item后面的Item需要向前移动
+                foreach (var visiableItem in PreparedItems)
+                {
+                    if (visiableItem.Key.Section == indexPath.Section)
+                    {
+                        if (visiableItem.Key.Row > indexPath.Row)
+                        {
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                        }
+                    }
+                }
+                //后插入, 后面的需要向后移动
+                foreach (var visiableItem in PreparedItems)
+                {
+                    if (visiableItem.Key.Section == toIndexPath.Section)
+                    {
+                        if (visiableItem.Key.Row >= toIndexPath.Row)
+                        {
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                        }
+                    }
+                }
+            }
+            ReloadDataCount();
         }
 
-        private struct SectionTracker
+        public void ChangeItem(IEnumerable<NSIndexPath> indexPaths)
         {
-            public List<int> deleted; // Original Indexes for deleted sections
-            public List<int> inserted; // Destination Indexes for inserted sections
-            public Dictionary<int, int> moved; // Source and Destination indexes for moved sections
-            public bool IsEmpty
+            var Updates = ItemsLayout.Updates;
+            if (Updates.Count > 0)
+                ItemsLayout.AnimationManager.Stop();
+            foreach (var visiableItem in PreparedItems)
             {
-                get
+                if (indexPaths.Contains(visiableItem.Key))//如果可见的Items包含需要更新的Item
                 {
-                    return deleted.Count == 0 && inserted.Count == 0 && moved.Count == 0;
+                    Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.update, source = visiableItem.Key });
                 }
             }
-        }
-
-        private class SectionValidator : IEquatable<SectionValidator>, ICustomFormatter
-        {
-            public int? source;
-            public int? target;
-            public int count = 0;
-
-            public int estimatedCount
-            {
-                get
-                {
-                    if (this.target == null) return 0;
-                    if (this.source == null) return count;
-                    return count + (inserted.Count + movedIn.Count) - (removed.Count + movedOut.Count);
-                }
-            }
-
-            public List<int> inserted = new List<int>();
-            public List<int> removed = new List<int>();
-            public List<int> movedOut = new List<int>();
-            public List<int> movedIn = new List<int>();
-            public Dictionary<int, int> moves = new Dictionary<int, int>();
-
-            public SectionValidator(int? source, int? target, int count)
-            {
-                this.source = source;
-                this.target = target;
-                this.count = count;
-            }
-
-            bool IEquatable<SectionValidator>.Equals(SectionValidator other)
-            {
-                return this.source == other.source && this.target == other.target;
-            }
-
-            string ICustomFormatter.Format(string format, object arg, IFormatProvider formatProvider)
-            {
-                return $"Source: {source ?? -1} Target: {this.target ?? -1} Count: {count} expected: {estimatedCount}";
-            }
-        }
-
-        private struct UpdateContext
-        {
-            public SectionTracker sections;
-            public ItemTracker items;
-            public List<NSIndexPath> reloadedItems; // Track reloaded items to reload after adjusting IPs
-            public List<int> reloadSections;
-
-            public List<ItemUpdate> updates;
-
-            public void Reset()
-            {
-                this.items = new ItemTracker();
-                this.sections = new SectionTracker();
-                updates.Clear();
-                reloadedItems.Clear();
-            }
-
-            public bool IsEmpty
-            {
-                get
-                {
-                    return sections.IsEmpty && items.IsEmpty && reloadedItems.Count == 0 && reloadSections.Count == 0;
-                }
-            }
-        }
-
-        public struct ItemUpdate : IEquatable<ItemUpdate>
-        {
-            public enum UpdateType
-            {
-                Insert,
-                Remove,
-                Update
-            }
-
-            public MAUICollectionViewViewHolder View { get; }
-            public MAUICollectionViewViewHolder.ItemAttribute? _Attrs { get; }
-            public NSIndexPath IndexPath { get; }
-            public UpdateType Type { get; }
-
-            private MAUICollectionViewViewHolder.ItemAttribute GetAttrs()
-            {
-                if (_Attrs != null)
-                {
-                    return _Attrs;
-                }
-
-                var cv = View.ContentView.Parent as MAUICollectionView;
-
-                MAUICollectionViewViewHolder.ItemAttribute a = null;
-                a = cv.LayoutAttributesForItem(IndexPath);
-                
-                a = a ?? View.Attributes;
-                if (a == null)
-                {
-                    throw new InvalidOperationException("Internal error: unable to find layout attributes for view at " + IndexPath);
-                }
-                return a;
-            }
-
-            public bool Equals(ItemUpdate other) =>
-                View == other.View &&
-                Type == other.Type &&
-                IndexPath == other.IndexPath;
-
-            public override int GetHashCode() => View.GetHashCode();
-        }
-
-        private MAUICollectionViewViewHolder.ItemAttribute LayoutAttributesForItem(NSIndexPath indexPath)
-        {
-            //ItemsLayout.LayoutAttributesForItem(indexPath);
-            return null;
         }
         #endregion
     }
