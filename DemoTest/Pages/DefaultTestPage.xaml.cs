@@ -49,13 +49,18 @@ public partial class DefaultTestPage : ContentPage
         tableView.HeaderView = headerView;
 
         //Footer
+        var footer = new VerticalStackLayout();
         var footerButton = new Button() { Text = "Footer GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
             tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
             Console.WriteLine("Clicked Footer");
         };
-        tableView.FooterView = new MAUICollectionViewViewHolder(footerButton, "Footer");
+        var footActivityIndicator = new ActivityIndicator() { Color = Colors.Red, IsVisible =false, IsRunning = false, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        footer.Add(footActivityIndicator);
+        footer.Add(footerButton);
+        
+        tableView.FooterView = new MAUICollectionViewViewHolder(footer, "foot");
 
         tableView.BackgroundView = new Grid() { BackgroundColor = Colors.LightPink };
 

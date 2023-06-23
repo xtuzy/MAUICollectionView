@@ -21,9 +21,10 @@
         /// </summary>
         public double EstimatedRowHeight = 100;
 
-        protected override double MeasureItems(double top, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
+        protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
         {
             double itemsHeight = 0;
+
             /* 
              * Items
              */
@@ -42,10 +43,10 @@
 
                     var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                     var rowMaybeBottom = rowMaybeTop + rowMaybeHeight;
-                    //如果在可见区域, 就详细测量
-                    if ((rowMaybeTop >= inRect.Top && rowMaybeTop <= inRect.Bottom)
-                       || (rowMaybeBottom >= inRect.Top && rowMaybeBottom <= inRect.Bottom)
-                       || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))
+                    //如果在布局区域, 就详细测量
+                    if ((rowMaybeTop >= inRect.Top && rowMaybeTop <= inRect.Bottom)//Item的顶部在布局区域内
+                       || (rowMaybeBottom >= inRect.Top && rowMaybeBottom <= inRect.Bottom)//Item的底部在布局区域内
+                       || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))//Item包含布局区域
                     {
                         //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
                         MAUICollectionViewViewHolder cell;
@@ -114,10 +115,17 @@
                             {
                                 cell.BoundsInLayout = bounds;
                             }
+
+                            //存储可见的
+                            if (bounds.IntersectsWith(visiableRect))
+                            {
+                                VisiableIndexPath.Add(indexPath);
+                            }
+
                             itemsHeight += finalHeight;
                         }
                     }
-                    else//如果不可见
+                    else//如果不在布局区域内
                     {
                         if (availableCells.ContainsKey(indexPath))
                         {

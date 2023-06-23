@@ -30,5 +30,7 @@
 
         heightForRowAtIndexPathDelegate heightForRowAtIndexPath { get; }
         reuseIdentifierForRowAtIndexPathDelegate reuseIdentifierForRowAtIndexPath { get; }
+
+        public Action<MAUICollectionView, NSIndexPath> lastItemWillShow { get; }
     }
 }

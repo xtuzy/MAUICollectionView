@@ -69,7 +69,7 @@ namespace MauiUICollectionView
         public NSIndexPath _selectedRow;
         public NSIndexPath _highlightedRow;
         /// <summary>
-        /// 当前正在显示区域中的Items
+        /// 当前正在布局区域中的Items, 与可见区域不同, 布局区域可能大于可见区域, 因为快速滑动时上下可能出现空白, 为了避免空白需要绘制大于可见区域的
         /// </summary>
         public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> PreparedItems;
         /// <summary>
@@ -147,7 +147,7 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// Reloads all the data and views in the collection view
+        /// Reloads all the data and views in the collection view. 常在非数据末尾的位置插入或者移除大量数据时使用.
         /// </summary>
         public void ReloadData()
         {
@@ -163,7 +163,7 @@ namespace MauiUICollectionView
             this._selectedRow = null;
             this._highlightedRow = null;
 
-            _reloadDataCounts();//Section或者Item数目可能变化了, 重新加载
+            ReloadDataCount();//Section或者Item数目可能变化了, 重新加载
 
             this._needsReload = false;
             (this as IView).InvalidateMeasure();
@@ -181,7 +181,7 @@ namespace MauiUICollectionView
 
             PreparedItems.Clear();
 
-            _reloadDataCounts();
+            ReloadDataCount();
             this._needsReload = false;
 
             (this as IView).InvalidateMeasure();
@@ -433,7 +433,10 @@ namespace MauiUICollectionView
         /// </summary>
         private List<int> sections = new();
 
-        public void _reloadDataCounts()
+        /// <summary>
+        /// 当数据被从末尾插入或删除时, 可以使用该方法加载更新后的数据.
+        /// </summary>
+        public void ReloadDataCount()
         {
             this.sections = fetchDataCounts();
         }
@@ -499,7 +502,7 @@ namespace MauiUICollectionView
                     }
                 }
             }
-            _reloadDataCounts();
+            ReloadDataCount();
         }
 
         /// <summary>
@@ -525,7 +528,7 @@ namespace MauiUICollectionView
             //先move后面的, 再插入
             Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.insert, source = indexPaths });
 
-            _reloadDataCounts();
+            ReloadDataCount();
         }
 
         public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
@@ -588,7 +591,7 @@ namespace MauiUICollectionView
                     }
                 }
             }
-            _reloadDataCounts();
+            ReloadDataCount();
         }
 
         public void ChangeItem(IEnumerable<NSIndexPath> indexPaths)

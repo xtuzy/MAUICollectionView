@@ -34,7 +34,7 @@
         /// </summary>
         public double EstimatedRowHeight = 100;
 
-        protected override double MeasureItems(double top, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
+        protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
         {
             double itemsHeight = 0;
             var itemWidth = inRect.Width / ColumnCount;
@@ -80,6 +80,12 @@
                                 cell.ContentView.HeightRequest = itemHeight;
                                 var measureSize = CollectionView.MeasureChild(cell.ContentView, itemWidth, itemHeight).Request;
                                 var bounds = new Rect(itemWidth * (currentRow - row), itemsHeight + top, measureSize.Width, measureSize.Height);
+
+                                //存储可见的
+                                if (bounds.IntersectsWith(visiableRect))
+                                {
+                                    VisiableIndexPath.Add(indexPath);
+                                }
 
                                 if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate)
                                 {

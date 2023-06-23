@@ -50,6 +50,7 @@ namespace DemoTest.Pages
             cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
             numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
             reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
+            lastItemWillShow += lastItemWillShowMethod;
         }
 
         public void RemoveData(int index)
@@ -78,6 +79,39 @@ namespace DemoTest.Pages
         {
             var models = ViewModel.Generate(20);
             ViewModel.models.InsertRange(0, models);
+        }
+
+        public void lastItemWillShowMethod(MAUICollectionView collectionView, NSIndexPath indexPath)
+        {
+            Task.Run(async () =>
+            {
+                ActivityIndicator loading = null;
+                if(collectionView.FooterView.ContentView is VerticalStackLayout)
+                {
+                    loading = (collectionView.FooterView.ContentView as VerticalStackLayout).Children[0] as ActivityIndicator;
+                }
+                if(loading != null)
+                {
+                    collectionView.Dispatcher.Dispatch(() =>
+                    {
+                        loading.IsVisible = true;
+                        loading.IsRunning = true;
+                    });
+                }
+                await Task.Delay(2000);
+                var models = ViewModel.Generate(20);
+                ViewModel.models.AddRange(models);
+
+                collectionView.ReloadDataCount();
+                if (loading != null)
+                {
+                    collectionView.Dispatcher.Dispatch(() =>
+                    {
+                        loading.IsVisible = false;
+                        loading.IsRunning = false;
+                    });
+                }
+            });
         }
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)

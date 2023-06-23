@@ -5,7 +5,7 @@ namespace MauiUICollectionView.Layouts
     /// <summary>
     /// 布局的逻辑放在此处
     /// </summary>
-    public abstract class CollectionViewLayout: IDisposable
+    public abstract class CollectionViewLayout : IDisposable
     {
         public CollectionViewLayout(MAUICollectionView collectionView)
         {
@@ -248,8 +248,25 @@ namespace MauiUICollectionView.Layouts
             /*
              * Items
              */
+            NSIndexPath preLastVisiableIndexPath = null;
+            if (VisiableIndexPath.Count > 0)
+                preLastVisiableIndexPath = VisiableIndexPath[VisiableIndexPath.Count - 1];
+            VisiableIndexPath.Clear();
             Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
-            tableHeight += MeasureItems(tableHeight, layoutItemsInRect, availableCells);
+            tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableCells);
+            NSIndexPath newLastVisiableIndexPath = null;
+            if (VisiableIndexPath.Count > 0)
+                newLastVisiableIndexPath = VisiableIndexPath[VisiableIndexPath.Count - 1];
+            //避免多次加载
+            if (preLastVisiableIndexPath == null || !preLastVisiableIndexPath.Equals(newLastVisiableIndexPath))
+            {
+                //判断是否是最后一个
+                var sectionIndex = CollectionView.NumberOfSections() - 1;
+                if (newLastVisiableIndexPath.Section == sectionIndex && newLastVisiableIndexPath.Row == CollectionView.NumberOfItemsInSection(sectionIndex) - 1)
+                {
+                    CollectionView.Source.lastItemWillShow?.Invoke(CollectionView, newLastVisiableIndexPath);
+                }
+            }
 
             //标记insert
             var insertList = new List<NSIndexPath>();
@@ -304,7 +321,20 @@ namespace MauiUICollectionView.Layouts
             return 0;
         }
 
-        protected abstract double MeasureItems(double top, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells);
+        /// <summary>
+        /// 每次布局可见的Item, 区别于<see cref="MAUICollectionView.PreparedItems"/>
+        /// </summary>
+        public List<NSIndexPath> VisiableIndexPath { get; protected set; } = new List<NSIndexPath>();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="top"></param>
+        /// <param name="inRect"></param>
+        /// <param name="visiableRect">可见区域, 对应于ScrollView大小</param>
+        /// <param name="availableCells"></param>
+        /// <returns></returns>
+        protected abstract double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells);
 
         protected virtual double MeasureFooter(double top, double widthConstraint)
         {
