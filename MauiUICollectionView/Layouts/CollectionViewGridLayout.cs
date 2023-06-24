@@ -60,7 +60,10 @@
                            || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))
                         {
                             //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                            MAUICollectionViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, inRect.Width, false);
+                            MAUICollectionViewViewHolder cell = null;
+                            if (availableCells.ContainsKey(indexPath))
+                                cell = availableCells[indexPath];
+                            cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, cell, inRect.Width);
 
                             if (cell != null)
                             {

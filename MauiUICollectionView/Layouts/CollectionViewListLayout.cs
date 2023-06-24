@@ -49,11 +49,10 @@
                        || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))//Item包含布局区域
                     {
                         //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                        MAUICollectionViewViewHolder cell;
+                        MAUICollectionViewViewHolder cell = null;
                         if (availableCells.ContainsKey(indexPath))
                             cell = availableCells[indexPath];
-                        else
-                            cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, inRect.Width, false);
+                        cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, cell, inRect.Width);
 
                         if (cell != null)
                         {

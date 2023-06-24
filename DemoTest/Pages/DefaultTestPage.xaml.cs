@@ -36,7 +36,7 @@ public partial class DefaultTestPage : ContentPage
             if (indexPath != null)
                 tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
         };
-        tableView.Content.GestureRecognizers.Add(click);
+        //tableView.Content.GestureRecognizers.Add(click);
 
         //Header
         var headerButton = new Button() { Text = "Header GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
@@ -56,10 +56,10 @@ public partial class DefaultTestPage : ContentPage
             tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
             Console.WriteLine("Clicked Footer");
         };
-        var footActivityIndicator = new ActivityIndicator() { Color = Colors.Red, IsVisible =false, IsRunning = false, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var footActivityIndicator = new ActivityIndicator() { Color = Colors.Red, IsVisible = false, IsRunning = false, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footer.Add(footActivityIndicator);
         footer.Add(footerButton);
-        
+
         tableView.FooterView = new MAUICollectionViewViewHolder(footer, "foot");
 
         tableView.BackgroundView = new Grid() { BackgroundColor = Colors.LightPink };
