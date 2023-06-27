@@ -72,7 +72,6 @@
                                 //CollectionView.PreparedItems[indexPath] = cell;
                                 if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
                                 //Cell是否是正在被选择的
-                                cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
                                 cell.Selected = CollectionView.SelectedRow.Contains(indexPath);
 
                                 //添加到ScrollView, 必须先添加才有测量值

@@ -285,11 +285,15 @@ namespace MauiUICollectionView.Layouts
             VisiableIndexPath.Clear();
             Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
             tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableCells);
+
+            /*
+             * 实现加载更多
+             */
             NSIndexPath newLastVisiableIndexPath = null;
             if (VisiableIndexPath.Count > 0)
                 newLastVisiableIndexPath = VisiableIndexPath[VisiableIndexPath.Count - 1];
-            //避免多次加载
-            if (preLastVisiableIndexPath == null || !preLastVisiableIndexPath.Equals(newLastVisiableIndexPath))
+            
+            if (preLastVisiableIndexPath == null || !preLastVisiableIndexPath.Equals(newLastVisiableIndexPath))//避免多次加载
             {
                 //判断是否是最后一个
                 var sectionIndex = CollectionView.NumberOfSections() - 1;
@@ -299,7 +303,9 @@ namespace MauiUICollectionView.Layouts
                 }
             }
 
-            //标记insert
+            /*
+             * 标记insert, 添加到动画
+             */
             var insertList = new List<NSIndexPath>();
             foreach (var item in Updates)
             {

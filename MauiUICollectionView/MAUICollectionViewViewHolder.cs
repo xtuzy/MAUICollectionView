@@ -17,7 +17,6 @@ namespace MauiUICollectionView
 
         SelectionStyle _selectionStyle;
         bool _selected;
-        bool _highlighted;
 
         string _reuseIdentifier;
         public string ReuseIdentifier => _reuseIdentifier;
@@ -36,7 +35,7 @@ namespace MauiUICollectionView
 
         void _updateSelectionState()
         {
-            bool shouldHighlight = _highlighted || _selected;
+            bool shouldHighlight =  _selected;
             UpdateSelectionState(shouldHighlight);
         }
 
@@ -63,31 +62,15 @@ namespace MauiUICollectionView
             set => this.SetSelected(value, false);
         }
 
-        public void SetHighlighted(bool highlighted, bool animated)
-        {
-            if (_highlighted != highlighted && _selectionStyle != SelectionStyle.None)
-            {
-                _highlighted = highlighted;
-                this._updateSelectionState();
-            }
-        }
-
-        public bool Highlighted { set => this.SetHighlighted(value, false); get => _highlighted; }
-
-        /// <summary>
-        /// 标记ViewHolder是否设置了内容.
-        /// </summary>
-        public bool IsEmpty = true;
-
         /// <summary>
         /// 重置ViewHolder的状态, 子类可以在其中清空View的内容. 例如, ViewHolder被回收时, 对象并没有被销毁, 会一直占用内存, 其中展示的Image也会一直被缓存, 因此可在此处设置Image为空.
         /// </summary>
         public virtual void PrepareForReuse()
         {
-            IsEmpty = true;
             this.HeightRequest = -1; //避免之前的Cell被设置了固定值
             OldBoundsInLayout = Rect.Zero;
             BoundsInLayout = Rect.Zero;
+            Selected = false;
             this.TranslationX = 0;
             this.TranslationY = 0;
             this.Opacity = 0;

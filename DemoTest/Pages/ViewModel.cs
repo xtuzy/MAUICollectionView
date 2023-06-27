@@ -190,7 +190,6 @@ namespace DemoTest.Pages
                         textCell = new SectionViewHolder(new Grid(), type) { };
                     }
 
-                    textCell.IsEmpty = false;
                     textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row}";
 
                     cell = textCell;
@@ -223,7 +222,6 @@ namespace DemoTest.Pages
                         //imageCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
                         imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
                     }
-                    imageCell.IsEmpty = false;
 
                     cell = imageCell;
                 }
