@@ -15,10 +15,14 @@ public partial class DefaultTestPage : ContentPage
         viewModel = new ViewModel();
 
         InitializeComponent();
-        var tableView = new MAUICollectionView();
+        var tableView = new MAUICollectionView()
+        {
+            VerticalScrollBarVisibility = ScrollBarVisibility.Always,
+            Source = new Source(viewModel),
+            SelectionMode = SelectionMode.Multiple,
+            CanDrag = true,
+        };
         content.Content = tableView;
-        tableView.VerticalScrollBarVisibility = ScrollBarVisibility.Always;
-        tableView.Source = new Source(viewModel);
         tableView.ItemsLayout = new CollectionViewListLayout(tableView)
         {
         };

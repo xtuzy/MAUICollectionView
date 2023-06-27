@@ -1,11 +1,11 @@
-﻿namespace MauiUICollectionView
+﻿using Maui.BindableProperty.Generator.Core;
+
+namespace MauiUICollectionView
 {
-    public class MAUICollectionViewViewHolder
+    public partial class MAUICollectionViewViewHolder : ContentView
     {
-        /// <summary>
-        /// Debug
-        /// </summary>
-        public NSIndexPath NSIndexPath;
+        [AutoBindable]
+        NSIndexPath _indexPath;
 
         public const float MeasureSelf = -1;
         /// <summary>
@@ -25,7 +25,7 @@
 
         public MAUICollectionViewViewHolder(View itemView)
         {
-            ContentView = itemView;
+            Content = itemView;
             _selectionStyle = SelectionStyle.Blue;
         }
 
@@ -33,12 +33,6 @@
         {
             _reuseIdentifier = reuseIdentifier;
         }
-
-        /// <summary>
-        /// Item实际对应的View
-        /// </summary>
-        /// <value></value>
-        public View ContentView { get; private set; }
 
         void _updateSelectionState()
         {
@@ -91,12 +85,13 @@
         public virtual void PrepareForReuse()
         {
             IsEmpty = true;
-            ContentView.HeightRequest = -1; //避免之前的Cell被设置了固定值
+            this.HeightRequest = -1; //避免之前的Cell被设置了固定值
             OldBoundsInLayout = Rect.Zero;
             BoundsInLayout = Rect.Zero;
-            ContentView.TranslationX = 0;
-            ContentView.TranslationY = 0;
-            ContentView.Opacity = 0;
+            this.TranslationX = 0;
+            this.TranslationY = 0;
+            this.Opacity = 0;
+            this.ZIndex = 1;
             Operation = -1;
         }
 
@@ -108,5 +103,9 @@
         /// <see cref="OperateItem.OperateType"/>, if no operate, set to -1
         /// </summary>
         public int Operation;
+
+        public IContextMenu ContextMenu { get; set; }
+        
+        public Rect DragBoundsInLayout = Rect.Zero;
     }
 }

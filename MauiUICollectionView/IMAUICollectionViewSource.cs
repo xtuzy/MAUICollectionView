@@ -40,5 +40,6 @@
         reuseIdentifierForRowAtIndexPathDelegate reuseIdentifierForRowAtIndexPath { get; }
 
         public Action<MAUICollectionView, NSIndexPath> lastItemWillShow { get; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> willDragTo { get; }
     }
 }

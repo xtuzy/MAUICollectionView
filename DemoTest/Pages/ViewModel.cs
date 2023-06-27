@@ -53,6 +53,15 @@ namespace DemoTest.Pages
             numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
             reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
             lastItemWillShow += lastItemWillShowMethod;
+            willDragTo += WillDragToMethod;
+        }
+
+        private void WillDragToMethod(MAUICollectionView collectionView, NSIndexPath path1, NSIndexPath path2)
+        {
+            if(path1.Row ==0 || path2.Row == 0)//section的header不处理, 不然会出错
+                return;
+            collectionView.MoveItem(path1, path2);
+            MoveData(path1.Row, path2.Row);
         }
 
         public void RemoveData(int index)
@@ -88,9 +97,9 @@ namespace DemoTest.Pages
             Task.Run(async () =>
             {
                 ActivityIndicator loading = null;
-                if (collectionView.FooterView.ContentView is VerticalStackLayout)
+                if (collectionView.FooterView.Content is VerticalStackLayout)
                 {
-                    loading = (collectionView.FooterView.ContentView as VerticalStackLayout).Children[0] as ActivityIndicator;
+                    loading = (collectionView.FooterView.Content as VerticalStackLayout)?.Children[0] as ActivityIndicator;
                 }
                 if (loading != null)
                 {
@@ -165,7 +174,6 @@ namespace DemoTest.Pages
                 if (imageCell != null)
                 {
                     imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
-                    imageCell.ModelView.IndexPath = indexPath;
                 }
             }
             else
@@ -203,7 +211,7 @@ namespace DemoTest.Pages
                             tableView.RemoveItems(arg);
                             tableView.ReMeasure();
                         });
-                        imageCell.ModelView.InitMenu(command);
+                        imageCell.InitMenu(command);
                     }
 
                     if (type == itemCell)
@@ -216,12 +224,11 @@ namespace DemoTest.Pages
                         imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
                     }
                     imageCell.IsEmpty = false;
-                    imageCell.ModelView.IndexPath = indexPath;
 
                     cell = imageCell;
                 }
             }
-            cell.NSIndexPath = indexPath;
+            cell.IndexPath = indexPath;
 
             return cell;
         }
@@ -266,13 +273,13 @@ namespace DemoTest.Pages
         {
             if (DefaultColor == Colors.LightYellow)
             {
-                DefaultColor = ContentView.BackgroundColor;
+                DefaultColor = Content.BackgroundColor;
             }
             base.UpdateSelectionState(shouldHighlight);
             if (shouldHighlight)
-                ContentView.BackgroundColor = Colors.LightGrey;
+                Content.BackgroundColor = Colors.LightGrey;
             else
-                ContentView.BackgroundColor = DefaultColor;
+                Content.BackgroundColor = DefaultColor;
         }
     }
 
@@ -302,21 +309,72 @@ namespace DemoTest.Pages
         {
             if (DefaultColor == Colors.LightYellow)
             {
-                DefaultColor = ContentView.BackgroundColor;
+                DefaultColor = Content.BackgroundColor;
             }
             base.UpdateSelectionState(shouldHighlight);
             if (shouldHighlight)
-                ContentView.BackgroundColor = Colors.Grey.WithAlpha(100);
+                Content.BackgroundColor = Colors.Grey.WithAlpha(100);
             else
-                ContentView.BackgroundColor = DefaultColor;
+                Content.BackgroundColor = DefaultColor;
+        }
+
+
+        protected override void OnHandlerChanged()
+        {
+            base.OnHandlerChanged();
+#if ANDROID
+            var av = this.Handler.PlatformView as Android.Views.View;
+            var aContextMenu = new MauiUICollectionView.Platforms.Android.AndroidContextMenu(av.Context, av);
+
+            //设置PopupMenu样式, see https://learn.microsoft.com/en-us/xamarin/android/user-interface/controls/popup-menu
+            aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
+            aContextMenu.PlatformMenu.MenuItemClick += (s1, arg1) =>
+            {
+                MenuCommand.Execute(IndexPath);
+            };
+            ContextMenu = aContextMenu;
+#endif
+        }
+
+
+        public Command MenuCommand;
+        public void InitMenu(Command command)
+        {
+            MenuCommand = command;
+#if IOS
+            var template = new DataTemplate(() =>
+            {
+                var menu = new Menu();
+                var menuItem = new The49.Maui.ContextMenu.Action()
+                {
+                    Title = "Delete",
+                    Command = command,
+                };
+                menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+                menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
+                {
+                    menuItem
+                };
+                return menu;
+            });
+            The49.Maui.ContextMenu.ContextMenu.SetMenu(this, template);
+#elif WINDOWS || MACCATALYST
+            var menu = new MenuFlyout();
+            var menuItem = new MenuFlyoutItem()
+            {
+                Text = "Delete",
+                Command = command,
+                CommandParameter = IndexPath
+            };
+            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Add(menuItem);
+            FlyoutBase.SetContextFlyout(this, menu);
+#endif
         }
     }
 
     public partial class ModelView : Border
     {
-        [AutoBindable]
-        NSIndexPath _indexPath;
-
         ConstraintLayout rootLayout;
         public Image PersonIcon;
         public Label PersonName;
@@ -368,78 +426,6 @@ namespace DemoTest.Pages
                 set.ApplyTo(rootLayout);
             }
         }
-
-        public void InitMenu(Command command)
-        {
-#if IOS
-            var template = new DataTemplate(() =>
-            {
-                var menu = new Menu();
-                var menuItem = new The49.Maui.ContextMenu.Action()
-                {
-                    Title = "Delete",
-                    Command = command,
-                };
-                menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-                menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
-                {
-                    menuItem
-                };
-                return menu;
-            });
-            ContextMenu.SetMenu(this, template);
-#elif ANDROID
-            this.command = command;
-#elif WINDOWS || MACCATALYST
-            var menu = new MenuFlyout();
-            var menuItem = new MenuFlyoutItem()
-            {
-                Text = "Delete",
-                Command = command,
-                CommandParameter = IndexPath
-            };
-            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-            menu.Add(menuItem);
-            FlyoutBase.SetContextFlyout(this, menu);
-#endif
-
-#if !ANDROID
-            var gesture = new TapGestureRecognizer();
-            gesture.Tapped += (sender, args) =>
-            {
-                (this.Parent?.Parent as MAUICollectionView)?.SelectRowAtIndexPath(IndexPath, false, ScrollPosition.None);
-            };
-            this.GestureRecognizers.Add(gesture);
-#endif
-        }
-#if ANDROID
-        Command command { get; set; }
-        protected override void OnHandlerChanged()
-        {
-            base.OnHandlerChanged();
-
-            var av = this.Handler.PlatformView as Android.Views.View;
-            var menu = new AndroidX.AppCompat.Widget.PopupMenu(av.Context, av);
-            menu.Inflate(Resource.Menu.popup_menu);
-            av.LongClick += (sender, args) =>
-            {
-                menu.Show();
-            };
-            menu.MenuItemClick += (s1, arg1) =>
-            {
-                command.Execute(IndexPath);
-            };
-
-            menu.DismissEvent += (s2, arg2) =>
-            {
-                Console.WriteLine("menu dismissed");
-            };
-            av.Click += (s1, arg1) =>
-            {
-                (this.Parent?.Parent as MAUICollectionView)?.SelectRowAtIndexPath(IndexPath, false, ScrollPosition.None);
-            };
-        }
-#endif
 
         private void LikeIcon_Clicked(object sender, EventArgs e)
         {

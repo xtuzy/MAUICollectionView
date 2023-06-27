@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net7.0;net7.0-android;net7.0-ios;net7.0-maccatalyst</TargetFrameworks>
@@ -52,4 +52,20 @@
     <None Remove="CollectionViewExperiment\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Platforms\iOS\PlatformGestureEffect.cs" />
+    <Compile Remove="Platforms\iOS\PlatformGestureEffect.cs" />
+    <None Remove="Platforms\iOS\UIImmediatePanGestureRecognizer.cs" />
+    <Compile Remove="Platforms\iOS\UIImmediatePanGestureRecognizer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="M.BindableProperty.Generator" Version="0.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Platforms\iOS\" />
+    <Folder Include="Platforms\MacCatalyst\" />
+    <Folder Include="Platforms\Tizen\" />
+  </ItemGroup>
 </Project>

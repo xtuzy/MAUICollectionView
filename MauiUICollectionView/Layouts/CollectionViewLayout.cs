@@ -56,25 +56,28 @@ namespace MauiUICollectionView.Layouts
                 isStartAnimate = false;//disappear动画结束
             }
 
-            Debug.WriteLine("ArrangeContents");
+            //Debug.WriteLine("ArrangeContents");
 
             if (CollectionView.HeaderView != null)
             {
-                CollectionView.LayoutChild(CollectionView.HeaderView.ContentView, CollectionView.HeaderView.BoundsInLayout);
+                CollectionView.LayoutChild(CollectionView.HeaderView, CollectionView.HeaderView.BoundsInLayout);
             }
 
             // layout sections and rows
             foreach (var cell in CollectionView.PreparedItems)
             {
-                CollectionView.LayoutChild(cell.Value.ContentView, cell.Value.BoundsInLayout);
+                if (cell.Value == CollectionView.DragedItem)
+                    CollectionView.LayoutChild(cell.Value, cell.Value.DragBoundsInLayout);
+                else
+                    CollectionView.LayoutChild(cell.Value, cell.Value.BoundsInLayout);
                 //回收时把不透明度都设置为了0, 显示时需要设置回来
                 if (cell.Value.Operation == -1)//默认的状态, 这一步骤也对应于动画结束状态
                 {
-                    cell.Value.ContentView.TranslationX = 0;
-                    cell.Value.ContentView.TranslationY = 0;
-                    if (cell.Value.ContentView.Opacity != 1)
+                    cell.Value.TranslationX = 0;
+                    cell.Value.TranslationY = 0;
+                    if (cell.Value.Opacity != 1)
                     {
-                        cell.Value.ContentView.Opacity = 1;
+                        cell.Value.Opacity = 1;
                     }
                 }
 
@@ -87,13 +90,13 @@ namespace MauiUICollectionView.Layouts
 
             foreach (var item in CollectionView.ReusableViewHolders)
             {
-                if (item.ContentView.Opacity != 0)
-                    item.ContentView.Opacity = 0;
+                if (item.Opacity != 0)
+                    item.Opacity = 0;
             }
 
             if (CollectionView.FooterView != null)
             {
-                CollectionView.LayoutChild(CollectionView.FooterView.ContentView, CollectionView.FooterView.BoundsInLayout);
+                CollectionView.LayoutChild(CollectionView.FooterView, CollectionView.FooterView.BoundsInLayout);
             }
         }
 
@@ -110,7 +113,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            Debug.WriteLine("Measure");
+            //Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
                 isStartAnimate = true;
@@ -150,10 +153,10 @@ namespace MauiUICollectionView.Layouts
             {
                 foreach (var cell in tempOrderedCells)
                 {
-                    if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
+                    if (cell.Value.DesiredSize.Height < scrollOffset)
                     {
                         needRecycleCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
+                        scrollOffset -= cell.Value.DesiredSize.Height;
                     }
                     else
                     {
@@ -167,10 +170,10 @@ namespace MauiUICollectionView.Layouts
                 for (int i = tempOrderedCells.Count - 1; i >= 0; i--)
                 {
                     var cell = tempOrderedCells[i];
-                    if (cell.Value.ContentView.DesiredSize.Height < scrollOffset)
+                    if (cell.Value.DesiredSize.Height < scrollOffset)
                     {
                         needRecycleCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.ContentView.DesiredSize.Height;
+                        scrollOffset -= cell.Value.DesiredSize.Height;
                     }
                     else
                     {
@@ -182,6 +185,10 @@ namespace MauiUICollectionView.Layouts
             foreach (var indexPath in needRecycleCell)//需要回收的
             {
                 var cell = availableCells[indexPath];
+                if (cell == CollectionView.DragedItem)//Drag的不回收
+                {
+                    continue;
+                }
                 CollectionView.RecycleViewHolder(cell);
                 availableCells.Remove(indexPath);
             }
@@ -196,6 +203,11 @@ namespace MauiUICollectionView.Layouts
                 var update = Updates[index];
                 if (update.operateType == OperateItem.OperateType.remove)//需要移除的先移除, move后的IndexPath与之相同
                 {
+                    if (CollectionView.SelectedRow.Contains(update.source))
+                    {
+                        CollectionView.SelectedRow.Remove(update.source);
+                    }
+
                     if (availableCells.ContainsKey(update.source))
                     {
                         var cell = availableCells[update.source];
@@ -220,6 +232,24 @@ namespace MauiUICollectionView.Layouts
                 }
             }
 
+            //如果move的里有选择的, 需要更新选择的IndexPath
+            var oldSelectedIndexPath = new List<NSIndexPath>();
+            for (int index = Updates.Count - 1; index >= 0; index--)
+            {
+                var update = Updates[index];
+
+                if (update.operateType == OperateItem.OperateType.move)
+                {
+                    if (CollectionView.SelectedRow.Contains(update.source))
+                    {
+                        CollectionView.SelectedRow.Remove(update.source);
+                        oldSelectedIndexPath.Add(update.target);
+                        break;
+                    }
+                }
+            }
+            CollectionView.SelectedRow.AddRange(oldSelectedIndexPath);
+
             //move的需要获取在之前可见区域的viewHolder, 更新indexPath为最新的, 然后进行动画.
             Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
             for (int index = Updates.Count - 1; index >= 0; index--)
@@ -232,7 +262,8 @@ namespace MauiUICollectionView.Layouts
                     {
                         var oldView = availableCells[update.source];
                         oldView.Operation = (int)OperateItem.OperateType.move;
-                        AnimationManager.Add(oldView);
+                        if (!oldView.Equals(CollectionView.DragedItem))//Drag的不需要动画, 因为自身会在Arrange中移动
+                            AnimationManager.Add(oldView);
                         availableCells.Remove(update.source);
                         if (availableCells.ContainsKey(update.target))
                             tempAvailableCells.Add(update.target, oldView);
@@ -296,7 +327,7 @@ namespace MauiUICollectionView.Layouts
                 }
                 else
                 {
-                    cell.ContentView.RemoveFromSuperview();
+                    cell.RemoveFromSuperview();
                 }
             }
 
@@ -314,7 +345,7 @@ namespace MauiUICollectionView.Layouts
             //表头的View是确定的, 我们可以直接测量
             if (CollectionView.HeaderView != null)
             {
-                var measuredSize = CollectionView.MeasureChild(CollectionView.HeaderView.ContentView, widthConstraint, double.PositiveInfinity).Request;
+                var measuredSize = CollectionView.MeasureChild(CollectionView.HeaderView, widthConstraint, double.PositiveInfinity).Request;
                 CollectionView.HeaderView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }
@@ -341,14 +372,24 @@ namespace MauiUICollectionView.Layouts
             //表尾的View是确定的, 我们可以直接测量
             if (CollectionView.FooterView != null)
             {
-                var measuredSize = CollectionView.MeasureChild(CollectionView.FooterView.ContentView, widthConstraint, double.PositiveInfinity).Request;
+                var measuredSize = CollectionView.MeasureChild(CollectionView.FooterView, widthConstraint, double.PositiveInfinity).Request;
                 CollectionView.FooterView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }
             return 0;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="point">相对于TableView的位置, 可以是在TableView上设置手势获取的位置</param>
+        /// <returns>未找到时可返回null</returns>
         public abstract NSIndexPath IndexPathForVisibaleRowAtPointOfCollectionView(Point point);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="point">相对与Content的位置</param>
+        /// <returns>未找到时可返回null</returns>
         public abstract NSIndexPath IndexPathForRowAtPointOfContentView(Point point);
         /// <summary>
         /// 返回IndexPath对应的行在ContentView中的位置. 在某些Item大小不固定的Layout中, 其可能是不精确的, 会变化的. 可能只是即时状态, 比如滑动后数据会变化.

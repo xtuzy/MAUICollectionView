@@ -65,23 +65,23 @@
                             }
                             //Cell是否是正在被选择的
                             cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
-                            cell.Selected = CollectionView._selectedRow == null ? false : CollectionView._selectedRow.IsEqual(indexPath);
+                            cell.Selected = CollectionView.SelectedRow.Contains(indexPath);
 
                             //添加到ScrollView, 必须先添加才有测量值
-                            if (!CollectionView.ContentView.Children.Contains(cell.ContentView))
-                                CollectionView.AddSubview(cell.ContentView);
+                            if (!CollectionView.ContentView.Children.Contains(cell))
+                                CollectionView.AddSubview(cell);
                             //测量高度
                             Size measureSize;
-                            cell.ContentView.WidthRequest = -1;
-                            cell.ContentView.HeightRequest = -1;
+                            cell.WidthRequest = -1;
+                            cell.HeightRequest = -1;
                             if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//固定高度
                             {
-                                cell.ContentView.HeightRequest = rowHeightWant;
-                                measureSize = CollectionView.MeasureChild(cell.ContentView, inRect.Width, rowHeightWant).Request;
+                                cell.HeightRequest = rowHeightWant;
+                                measureSize = CollectionView.MeasureChild(cell, inRect.Width, rowHeightWant).Request;
                             }
                             else
                             {
-                                measureSize = CollectionView.MeasureChild(cell.ContentView, inRect.Width, double.PositiveInfinity).Request;
+                                measureSize = CollectionView.MeasureChild(cell, inRect.Width, double.PositiveInfinity).Request;
                                 if (measureSize.Height != 0)
                                 {
                                     if (!MeasuredSelfHeightCache.ContainsKey(indexPath))
@@ -165,7 +165,7 @@
             double tempBottom = 0;
             if (CollectionView.HeaderView != null)
             {
-                tempBottom = totalHeight + CollectionView.HeaderView.ContentView.DesiredSize.Height;
+                tempBottom = totalHeight + CollectionView.HeaderView.DesiredSize.Height;
                 if (totalHeight <= point.Y && tempBottom >= point.Y)
                 {
                     return null;
@@ -206,7 +206,7 @@
             double tempBottom = 0;
             if (CollectionView.HeaderView != null)
             {
-                tempBottom = totalHeight + CollectionView.HeaderView.ContentView.DesiredSize.Height;
+                tempBottom = totalHeight + CollectionView.HeaderView.DesiredSize.Height;
                 totalHeight = tempBottom;
             }
 

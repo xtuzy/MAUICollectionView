@@ -18,20 +18,13 @@
             <Button x:Name="Move" Text="Move" />
         </HorizontalStackLayout>
         <RefreshView Grid.Row="1">
-            <CollectionView x:Name="collectionView" ItemSizingStrategy="MeasureAllItems">
+            <CollectionView
+                x:Name="collectionView"
+                ItemSizingStrategy="MeasureAllItems"
+                SelectionMode="Single">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Grid Margin="5,5,5,5" BackgroundColor="Gray">
-                            <the49:ContextMenu.Menu>
-                                <DataTemplate>
-                                    <the49:Menu>
-                                        <the49:Action Title="Upload documents" />
-                                        <the49:Action Title="Copy" />
-                                        <the49:Action Title="Cut" />
-                                        <the49:Action Title="Paste" />
-                                    </the49:Menu>
-                                </DataTemplate>
-                            </the49:ContextMenu.Menu>
+                        <Grid Margin="5,5,5,5">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
