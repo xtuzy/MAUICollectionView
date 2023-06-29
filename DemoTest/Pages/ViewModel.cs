@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using MauiUICollectionView;
+using Microsoft.Maui;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
 using The49.Maui.ContextMenu;
@@ -173,6 +174,7 @@ namespace DemoTest.Pages
                 if (imageCell != null)
                 {
                     imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+                    imageCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                 }
             }
             else
@@ -210,6 +212,10 @@ namespace DemoTest.Pages
                             tableView.ReMeasure();
                         });
                         imageCell.InitMenu(command);
+                        imageCell.ModelView.TestButton.Clicked += async (sender, e) =>
+                        {
+                            await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={imageCell.IndexPath.Section} Row={imageCell.IndexPath.Row}", "OK");
+                        };
                     }
 
                     if (type == itemCell)
@@ -218,6 +224,7 @@ namespace DemoTest.Pages
                         imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
                         imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                         imageCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
+                        imageCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                         //imageCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
                         imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
                     }
@@ -376,10 +383,12 @@ namespace DemoTest.Pages
         public Label ViewHolderIndex;
         public Label PersonTextBlog;
         public Image PersonImageBlog;
+        public Button TestButton;
         public Label FirstComment;
         public Image LikeIcon;
         public Image CommentIcon;
         public Image ShareIcon;
+
         public ModelView()
         {
             this.StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(10) };
@@ -396,6 +405,7 @@ namespace DemoTest.Pages
             ViewHolderIndex = new Label() { TextColor = Colors.White };
             PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap, MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
             PersonImageBlog = new Image() { BackgroundColor = Colors.AliceBlue };
+            TestButton = new Button() {};
             FirstComment = new Label();
             LikeIcon = new Image() { };
             var tab = new TapGestureRecognizer();
@@ -403,7 +413,7 @@ namespace DemoTest.Pages
             LikeIcon.GestureRecognizers.Add(tab);
             CommentIcon = new Image() { Source = new FontImageSource() { Glyph = FontAwesomeIcons.Comment, FontFamily = "FontAwesome6FreeSolid900" } };
             ShareIcon = new Image() { Source = new FontImageSource() { Glyph = FontAwesomeIcons.Share, FontFamily = "FontAwesome6FreeSolid900" } };
-            rootLayout.AddElement(PersonIconContainer, PersonName, PersonPhone, ViewHolderIndex, PersonTextBlog, PersonImageBlog,
+            rootLayout.AddElement(PersonIconContainer, PersonName, PersonPhone, ViewHolderIndex, PersonTextBlog, PersonImageBlog, TestButton,
                 FirstComment, LikeIcon, CommentIcon, ShareIcon);
             using (var set = new FluentConstraintSet())
             {
@@ -414,6 +424,7 @@ namespace DemoTest.Pages
                     .Select(ViewHolderIndex).RightToRight(null, 5).TopToTop(null, 5)
                     .Select(PersonTextBlog).LeftToLeft(PersonIconContainer).TopToBottom(PersonIconContainer)
                     .Select(PersonImageBlog).LeftToLeft(PersonTextBlog).TopToBottom(PersonTextBlog).Width(100).Height(100)
+                    .Select(TestButton).LeftToRight(PersonImageBlog).CenterYTo(PersonImageBlog)
                     .Select(LikeIcon, CommentIcon, ShareIcon).CreateXChain(rootLayout, Edge.Left, rootLayout, Edge.Right, ChainStyle.Spread, new (View, float)[] { (LikeIcon, 1), (CommentIcon, 1), (ShareIcon, 1) })
                     .TopToBottom(PersonImageBlog).BottomToBottom(null, 5).Width(20).Height(20)
                     ;
