@@ -4,6 +4,8 @@ using System.Diagnostics;
 using PlatformView = Android.Views.View;
 #elif WINDOWS
 using PlatformView = Microsoft.UI.Xaml.FrameworkElement;
+#else
+using PlatformView = UIKit.UIView;
 #endif
 namespace MauiUICollectionView
 {
@@ -13,6 +15,8 @@ namespace MauiUICollectionView
         /// 同<see cref="ScrollView.Content"/>, 直接使用<see cref="ContentViewForScrollView"/>, 避免转换.
         /// </summary>
         public ContentViewForScrollView ContentView { get; protected set; }
+
+        public IGestureManager GestureManager;
 
         public MAUICollectionView()
         {
@@ -28,19 +32,18 @@ namespace MauiUICollectionView
             //大小改变时需要记录大小, 因为MeasureOverride可能不被调用
             this.SizeChanged += MAUICollectionView_SizeChanged;
 
-#if ANDROID || WINDOWS
-            if (gestureManager == null)
-                gestureManager = new MauiUICollectionView.Platforms.GestureManager();
+
+            if (GestureManager == null)
+                GestureManager = new MauiUICollectionView.Gestures.GestureManager();
             //选择Item
-            gestureManager.SelectPointCommand = new Command(SelectItemCommand);
+            GestureManager.SelectPointCommand = new Command(SelectItemCommand);
             //长按弹出Popmenu
-            gestureManager.LongPressPointCommand = new Command(ShowContextMenuCommand);
+            GestureManager.LongPressPointCommand = new Command(ShowContextMenuCommand);
             //拖拽排序
-            gestureManager.DragPointCommand = new Command(DragCommand);
-#endif
+            GestureManager.DragPointCommand = new Command(DragCommand);
+
         }
 
-        
         private void MAUICollectionView_SizeChanged(object sender, EventArgs e)
         {
             if (CollectionViewConstraintSize != this.Bounds.Size)
@@ -52,7 +55,7 @@ namespace MauiUICollectionView
         public void StopRefresh(bool stop = true)
         {
             //这些平台不显示下拉刷新, 设置它可能出错
-            if(DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.MacCatalyst || DeviceInfo.Platform == DevicePlatform.macOS)
+            if (DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.MacCatalyst || DeviceInfo.Platform == DevicePlatform.macOS)
             {
                 return;
             }
@@ -120,26 +123,34 @@ namespace MauiUICollectionView
             if (SelectionMode == SelectionMode.None)
                 return;
             var args = t as SelectEventArgs;
+
             if (args != null)
             {
                 if (args.status == SelectStatus.Selected)
                 {
                     var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
 
-                    if (SelectionMode == SelectionMode.Single)
+                    if (SelectedRow.Contains(indexPath))//已经选择了的取消选择
                     {
-                        for (int index = SelectedRow.Count - 1; index >= 0; index--)
-                        {
-                            var old = SelectedRow[index];
-                            DeselectRowAtIndexPath(old);
-                        }
-                        if (indexPath != null)
-                            this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                        DeselectRowAtIndexPath(indexPath);
                     }
-                    else if (SelectionMode == SelectionMode.Multiple)
+                    else
                     {
-                        if (indexPath != null)
-                            this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                        if (SelectionMode == SelectionMode.Single)
+                        {
+                            for (int index = SelectedRow.Count - 1; index >= 0; index--)
+                            {
+                                var old = SelectedRow[index];
+                                DeselectRowAtIndexPath(old);
+                            }
+                            if (indexPath != null)
+                                this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                        }
+                        else if (SelectionMode == SelectionMode.Multiple)
+                        {
+                            if (indexPath != null)
+                                this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                        }
                     }
                 }
             }
@@ -163,7 +174,6 @@ namespace MauiUICollectionView
             }
         }
 
-
         Point lastDragPosition = Point.Zero;
         /// <summary>
         /// 拖拽时
@@ -179,16 +189,18 @@ namespace MauiUICollectionView
                 {
                     args.status = GestureStatus.Canceled;
                 }
-
+                Debug.WriteLine("CanDrag" + args.status);
                 if (args.status == GestureStatus.Started)
                 {
                     StopRefresh(true);
 
                     var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+
                     if (PreparedItems.ContainsKey(indexPath))
                     {
                         DragedItem = PreparedItems[indexPath];
                         DragedItem.ZIndex = 3;
+                        DragedItem.Scale = 0.9;
                         DragedItem.DragBoundsInLayout = DragedItem.BoundsInLayout;
                         lastDragPosition = args.point;
                         if (args.Device == GestureDevice.Touch)//触摸时滑动不滚动, 不然与拖动冲突
@@ -201,6 +213,7 @@ namespace MauiUICollectionView
                         return;
 
                     var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+
                     if (args.Device == GestureDevice.Touch)
                     {
                         autoScroll = true;
@@ -242,9 +255,16 @@ namespace MauiUICollectionView
                     }
 
                     lastDragPosition = args.point;
-                    if (indexPath != null && !indexPath.Equals(DragedItem?.IndexPath))
+                    if (indexPath != null &&
+                        !indexPath.Equals(DragedItem?.IndexPath)//不是同一个
+                        )
                     {
-                        Source.willDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                        var targetViewHolder = PreparedItems[indexPath].BoundsInLayout;
+                        if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height/2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
+                            (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
+                        {
+                            Source.willDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                        }
                     }
 
                     ReMeasure();//位置需要一直刷新
@@ -257,6 +277,7 @@ namespace MauiUICollectionView
 
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
+                    DragedItem.Scale = 1;
                     DragedItem = null;
                     lastDragPosition = args.point;
                     stopScroll = false;
@@ -329,7 +350,7 @@ namespace MauiUICollectionView
                 Debug.WriteLine("Scrolled");
                 scrollOffset = e.ScrollY - lastScrollY;
                 //如果DragItem能执行到这里, 说明非触摸, 使用鼠标可以滑动, 因此更新DragItem的滑动距离
-                if(DragedItem!=null)
+                if (DragedItem != null)
                 {
                     DragCommand(new DragEventArgs(GestureStatus.Running, lastDragPosition) { Device = GestureDevice.Mouse });
                 }
@@ -355,16 +376,10 @@ namespace MauiUICollectionView
             }
         }
 
-#if ANDROID || WINDOWS
-        MauiUICollectionView.Platforms.GestureManager gestureManager;
-#endif
         protected override void OnHandlerChanged()
         {
             base.OnHandlerChanged();
-#if ANDROID || WINDOWS
-            var av = this.Handler.PlatformView as PlatformView;
-            gestureManager.SubscribeGesture(av);
-#endif
+            GestureManager?.SubscribeGesture(this);
         }
 
         protected override void OnHandlerChanging(HandlerChangingEventArgs args)
@@ -372,10 +387,7 @@ namespace MauiUICollectionView
             base.OnHandlerChanging(args);
             if (args.OldHandler != null)
             {
-#if ANDROID || WINDOWS
-                var av = args.OldHandler.PlatformView as PlatformView;
-                gestureManager?.SubscribeGesture(av);
-#endif
+                GestureManager?.CancleSubscribeGesture();
             }
         }
 
@@ -385,18 +397,8 @@ namespace MauiUICollectionView
             set
             {
                 canDrag = value;
-#if ANDROID || WINDOWS
-                gestureManager.SetCanDrag(value);
-#endif
-                if (canContextMenu == true && value == true)
-                {
-                    canContextMenu = false;
-                }
-                //拖拽时禁用下拉刷新, 否则会加载更多
-                //if (canDrag == true)
-                //   StopRefresh(true);
-                //else
-                //    StopRefresh(false);
+
+                GestureManager.SetCanDrag(value);
             }
             get { return canDrag; }
         }
@@ -407,8 +409,6 @@ namespace MauiUICollectionView
             set
             {
                 canContextMenu = value;
-                if (canDrag == true && value == true)
-                    CanDrag = false;
             }
             get
             {

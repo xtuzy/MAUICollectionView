@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net7.0;net7.0-android;net7.0-ios;net7.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks>net7.0-android;net7.0-ios;net7.0-maccatalyst</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net7.0-windows10.0.19041.0</TargetFrameworks>
 		<!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
 		<!-- <TargetFrameworks>$(TargetFrameworks);net7.0-tizen</TargetFrameworks> -->
@@ -53,19 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Platforms\iOS\PlatformGestureEffect.cs" />
-    <Compile Remove="Platforms\iOS\PlatformGestureEffect.cs" />
-    <None Remove="Platforms\iOS\UIImmediatePanGestureRecognizer.cs" />
-    <Compile Remove="Platforms\iOS\UIImmediatePanGestureRecognizer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="M.BindableProperty.Generator" Version="0.10.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Platforms\iOS\" />
-    <Folder Include="Platforms\MacCatalyst\" />
-    <Folder Include="Platforms\Tizen\" />
+    <PackageReference Include="The49.Maui.ContextMenu" Version="1.0.0-alpha1" />
   </ItemGroup>
 </Project>

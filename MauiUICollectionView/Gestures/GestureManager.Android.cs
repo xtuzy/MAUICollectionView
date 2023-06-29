@@ -5,16 +5,16 @@ using Android.Views;
 using Microsoft.Maui.Controls;
 using System.Diagnostics;
 using System.Windows.Input;
-using View = Android.Views.View;
+using AView = Android.Views.View;
 
-namespace MauiUICollectionView.Platforms
+namespace MauiUICollectionView.Gestures
 {
     /// <summary>
     /// 用于管理CollectonView在Android上的手势. Maui的手势处理不能提供细节, 而处理好CollectionView的长按拖拽,长按ContextMenu,点击选择之间的关系,都需要细节.
     /// 1. 长按拖拽,长按ContextMenu是互斥的, 需要Tag标识当前使用谁.
     /// 2. 点击选择需要从Down动作开始, 因为动画是从Down开始的, 所以不从Tab事件中执行, 遇到Move
     /// </summary>
-    public class GestureManager
+    public class GestureManager : IGestureManager
     {
         private GestureDetector? gestureRecognizer;
         private readonly InternalGestureDetector allInOneDetector;
@@ -25,7 +25,9 @@ namespace MauiUICollectionView.Platforms
         /// Take a Point parameter
         /// Except DragPointCommand which takes a DragEventArgs parameter 
         /// </summary>
-        public ICommand? SelectPointCommand, DragPointCommand, LongPressPointCommand;
+        public ICommand? SelectPointCommand { get; set; }
+        public ICommand?  DragPointCommand { get; set; }
+        public ICommand? LongPressPointCommand { get; set; }
 
         public GestureManager()
         {
@@ -48,7 +50,7 @@ namespace MauiUICollectionView.Platforms
                 DragAction = (initialDown, currentMove) =>
                 {
                     var continueGesture = true;
-                   
+
                     if (DragPointCommand != null)
                     {
                         var x = currentMove.GetX();
@@ -63,8 +65,8 @@ namespace MauiUICollectionView.Platforms
                             MotionEventActions.Cancel => GestureStatus.Canceled,
                             _ => GestureStatus.Canceled
                         };
-                        
-                        
+
+
                         var parameter = new DragEventArgs(status, point);
                         parameter.Device = currentMove.GetToolType(0) switch
                         {
@@ -104,19 +106,22 @@ namespace MauiUICollectionView.Platforms
             return point;
         }
 
-        public void SubscribeGesture(View view)
+        Microsoft.Maui.Controls.View virtualView;
+        AView view;
+        public void SubscribeGesture(Microsoft.Maui.Controls.View view)
         {
-            var control = view;
-
-            var context = control.Context;
+            var platformView = view.Handler.PlatformView as AView;
+            this.virtualView = view;
+            this.view = platformView;
+            var context = platformView.Context;
             displayMetrics = context.Resources.DisplayMetrics;
             allInOneDetector.Density = displayMetrics.Density;
 
             if (gestureRecognizer == null)
                 gestureRecognizer = new ExtendedGestureDetector(context, allInOneDetector);
 
-            control.Touch += ControlOnTouch;
-            control.Clickable = true;
+            platformView.Touch += ControlOnTouch;
+            platformView.Clickable = true;
         }
 
         public void SetCanDrag(bool can = false)
@@ -124,13 +129,13 @@ namespace MauiUICollectionView.Platforms
             allInOneDetector.IsSupportDrag = can;
         }
 
-        private void ControlOnTouch(object sender, View.TouchEventArgs touchEventArgs)
+        private void ControlOnTouch(object sender, AView.TouchEventArgs touchEventArgs)
         {
             gestureRecognizer?.OnTouchEvent(touchEventArgs.Event);
             touchEventArgs.Handled = false;
         }
 
-        public void CancleSubscribeGesture(View view)
+        public void CancleSubscribeGesture()
         {
             var control = view;
             control.Touch -= ControlOnTouch;
@@ -157,7 +162,7 @@ namespace MauiUICollectionView.Platforms
 
             public override bool OnTouchEvent(MotionEvent? e)
             {
-                Debug.WriteLine("Touch");
+                //Debug.WriteLine("Touch");
                 if (myGestureListener != null && e?.Action == MotionEventActions.Up)
                     myGestureListener.OnUp(e);
                 else if (myGestureListener != null && e?.Action == MotionEventActions.Move)
@@ -190,8 +195,8 @@ namespace MauiUICollectionView.Platforms
             {
                 if (selectStatus == SelectStatus.WillSelect)
                 {
-                    selectStatus = SelectStatus.Selected;
-                    SelectAction.Invoke(e, selectStatus);//长按代表确认选择
+                    selectStatus = SelectStatus.CancelWillSelect;
+                    SelectAction.Invoke(e, selectStatus);//长按代表不选择
                 }
 
                 if (!IsSupportDrag)

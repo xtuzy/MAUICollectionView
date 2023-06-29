@@ -108,12 +108,12 @@ namespace MauiUICollectionView.Layouts
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
         /// </summary>
-        /// <param name="collectionViewWidth"></param>
-        /// <param name="collectionViewHeight"></param>
+        /// <param name="tableViewWidth">当作可见宽度, 可能是根据屏幕大小的估计值</param>
+        /// <param name="tableViewHeight">当作可见宽度, 可能是根据屏幕大小的估计值</param>
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            //Debug.WriteLine("Measure");
+            Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
                 isStartAnimate = true;
@@ -296,10 +296,14 @@ namespace MauiUICollectionView.Layouts
             if (preLastVisiableIndexPath == null || !preLastVisiableIndexPath.Equals(newLastVisiableIndexPath))//避免多次加载
             {
                 //判断是否是最后一个
-                var sectionIndex = CollectionView.NumberOfSections() - 1;
-                if (newLastVisiableIndexPath.Section == sectionIndex && newLastVisiableIndexPath.Row == CollectionView.NumberOfItemsInSection(sectionIndex) - 1)
+                if (newLastVisiableIndexPath != null)
                 {
-                    CollectionView.Source.lastItemWillShow?.Invoke(CollectionView, newLastVisiableIndexPath);
+                    var sectionIndex = CollectionView.NumberOfSections() - 1;
+
+                    if (newLastVisiableIndexPath.Section == sectionIndex && newLastVisiableIndexPath.Row == CollectionView.NumberOfItemsInSection(sectionIndex) - 1)
+                    {
+                        CollectionView.Source.lastItemWillShow?.Invoke(CollectionView, newLastVisiableIndexPath);
+                    }
                 }
             }
 

@@ -1,5 +1,4 @@
 ﻿using Bogus;
-using Maui.BindableProperty.Generator.Core;
 using MauiUICollectionView;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
@@ -58,7 +57,7 @@ namespace DemoTest.Pages
 
         private void WillDragToMethod(MAUICollectionView collectionView, NSIndexPath path1, NSIndexPath path2)
         {
-            if(path1.Row ==0 || path2.Row == 0)//section的header不处理, 不然会出错
+            if (path1.Row == 0 || path2.Row == 0)//section的header不处理, 不然会出错
                 return;
             collectionView.MoveItem(path1, path2);
             MoveData(path1.Row, path2.Row);
@@ -227,7 +226,8 @@ namespace DemoTest.Pages
                 }
             }
             cell.IndexPath = indexPath;
-
+            if(cell.ContextMenu!=null)
+              cell.ContextMenu.IsEnable = tableView.CanContextMenu;
             return cell;
         }
     }
@@ -322,7 +322,7 @@ namespace DemoTest.Pages
             base.OnHandlerChanged();
 #if ANDROID
             var av = this.Handler.PlatformView as Android.Views.View;
-            var aContextMenu = new MauiUICollectionView.Platforms.Android.AndroidContextMenu(av.Context, av);
+            var aContextMenu = new MauiUICollectionView.Gestures.AndroidContextMenu(av.Context, av);
 
             //设置PopupMenu样式, see https://learn.microsoft.com/en-us/xamarin/android/user-interface/controls/popup-menu
             aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
@@ -340,22 +340,18 @@ namespace DemoTest.Pages
         {
             MenuCommand = command;
 #if IOS
-            var template = new DataTemplate(() =>
+            var menu = new Menu();
+            var menuItem = new The49.Maui.ContextMenu.Action()
             {
-                var menu = new Menu();
-                var menuItem = new The49.Maui.ContextMenu.Action()
-                {
-                    Title = "Delete",
-                    Command = command,
-                };
-                menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-                menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
-                {
-                    menuItem
-                };
-                return menu;
-            });
-            The49.Maui.ContextMenu.ContextMenu.SetMenu(this, template);
+                Title = "Delete",
+                Command = command,
+            };
+            menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
+            {
+                menuItem
+            };
+            ContextMenu = new MauiUICollectionView.Gestures.iOSContextMenu(this, menu);
 #elif WINDOWS || MACCATALYST
             var menu = new MenuFlyout();
             var menuItem = new MenuFlyoutItem()
@@ -366,7 +362,7 @@ namespace DemoTest.Pages
             };
             menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             menu.Add(menuItem);
-            FlyoutBase.SetContextFlyout(this, menu);
+            ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
         }
     }

@@ -36,8 +36,8 @@
                                 </Grid.ColumnDefinitions>
                                 <Image
                                     Grid.Column="0"
-                                    HeightRequest="40"
-                                    Source="{Binding PersonIconUrl}" />
+                                    BackgroundColor="Gray"
+                                    HeightRequest="40" />
                                 <VerticalStackLayout Grid.Column="1">
                                     <Label Text="{Binding PersonName}" />
                                     <Label Text="{Binding PersonPhone}" />
@@ -46,8 +46,8 @@
                             <HorizontalStackLayout Grid.Row="1">
                                 <Image
                                     Aspect="AspectFit"
-                                    HeightRequest="100"
-                                    Source="{Binding PersonImageBlogUrl}" />
+                                    BackgroundColor="Gray"
+                                    HeightRequest="100" />
                             </HorizontalStackLayout>
                         </Grid>
 

@@ -5,9 +5,9 @@ using System.Diagnostics;
 using System.Windows.Input;
 using GestureRecognizer = Microsoft.UI.Input.GestureRecognizer;
 
-namespace MauiUICollectionView.Platforms
+namespace MauiUICollectionView.Gestures
 {
-    public class GestureManager
+    public class GestureManager : IGestureManager
     {
         readonly GestureRecognizer detector;
         private object commandParameter;
@@ -16,7 +16,9 @@ namespace MauiUICollectionView.Platforms
         /// Take a Point parameter
         /// Except panPointCommand which takes a (Point,GestureStatus) parameter (its a tuple) 
         /// </summary>
-        public ICommand SelectPointCommand, DragPointCommand, LongPressPointCommand;
+        public ICommand? SelectPointCommand { get; set; }
+        public ICommand? DragPointCommand { get; set; }
+        public ICommand? LongPressPointCommand { get; set; }
 
         public GestureManager()
         {
@@ -51,7 +53,7 @@ namespace MauiUICollectionView.Platforms
                 TriggerCommand(DragPointCommand, parameters);
             };
 
-            //手势不需要长按就可以处理drag
+            //pan gesture
             /*detector.Holding += (sender, args) =>
             {
                 Debug.WriteLine("holding");
@@ -79,12 +81,14 @@ namespace MauiUICollectionView.Platforms
             IsSupportDrag = can;
         }
 
+        View virtualView;
         FrameworkElement view;
-        public void SubscribeGesture(FrameworkElement view)
+        public void SubscribeGesture(View view)
         {
-            this.view = view;
-
-            var control = view;
+            var platformView = view.Handler.PlatformView as FrameworkElement;
+            this.virtualView = view;
+            this.view = platformView;
+            var control = platformView;
             control.Tapped += Control_Tapped;
             control.PointerMoved += ControlOnPointerMoved;
             control.PointerPressed += ControlOnPointerPressed;
@@ -93,7 +97,7 @@ namespace MauiUICollectionView.Platforms
             control.PointerCaptureLost += ControlOnPointerCanceled;
         }
 
-        public void CancleSubscribeGesture(UIElement view)
+        public void CancleSubscribeGesture()
         {
             var control = view;
             control.Tapped -= Control_Tapped;
@@ -108,7 +112,7 @@ namespace MauiUICollectionView.Platforms
         {
             Debug.WriteLine("tapped");
             var p = GetPositionRelativeToPlatformElement(e, view);
-            //Tab一定为确认选择
+            //Tap must be selection
             if (selectStatus == SelectStatus.WillSelect)
             {
                 selectStatus = SelectStatus.Selected;
@@ -141,10 +145,10 @@ namespace MauiUICollectionView.Platforms
             view.CapturePointer(pointerRoutedEventArgs.Pointer);
             Debug.WriteLine("press");
             var point = pointerRoutedEventArgs.GetCurrentPoint(view);
-            //Press可能会选择, 可以开始动画
             if (point.Properties.IsRightButtonPressed)
             {
-                //右键点击对选择不做处理
+                //right mouse button be used to show contextmenu by winui3, so we not deal with it.
+                return;
             }
             else
             {
@@ -157,18 +161,21 @@ namespace MauiUICollectionView.Platforms
 
         private void ControlOnPointerMoved(object sender, PointerRoutedEventArgs pointerRoutedEventArgs)
         {
-            var ps = pointerRoutedEventArgs.GetIntermediatePoints(view);
-
-            Debug.WriteLine("move");
+            //Debug.WriteLine("move");
             var point = pointerRoutedEventArgs.GetCurrentPoint(view);
-            //移动前未确认, 则不是选择
+            if (point.Properties.IsRightButtonPressed)// not use right mouse button
+            {
+                return;
+            }
+            //if move, it is not selection
             if (selectStatus == SelectStatus.WillSelect)
             {
                 selectStatus = SelectStatus.CancelWillSelect;
                 TriggerCommand(SelectPointCommand, new SelectEventArgs(selectStatus, new Point(point.Position.X, point.Position.Y)));
             }
 
-            detector.ProcessMoveEvents(ps);
+            var points = pointerRoutedEventArgs.GetIntermediatePoints(view);
+            detector.ProcessMoveEvents(points);
             pointerRoutedEventArgs.Handled = true;
         }
 
@@ -176,7 +183,7 @@ namespace MauiUICollectionView.Platforms
         {
             Debug.WriteLine("cancel");
             var point = args.GetCurrentPoint(view);
-            //取消前未确认, 则不是选择
+            
             if (selectStatus == SelectStatus.WillSelect)
             {
                 selectStatus = SelectStatus.CancelWillSelect;
@@ -192,7 +199,7 @@ namespace MauiUICollectionView.Platforms
         {
             //Debug.WriteLine("up");
             var point = args.GetCurrentPoint(view);
-            //Up前未确认, 是选择
+            
             if (selectStatus == SelectStatus.WillSelect)
             {
                 selectStatus = SelectStatus.Selected;

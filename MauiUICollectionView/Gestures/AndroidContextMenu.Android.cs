@@ -1,11 +1,6 @@
 ﻿using Android.Content;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace MauiUICollectionView.Platforms.Android
+namespace MauiUICollectionView.Gestures
 {
     public class AndroidContextMenu : IContextMenu
     {
@@ -15,9 +10,15 @@ namespace MauiUICollectionView.Platforms.Android
         }
 
         public AndroidX.AppCompat.Widget.PopupMenu PlatformMenu { get; set; }
+
+        public bool IsEnable { get; set; } = false;
+
         public void Show()
         {
-            PlatformMenu?.Show();
+            if (IsEnable)
+            {
+                PlatformMenu?.Show();
+            }
         }
     }
 }

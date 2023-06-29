@@ -8,6 +8,7 @@ namespace MauiUICollectionView
 {
     public interface IContextMenu
     {
+        bool IsEnable { get; set; }
         void Show();
     }
 }

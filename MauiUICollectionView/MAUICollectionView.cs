@@ -70,7 +70,6 @@ namespace MauiUICollectionView
         /// 被选择的Item
         /// </summary>
         public List<NSIndexPath> SelectedRow = new();
-        public NSIndexPath _highlightedRow;
 
         /// <summary>
         /// 被拖拽用来排序的Item, 其IndexPath会在拖动时更新
@@ -141,11 +140,7 @@ namespace MauiUICollectionView
         /// <summary>
         /// 屏幕顶部和底部多加载Cell的高度, 对于平台ScrollView实现是平移画布的(Android, Windows), 大的扩展高度可以减少滑动时显示空白, 默认设置上下各扩展一屏幕高度.
         /// </summary>
-#if IOS || MACCATALYST
-        public int ExtendHeight = 0;
-#else
         public int ExtendHeight => (int)CollectionViewConstraintSize.Height;
-#endif
 
         public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
@@ -170,7 +165,7 @@ namespace MauiUICollectionView
 
             // clear prior selection
             this.SelectedRow.Clear();
-            this._highlightedRow = null;
+            DragedItem = null;
 
             ReloadDataCount();//Section或者Item数目可能变化了, 重新加载
 
@@ -189,7 +184,7 @@ namespace MauiUICollectionView
             }
 
             PreparedItems.Clear();
-
+            
             ReloadDataCount();
             this._needsReload = false;
 
@@ -216,18 +211,19 @@ namespace MauiUICollectionView
             Size size = Size.Zero;
 
             if (ItemsLayout != null)
+            {
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
                 {
                     if (CollectionViewConstraintSize.Height == 0)
                         CollectionViewConstraintSize.Height = DeviceDisplay.Current.MainDisplayInfo.Height;
-                    size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
                 }
                 else
                 {
-                    if (CollectionViewConstraintSize.Width == 0)
+                    if (CollectionViewConstraintSize.Width == 0)//首次显示可能没有值, 取屏幕大小
                         CollectionViewConstraintSize.Width = DeviceDisplay.Current.MainDisplayInfo.Width;
-                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
                 }
+                size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
+            }
 
             if (_backgroundView != null)
             {

@@ -187,7 +187,7 @@
                     tempBottom = totalHeight + rowMaybeHeight;
                     if (totalHeight <= point.Y && tempBottom >= point.Y)
                     {
-                        return NSIndexPath.FromRowSection(row, section);
+                        return indexPath;
                     }
                     else
                     {

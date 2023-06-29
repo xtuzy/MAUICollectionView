@@ -68,6 +68,7 @@ namespace MauiUICollectionView
         public virtual void PrepareForReuse()
         {
             this.HeightRequest = -1; //避免之前的Cell被设置了固定值
+            this.WidthRequest = -1; //避免之前的Cell被设置了固定值
             OldBoundsInLayout = Rect.Zero;
             BoundsInLayout = Rect.Zero;
             Selected = false;
@@ -88,7 +89,7 @@ namespace MauiUICollectionView
         public int Operation;
 
         public IContextMenu ContextMenu { get; set; }
-        
+         
         public Rect DragBoundsInLayout = Rect.Zero;
     }
 }
