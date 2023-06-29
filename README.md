@@ -18,7 +18,9 @@ https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-
 - Support custom layout
 - Support operation(Insert, Remove, Move, Update) animation
 - Support load more
-- Support go to item
+- Support scrollto item
+- Support drag-sort
+- Support select
 
 *Features of Demo*
 - RefreshView
