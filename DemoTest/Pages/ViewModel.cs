@@ -1,5 +1,4 @@
 ﻿using Bogus;
-using Maui.BindableProperty.Generator.Core;
 using MauiUICollectionView;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
@@ -53,6 +52,15 @@ namespace DemoTest.Pages
             numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
             reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
             lastItemWillShow += lastItemWillShowMethod;
+            willDragTo += WillDragToMethod;
+        }
+
+        private void WillDragToMethod(MAUICollectionView collectionView, NSIndexPath path1, NSIndexPath path2)
+        {
+            if (path1.Row == 0 || path2.Row == 0)//section的header不处理, 不然会出错
+                return;
+            collectionView.MoveItem(path1, path2);
+            MoveData(path1.Row, path2.Row);
         }
 
         public void RemoveData(int index)
@@ -88,11 +96,11 @@ namespace DemoTest.Pages
             Task.Run(async () =>
             {
                 ActivityIndicator loading = null;
-                if(collectionView.FooterView.ContentView is VerticalStackLayout)
+                if (collectionView.FooterView.Content is VerticalStackLayout)
                 {
-                    loading = (collectionView.FooterView.ContentView as VerticalStackLayout).Children[0] as ActivityIndicator;
+                    loading = (collectionView.FooterView.Content as VerticalStackLayout)?.Children[0] as ActivityIndicator;
                 }
-                if(loading != null)
+                if (loading != null)
                 {
                     collectionView.Dispatcher.Dispatch(() =>
                     {
@@ -132,7 +140,7 @@ namespace DemoTest.Pages
             {
                 return sectionCell;
             }
-            return botCell;
+            return itemCell;
         }
 
         public float heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
@@ -142,7 +150,7 @@ namespace DemoTest.Pages
             {
                 case sectionCell:
                     return 40;
-                case botCell:
+                case itemCell:
                     return MAUICollectionViewViewHolder.MeasureSelf;
                 default:
                     return 100;
@@ -152,50 +160,59 @@ namespace DemoTest.Pages
         int newCellCount = 0;
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
-        const string botCell = "botCell";
-        public MAUICollectionViewViewHolder cellForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath, double widthConstrain, bool needEmpty)
+        const string itemCell = "itemCell";
+        public MAUICollectionViewViewHolder cellForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
         {
             //从tableView的一个队列里获取一个cell
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
-            MAUICollectionViewViewHolder cell = tableView.DequeueRecycledViewHolderWithIdentifier(type);
-
-            if (type == sectionCell)
+            MAUICollectionViewViewHolder cell;
+            if (oldViewHolder != null)//只需局部刷新
             {
-                var textCell = cell as TextCell;
-                //判断队列里面是否有这个cell 没有自己创建，有直接使用
-                if (textCell == null)
+                cell = oldViewHolder;
+                var imageCell = cell as ItemViewHolder;
+                if (imageCell != null)
                 {
-                    //没有,创建一个
-                    textCell = new TextCell(new Grid(), type) { };
+                    imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                 }
-                if (!needEmpty)
-                {
-                    textCell.IsEmpty = false;
-                    textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row}";
-                }
-                cell = textCell;
             }
             else
             {
-                var imageCell = cell as ImageCell;
-                if (imageCell == null)
+                cell = tableView.DequeueRecycledViewHolderWithIdentifier(type);
+
+                if (type == sectionCell)
                 {
-                    //没有,创建一个
-                    imageCell = new ImageCell(new ModelView() { }, type) { };
-                    //if (!System.OperatingSystem.IsWindows()) imageCell.ImageView.MinimumHeightRequest = widthConstrain;
-                    imageCell.NewCellIndex = ++newCellCount;
-                    imageCell.ModelView.ViewHolderIndex.Text = imageCell.NewCellIndex.ToString();
-                    var command = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                    var textCell = cell as SectionViewHolder;
+                    //判断队列里面是否有这个cell 没有自己创建，有直接使用
+                    if (textCell == null)
                     {
-                        RemoveData(arg.Row);
-                        tableView.RemoveItems(arg);
-                        tableView.ReMeasure();
-                    });
-                    imageCell.ModelView.InitMenu(command);
+                        //没有,创建一个
+                        textCell = new SectionViewHolder(new Grid(), type) { };
+                    }
+
+                    textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row}";
+
+                    cell = textCell;
                 }
-                if (!needEmpty)
+                else
                 {
-                    if (type == botCell)
+                    var imageCell = cell as ItemViewHolder;
+                    if (imageCell == null)
+                    {
+                        //没有,创建一个
+                        imageCell = new ItemViewHolder(new ModelView() { }, type) { };
+                        //if (!System.OperatingSystem.IsWindows()) imageCell.ImageView.MinimumHeightRequest = widthConstrain;
+                        imageCell.NewCellIndex = ++newCellCount;
+                        imageCell.ModelView.ViewHolderIndex.Text = imageCell.NewCellIndex.ToString();
+                        var command = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            RemoveData(arg.Row);
+                            tableView.RemoveItems(arg);
+                            tableView.ReMeasure();
+                        });
+                        imageCell.InitMenu(command);
+                    }
+
+                    if (type == itemCell)
                     {
                         //imageCell.ModelView.PersonIcon.Source = ViewModel.models[indexPath.Row].PersonIconUrl;
                         imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
@@ -204,12 +221,13 @@ namespace DemoTest.Pages
                         //imageCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
                         imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
                     }
-                    imageCell.IsEmpty = false;
-                    imageCell.ModelView.IndexPath = indexPath;
+
+                    cell = imageCell;
                 }
-                cell = imageCell;
             }
-            cell.NSIndexPath = indexPath;
+            cell.IndexPath = indexPath;
+            if(cell.ContextMenu!=null)
+              cell.ContextMenu.IsEnable = tableView.CanContextMenu;
             return cell;
         }
     }
@@ -227,12 +245,12 @@ namespace DemoTest.Pages
         public string ShareIconUrl { get; set; }
     }
 
-    internal class TextCell : MAUICollectionViewViewHolder
+    internal class SectionViewHolder : MAUICollectionViewViewHolder
     {
         public int NewCellIndex;
 
         public Label TextView;
-        public TextCell(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
+        public SectionViewHolder(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
             var grid = itemView as Grid;
             TextView = new Label();
@@ -253,21 +271,21 @@ namespace DemoTest.Pages
         {
             if (DefaultColor == Colors.LightYellow)
             {
-                DefaultColor = ContentView.BackgroundColor;
+                DefaultColor = Content.BackgroundColor;
             }
             base.UpdateSelectionState(shouldHighlight);
             if (shouldHighlight)
-                ContentView.BackgroundColor = Colors.LightGrey;
+                Content.BackgroundColor = Colors.LightGrey;
             else
-                ContentView.BackgroundColor = DefaultColor;
+                Content.BackgroundColor = DefaultColor;
         }
     }
 
-    internal class ImageCell : MAUICollectionViewViewHolder
+    internal class ItemViewHolder : MAUICollectionViewViewHolder
     {
         public int NewCellIndex;
 
-        public ImageCell(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
+        public ItemViewHolder(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
             ModelView = itemView as ModelView;
         }
@@ -289,21 +307,68 @@ namespace DemoTest.Pages
         {
             if (DefaultColor == Colors.LightYellow)
             {
-                DefaultColor = ContentView.BackgroundColor;
+                DefaultColor = Content.BackgroundColor;
             }
             base.UpdateSelectionState(shouldHighlight);
             if (shouldHighlight)
-                ContentView.BackgroundColor = Colors.Grey.WithAlpha(100);
+                Content.BackgroundColor = Colors.Grey.WithAlpha(100);
             else
-                ContentView.BackgroundColor = DefaultColor;
+                Content.BackgroundColor = DefaultColor;
+        }
+
+
+        protected override void OnHandlerChanged()
+        {
+            base.OnHandlerChanged();
+#if ANDROID
+            var av = this.Handler.PlatformView as Android.Views.View;
+            var aContextMenu = new MauiUICollectionView.Gestures.AndroidContextMenu(av.Context, av);
+
+            //设置PopupMenu样式, see https://learn.microsoft.com/en-us/xamarin/android/user-interface/controls/popup-menu
+            aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
+            aContextMenu.PlatformMenu.MenuItemClick += (s1, arg1) =>
+            {
+                MenuCommand.Execute(IndexPath);
+            };
+            ContextMenu = aContextMenu;
+#endif
+        }
+
+
+        public Command MenuCommand;
+        public void InitMenu(Command command)
+        {
+            MenuCommand = command;
+#if IOS
+            var menu = new Menu();
+            var menuItem = new The49.Maui.ContextMenu.Action()
+            {
+                Title = "Delete",
+                Command = command,
+            };
+            menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
+            {
+                menuItem
+            };
+            ContextMenu = new MauiUICollectionView.Gestures.iOSContextMenu(this, menu);
+#elif WINDOWS || MACCATALYST
+            var menu = new MenuFlyout();
+            var menuItem = new MenuFlyoutItem()
+            {
+                Text = "Delete",
+                Command = command,
+                CommandParameter = IndexPath
+            };
+            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Add(menuItem);
+            ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+#endif
         }
     }
 
     public partial class ModelView : Border
     {
-        [AutoBindable]
-        NSIndexPath _indexPath;
-
         ConstraintLayout rootLayout;
         public Image PersonIcon;
         public Label PersonName;
@@ -354,40 +419,6 @@ namespace DemoTest.Pages
                     ;
                 set.ApplyTo(rootLayout);
             }
-        }
-
-        public void InitMenu(Command command)
-        {
-#if IOS || ANDROID
-            var template = new DataTemplate(() => {
-                var menu = new Menu();
-                var menuItem = new The49.Maui.ContextMenu.Action()
-                {
-                    Title = "Delete",
-                    Command = command,
-                };
-                menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-                menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
-                {
-                    menuItem
-                };
-                return menu;
-            });
-            ContextMenu.SetMenu(this, template);
-#elif ANDROID
-
-#else
-            var menu = new MenuFlyout();
-            var menuItem = new MenuFlyoutItem()
-            {
-                Text = "Delete",
-                Command = command,
-                CommandParameter = IndexPath
-            };
-            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-            menu.Add(menuItem);
-            FlyoutBase.SetContextFlyout(this, menu);
-#endif
         }
 
         private void LikeIcon_Clicked(object sender, EventArgs e)

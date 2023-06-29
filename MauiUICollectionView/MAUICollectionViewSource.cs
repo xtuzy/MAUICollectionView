@@ -21,5 +21,6 @@
         public reuseIdentifierForRowAtIndexPathDelegate reuseIdentifierForRowAtIndexPath { get; set; }
 
         public Action<MAUICollectionView, NSIndexPath> lastItemWillShow { get; set; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> willDragTo { get; set; }
     }
 }

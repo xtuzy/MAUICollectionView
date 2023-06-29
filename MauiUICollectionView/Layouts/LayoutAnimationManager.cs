@@ -89,7 +89,7 @@
                 var item = items[i];
                 if (item.Operation == (int)OperateItem.OperateType.insert)
                 {
-                    item.ContentView.Opacity = 0;
+                    item.Opacity = 0;
                     listInsertViewHolder.Add(item);
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.remove)
@@ -116,7 +116,7 @@
                         return;
                     foreach (var item in listInsertViewHolder)
                     {
-                        item.ContentView.Opacity = v;
+                        item.Opacity = v;
                     };
                 }, 0, 1);
             }
@@ -130,8 +130,8 @@
                     if (item.OldBoundsInLayout != Rect.Zero &&
                     item.OldBoundsInLayout != item.BoundsInLayout)
                     {
-                        item.ContentView.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * 1;
-                        item.ContentView.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * 1;
+                        item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * 1;
+                        item.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * 1;
                     }
                 };
             }
@@ -148,8 +148,8 @@
                         item.OldBoundsInLayout != item.BoundsInLayout)
                         {
                             //Debug.WriteLine(v);
-                            item.ContentView.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * v;
-                            item.ContentView.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * v;
+                            item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * v;
+                            item.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * v;
                         }
                     };
                 }, 1, 0);
@@ -164,7 +164,7 @@
                     foreach (var item in listRemoveViewHolder)
                     {
                         //Debug.WriteLine(v);
-                        item.ContentView.Opacity = v;
+                        item.Opacity = v;
                     };
                 }, 1, 0);
             }

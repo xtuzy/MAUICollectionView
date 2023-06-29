@@ -15,7 +15,7 @@ namespace MauiUICollectionView
                 {
                     _headerView = null;
                     _headerView = value;
-                    this.AddSubview(_headerView.ContentView);
+                    this.AddSubview(_headerView);
                 }
             }
         }
@@ -30,7 +30,7 @@ namespace MauiUICollectionView
                 {
                     _footerView = null;
                     _footerView = value;
-                    this.AddSubview(_footerView.ContentView);
+                    this.AddSubview(_footerView);
                 }
             }
         }
@@ -66,8 +66,16 @@ namespace MauiUICollectionView
         #endregion
 
         bool _needsReload;
-        public NSIndexPath _selectedRow;
-        public NSIndexPath _highlightedRow;
+        /// <summary>
+        /// 被选择的Item
+        /// </summary>
+        public List<NSIndexPath> SelectedRow = new();
+
+        /// <summary>
+        /// 被拖拽用来排序的Item, 其IndexPath会在拖动时更新
+        /// </summary>
+        public MAUICollectionViewViewHolder DragedItem;
+
         /// <summary>
         /// 当前正在布局区域中的Items, 与可见区域不同, 布局区域可能大于可见区域, 因为快速滑动时上下可能出现空白, 为了避免空白需要绘制大于可见区域的
         /// </summary>
@@ -132,11 +140,7 @@ namespace MauiUICollectionView
         /// <summary>
         /// 屏幕顶部和底部多加载Cell的高度, 对于平台ScrollView实现是平移画布的(Android, Windows), 大的扩展高度可以减少滑动时显示空白, 默认设置上下各扩展一屏幕高度.
         /// </summary>
-#if IOS || MACCATALYST
-        public int ExtendHeight = 0;
-#else
         public int ExtendHeight => (int)CollectionViewConstraintSize.Height;
-#endif
 
         public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
@@ -160,8 +164,8 @@ namespace MauiUICollectionView
             PreparedItems.Clear();
 
             // clear prior selection
-            this._selectedRow = null;
-            this._highlightedRow = null;
+            this.SelectedRow.Clear();
+            DragedItem = null;
 
             ReloadDataCount();//Section或者Item数目可能变化了, 重新加载
 
@@ -180,7 +184,7 @@ namespace MauiUICollectionView
             }
 
             PreparedItems.Clear();
-
+            
             ReloadDataCount();
             this._needsReload = false;
 
@@ -207,18 +211,19 @@ namespace MauiUICollectionView
             Size size = Size.Zero;
 
             if (ItemsLayout != null)
+            {
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
                 {
                     if (CollectionViewConstraintSize.Height == 0)
                         CollectionViewConstraintSize.Height = DeviceDisplay.Current.MainDisplayInfo.Height;
-                    size = ItemsLayout.MeasureContents(widthConstraint, CollectionViewConstraintSize.Height);
                 }
                 else
                 {
-                    if (CollectionViewConstraintSize.Width == 0)
+                    if (CollectionViewConstraintSize.Width == 0)//首次显示可能没有值, 取屏幕大小
                         CollectionViewConstraintSize.Width = DeviceDisplay.Current.MainDisplayInfo.Width;
-                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, heightConstraint);
                 }
+                size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
+            }
 
             if (_backgroundView != null)
             {
@@ -250,9 +255,9 @@ namespace MauiUICollectionView
             (element as IView).Arrange(rect);
         }
 
-        public NSIndexPath IndexPathForSelectedRow()
+        public List<NSIndexPath> IndexPathForSelectedRow()
         {
-            return _selectedRow;
+            return SelectedRow;
         }
 
         public NSIndexPath IndexPathForCell(MAUICollectionViewViewHolder cell)
@@ -268,16 +273,27 @@ namespace MauiUICollectionView
             return null;
         }
 
-        public void DeselectRowAtIndexPath(NSIndexPath indexPath, bool animated)
+        /// <summary>
+        /// 取消选择某IndexPath
+        /// </summary>
+        /// <param name="indexPath"></param>
+        /// <param name="animated"></param>
+        public void DeselectRowAtIndexPath(NSIndexPath indexPath, bool animated = false)
         {
-            if (indexPath != null && indexPath == _selectedRow)
+            if (indexPath != null && SelectedRow.Contains(indexPath))
             {
-                var cell = this.CellForRowAtIndexPath(_selectedRow);
+                var cell = this.CellForRowAtIndexPath(indexPath);
                 if (cell != null) cell.Selected = false;
-                _selectedRow = null;
+                SelectedRow.Remove(indexPath);
             }
         }
 
+        /// <summary>
+        /// 选择某IndexPath
+        /// </summary>
+        /// <param name="indexPath"></param>
+        /// <param name="animated"></param>
+        /// <param name="scrollPosition"></param>
         public void SelectRowAtIndexPath(NSIndexPath indexPath, bool animated, ScrollPosition scrollPosition)
         {
             // unlike the other methods that I've tested, the real UIKit appears to call reload during selection if the table hasn't been reloaded
@@ -285,82 +301,12 @@ namespace MauiUICollectionView
             // to maintain a similar delegate and dataSource access pattern to the real thing, I'll do it this way here. :)
             this._reloadDataIfNeeded();
 
-            if (_selectedRow != indexPath)
+            if (!SelectedRow.Contains(indexPath))
             {
-                this.DeselectRowAtIndexPath(_selectedRow, animated);
-                _selectedRow = indexPath;
-                var cell = this.CellForRowAtIndexPath(_selectedRow);
+                SelectedRow.Add(indexPath);
+                var cell = this.CellForRowAtIndexPath(indexPath);
                 if (cell != null)//TODO:不知道为什么有时候为空
                     cell.Selected = true;
-            }
-
-            // I did not verify if the real UIKit will still scroll the selection into view even if the selection itself doesn't change.
-            // this behavior was useful for Ostrich and seems harmless enough, so leaving it like this for now.
-            //this.ScrollToRowAtIndexPath(_selectedRow, scrollPosition, animated);
-        }
-
-        void _setUserSelectedRowAtIndexPath(NSIndexPath rowToSelect)
-        {
-            var source = (this.Source as IMAUICollectionViewSource);
-            if (_sourceHas.willSelectRowAtIndexPath)
-            {
-                rowToSelect = source.willSelectRowAtIndexPath(this, rowToSelect);
-            }
-
-            NSIndexPath selectedRow = this.IndexPathForSelectedRow();
-
-            if (selectedRow != null && !(selectedRow == rowToSelect))
-            {
-                NSIndexPath rowToDeselect = selectedRow;
-
-                if (_sourceHas.willDeselectRowAtIndexPath)
-                {
-                    rowToDeselect = source.willDeselectRowAtIndexPath(this, rowToDeselect);
-                }
-
-                this.DeselectRowAtIndexPath(rowToDeselect, false);
-
-                if (_sourceHas.didDeselectRowAtIndexPath)
-                {
-                    source.didDeselectRowAtIndexPath(this, rowToDeselect);
-                }
-            }
-
-            this.SelectRowAtIndexPath(rowToSelect, false, ScrollPosition.None);
-
-            if (_sourceHas.didSelectRowAtIndexPath)
-            {
-                source.didSelectRowAtIndexPath(this, rowToSelect);
-            }
-        }
-
-        void _scrollRectToVisible(Rect aRect, ScrollPosition scrollPosition, bool animated)
-        {
-            if (!(aRect == Rect.Zero) && aRect.Size.Height > 0)
-            {
-                // adjust the rect based on the desired scroll position setting
-                switch (scrollPosition)
-                {
-                    case ScrollPosition.None:
-                        break;
-
-                    case ScrollPosition.Top:
-                        aRect.Height = this.Bounds.Size.Height;
-                        break;
-
-                    case ScrollPosition.Middle:
-                        aRect.Y -= (this.Bounds.Size.Height / 2.0f) - aRect.Size.Height;
-                        aRect.Height = this.Bounds.Size.Height;
-                        break;
-
-                    case ScrollPosition.Bottom:
-                        aRect.Y -= this.Bounds.Size.Height - aRect.Size.Height;
-                        aRect.Height = this.Bounds.Size.Height;
-                        break;
-                }
-
-                //this.ScrollRectToVisible(aRect, animated: animated);
-                this.ScrollToAsync(aRect.X, aRect.Y, true);
             }
         }
 
@@ -593,6 +539,7 @@ namespace MauiUICollectionView
             }
             ReloadDataCount();
         }
+
 
         public void ChangeItem(IEnumerable<NSIndexPath> indexPaths)
         {

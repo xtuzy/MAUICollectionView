@@ -6,7 +6,15 @@
     public delegate string reuseIdentifierForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath);
 
     public delegate int numberOfRowsInSectionDelegate(MAUICollectionView tableView, int section);
-    public delegate MAUICollectionViewViewHolder cellForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath, double widthConstrain, bool needEmpty);
+    /// <summary>
+    /// 获取IndexPath对应的ViewHolder
+    /// </summary>
+    /// <param name="tableView"></param>
+    /// <param name="indexPath"></param>
+    /// <param name="oldViewHolder">依旧可见的, 仅被移动的ViewHolder, 其可能需要更新IndexPath信息</param>
+    /// <param name="widthConstrain">对ViewHolder可能需要大小设置时, 这个宽度是一个参考值, 对于GridLayout, 其平分CollectionView的宽度, 对于ListLayout其等于CollectionView的宽</param>
+    /// <returns></returns>
+    public delegate MAUICollectionViewViewHolder cellForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain);
     public delegate int numberOfSectionsInTableViewDelegate(MAUICollectionView tableView);
 
     /// <summary>
@@ -32,5 +40,6 @@
         reuseIdentifierForRowAtIndexPathDelegate reuseIdentifierForRowAtIndexPath { get; }
 
         public Action<MAUICollectionView, NSIndexPath> lastItemWillShow { get; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> willDragTo { get; }
     }
 }

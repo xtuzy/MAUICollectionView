@@ -20,4 +20,32 @@ namespace MauiUICollectionView
     {
         None, Blue, Gray
     }
+
+    public enum SelectStatus
+    {
+        /// <summary>
+        /// 开启选择动画
+        /// </summary>
+        WillSelect,
+        /// <summary>
+        /// 确认选择状态
+        /// </summary>
+        Selected,
+        /// <summary>
+        /// 取消选择动画, 设置默认状态
+        /// </summary>
+        CancelWillSelect
+    }
+
+    public enum GestureDevice
+    {
+        /// <summary>
+        /// 鼠标
+        /// </summary>
+        Mouse,
+        /// <summary>
+        /// 手或者笔
+        /// </summary>
+        Touch
+    }
 }

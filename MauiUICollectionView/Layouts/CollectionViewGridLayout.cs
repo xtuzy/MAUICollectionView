@@ -60,7 +60,10 @@
                            || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))
                         {
                             //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
-                            MAUICollectionViewViewHolder cell = availableCells.ContainsKey(indexPath) ? availableCells[indexPath] : CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, inRect.Width, false);
+                            MAUICollectionViewViewHolder cell = null;
+                            if (availableCells.ContainsKey(indexPath))
+                                cell = availableCells[indexPath];
+                            cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, cell, inRect.Width);
 
                             if (cell != null)
                             {
@@ -69,16 +72,15 @@
                                 //CollectionView.PreparedItems[indexPath] = cell;
                                 if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
                                 //Cell是否是正在被选择的
-                                cell.Highlighted = CollectionView._highlightedRow == null ? false : CollectionView._highlightedRow.IsEqual(indexPath);
-                                cell.Selected = CollectionView._selectedRow == null ? false : CollectionView._selectedRow.IsEqual(indexPath);
+                                cell.Selected = CollectionView.SelectedRow.Contains(indexPath);
 
                                 //添加到ScrollView, 必须先添加才有测量值
-                                if (!CollectionView.ContentView.Children.Contains(cell.ContentView))
-                                    CollectionView.AddSubview(cell.ContentView);
+                                if (!CollectionView.ContentView.Children.Contains(cell))
+                                    CollectionView.AddSubview(cell);
                                 //测量高度
-                                cell.ContentView.WidthRequest = itemWidth;
-                                cell.ContentView.HeightRequest = itemHeight;
-                                var measureSize = CollectionView.MeasureChild(cell.ContentView, itemWidth, itemHeight).Request;
+                                cell.WidthRequest = itemWidth;
+                                cell.HeightRequest = itemHeight;
+                                var measureSize = CollectionView.MeasureChild(cell, itemWidth, itemHeight).Request;
                                 var bounds = new Rect(itemWidth * (currentRow - row), itemsHeight + top, measureSize.Width, measureSize.Height);
 
                                 //存储可见的
@@ -140,7 +142,7 @@
             double tempBottom = 0;
             if (CollectionView.HeaderView != null)
             {
-                tempBottom = totalHeight + CollectionView.HeaderView.ContentView.DesiredSize.Height;
+                tempBottom = totalHeight + CollectionView.HeaderView.DesiredSize.Height;
                 if (totalHeight <= point.Y && tempBottom >= point.Y)
                 {
                     return null;
@@ -184,7 +186,7 @@
             double tempBottom = 0;
             if (CollectionView.HeaderView != null)
             {
-                tempBottom = totalHeight + CollectionView.HeaderView.ContentView.DesiredSize.Height;
+                tempBottom = totalHeight + CollectionView.HeaderView.DesiredSize.Height;
                 totalHeight = tempBottom;
             }
 
