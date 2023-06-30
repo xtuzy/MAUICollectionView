@@ -113,7 +113,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            Debug.WriteLine("Measure");
+            //Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
                 isStartAnimate = true;

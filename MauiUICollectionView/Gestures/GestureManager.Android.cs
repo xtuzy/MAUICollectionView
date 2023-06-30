@@ -79,7 +79,7 @@ namespace MauiUICollectionView.Gestures
                             continueGesture = false;
                     }
 
-                    Debug.WriteLine("Drag");
+                    //Debug.WriteLine("Drag");
                     return continueGesture;
                 },
 

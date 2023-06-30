@@ -100,7 +100,7 @@ namespace MauiUICollectionView.Gestures
         {
             return new(recognizer =>
             {
-                Debug.WriteLine("Drag:" + recognizer.State);
+                //Debug.WriteLine("Drag:" + recognizer.State);
                 var gestureStatus = recognizer.State switch
                 {
                     UIGestureRecognizerState.Began => GestureStatus.Started,
@@ -109,7 +109,7 @@ namespace MauiUICollectionView.Gestures
                     UIGestureRecognizerState.Cancelled => GestureStatus.Canceled,
                     _ => GestureStatus.Canceled,
                 };
-                Debug.WriteLine("Drag gestureStatus:" + gestureStatus);
+                //Debug.WriteLine("Drag gestureStatus:" + gestureStatus);
                 var dragPointCommand = PointCommand;
                 if (dragPointCommand != null)
                 {
@@ -132,7 +132,7 @@ namespace MauiUICollectionView.Gestures
         {
             return new UIImmediatePanGestureRecognizer(recognizer =>
             {
-                Debug.WriteLine("Pan:" + recognizer.State);
+                //Debug.WriteLine("Pan:" + recognizer.State);
                 var dragPointCommand = PointCommand;
                 if (dragPointCommand != null)
                 {

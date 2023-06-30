@@ -1,4 +1,5 @@
 ﻿using MauiUICollectionView.Layouts;
+
 namespace MauiUICollectionView
 {
     public partial class MAUICollectionView : ScrollView
@@ -56,13 +57,6 @@ namespace MauiUICollectionView
                 }
             }
         }
-
-        bool allowsSelection;
-        bool allowsSelectionDuringEditing;
-        bool editing;
-
-        float _sectionHeaderHeight;
-        float _sectionFooterHeight;
         #endregion
 
         bool _needsReload;
@@ -104,15 +98,15 @@ namespace MauiUICollectionView
 
         void Init()
         {
+            this.Orientation = ScrollOrientation.Vertical;
+            this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
+
             this.PreparedItems = new();
             this.ReusableViewHolders = new();
-            this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
-            this.allowsSelection = true;
-            this.allowsSelectionDuringEditing = false;
-            this._sectionHeaderHeight = this._sectionFooterHeight = 22;
 
             this._setNeedsReload();
         }
+
 
         IMAUICollectionViewSource _source;
         public IMAUICollectionViewSource Source

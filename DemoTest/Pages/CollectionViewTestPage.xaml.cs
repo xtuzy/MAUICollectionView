@@ -60,7 +60,7 @@ public partial class CollectionViewTestPage : ContentPage
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
-            var models = testModel.Generate(20);
+            var models = testModel.Generate(100);
             foreach(var model in models)
                 Models.Add(model);
         }

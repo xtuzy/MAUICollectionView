@@ -3,6 +3,7 @@ using MauiUICollectionView;
 using MauiUICollectionView.Layouts;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
+using System.Diagnostics;
 using Yang.Maui.Helper.Image;
 using MAUICollectionView = MauiUICollectionView.MAUICollectionView;
 namespace DemoTest.Pages;
@@ -48,7 +49,7 @@ public partial class DefaultTestPage : ContentPage
         headerButton.Clicked += (s, e) =>
         {
             tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
-            Console.WriteLine("Clicked Header");
+            Debug.WriteLine("Clicked Header");
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
         tableView.HeaderView = headerView;
@@ -59,7 +60,7 @@ public partial class DefaultTestPage : ContentPage
         footerButton.Clicked += (s, e) =>
         {
             tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
-            Console.WriteLine("Clicked Footer");
+            Debug.WriteLine("Clicked Footer");
         };
         var footActivityIndicator = new ActivityIndicator() { Color = Colors.Red, IsVisible = false, IsRunning = false, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footer.Add(footActivityIndicator);
@@ -71,12 +72,12 @@ public partial class DefaultTestPage : ContentPage
 
         this.Loaded += (sender, e) =>
         {
-            Console.WriteLine("Loaded");
+            Debug.WriteLine("Loaded");
         };
         this.Appearing += (sender, e) =>
         {
             tableView.ReAppear();//�л�Pageʱ����Item���ɼ�, ��Ҫ���¼���
-            Console.WriteLine("Appearing");
+            Debug.WriteLine("Appearing");
         };
 
         //Add
