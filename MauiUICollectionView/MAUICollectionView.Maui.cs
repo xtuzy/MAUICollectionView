@@ -66,11 +66,15 @@ namespace MauiUICollectionView
             }
             if (refreshView != null)
             {
-                this.Dispatcher.Dispatch(() =>
+#if ANDROID
+                if (stop)
                 {
-                    refreshView.IsRefreshing = false;
-                    refreshView.IsEnabled = !stop;
-                });
+                    //when set IsEnable = false, refreshview still run on Android, so i try not let ScrollView scroll to Top.
+                    ScrollToAsync(0, 0.1, false);
+                }
+#endif
+                refreshView.IsRefreshing = false;
+                refreshView.IsEnabled = !stop;
             }
         }
 
@@ -211,7 +215,6 @@ namespace MauiUICollectionView
                 {
                     if (DragedItem == null)
                         return;
-
                     var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
 
                     if (args.Device == GestureDevice.Touch)
@@ -260,7 +263,7 @@ namespace MauiUICollectionView
                         )
                     {
                         var targetViewHolder = PreparedItems[indexPath].BoundsInLayout;
-                        if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height/2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
+                        if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
                             Source.willDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
