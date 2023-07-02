@@ -56,7 +56,7 @@ namespace MauiUICollectionView.Layouts
                 isStartAnimate = false;//disappear动画结束
             }
 
-            //Debug.WriteLine("ArrangeContents");
+            Debug.WriteLine("ArrangeContents");
 
             if (CollectionView.HeaderView != null)
             {
@@ -113,7 +113,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            //Debug.WriteLine("Measure");
+            Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
                 isStartAnimate = true;
@@ -197,85 +197,87 @@ namespace MauiUICollectionView.Layouts
             needRecycleCell.Clear();
             scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
 
-            //被remove的Item需要加入动画管理器, 动画后再回收
-            for (int index = Updates.Count - 1; index >= 0; index--)
+            if (isStartAnimate)
             {
-                var update = Updates[index];
-                if (update.operateType == OperateItem.OperateType.remove)//需要移除的先移除, move后的IndexPath与之相同
+                //被remove的Item需要加入动画管理器, 动画后再回收
+                for (int index = Updates.Count - 1; index >= 0; index--)
                 {
-                    if (CollectionView.SelectedRow.Contains(update.source))
+                    var update = Updates[index];
+                    if (update.operateType == OperateItem.OperateType.remove)//需要移除的先移除, move后的IndexPath与之相同
                     {
-                        CollectionView.SelectedRow.Remove(update.source);
-                    }
+                        if (CollectionView.SelectedRow.Contains(update.source))
+                        {
+                            CollectionView.SelectedRow.Remove(update.source);
+                        }
 
-                    if (availableCells.ContainsKey(update.source))
+                        if (availableCells.ContainsKey(update.source))
+                        {
+                            var cell = availableCells[update.source];
+                            cell.Operation = (int)OperateItem.OperateType.remove;
+                            availableCells.Remove(update.source);
+                            AnimationManager.Add(cell);
+                            Updates.RemoveAt(index);
+                        }
+                    }
+                    else if (update.operateType == OperateItem.OperateType.update)
                     {
-                        var cell = availableCells[update.source];
-                        cell.Operation = (int)OperateItem.OperateType.remove;
-                        availableCells.Remove(update.source);
-                        AnimationManager.Add(cell);
-                        Updates.RemoveAt(index);
+                        //更新的我觉得不需要动画
+                        if (availableCells.ContainsKey(update.source))
+                        {
+                            var cell = availableCells[update.source];
+                            cell.Operation = (int)OperateItem.OperateType.update;
+                            AnimationManager.Add(cell);
+                            availableCells.Remove(update.source);
+                            //CollectionView.RecycleViewHolder(cell);
+                            Updates.RemoveAt(index);
+                        }
                     }
                 }
-                else if (update.operateType == OperateItem.OperateType.update)
+
+                //如果move的里有选择的, 需要更新选择的IndexPath
+                var oldSelectedIndexPath = new List<NSIndexPath>();
+                for (int index = Updates.Count - 1; index >= 0; index--)
                 {
-                    //更新的我觉得不需要动画
-                    if (availableCells.ContainsKey(update.source))
+                    var update = Updates[index];
+
+                    if (update.operateType == OperateItem.OperateType.move)
                     {
-                        var cell = availableCells[update.source];
-                        cell.Operation = (int)OperateItem.OperateType.update;
-                        AnimationManager.Add(cell);
-                        availableCells.Remove(update.source);
-                        //CollectionView.RecycleViewHolder(cell);
-                        Updates.RemoveAt(index);
+                        if (CollectionView.SelectedRow.Contains(update.source))
+                        {
+                            CollectionView.SelectedRow.Remove(update.source);
+                            oldSelectedIndexPath.Add(update.target);
+                            break;
+                        }
                     }
                 }
+                CollectionView.SelectedRow.AddRange(oldSelectedIndexPath);
+
+                //move的需要获取在之前可见区域的viewHolder, 更新indexPath为最新的, 然后进行动画.
+                Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
+                for (int index = Updates.Count - 1; index >= 0; index--)
+                {
+                    var update = Updates[index];
+
+                    if (update.operateType == OperateItem.OperateType.move)//移动的且显示的直接替换
+                    {
+                        if (availableCells.ContainsKey(update.source))
+                        {
+                            var oldView = availableCells[update.source];
+                            oldView.Operation = (int)OperateItem.OperateType.move;
+                            if (!oldView.Equals(CollectionView.DragedItem))//Drag的不需要动画, 因为自身会在Arrange中移动
+                                AnimationManager.Add(oldView);
+                            availableCells.Remove(update.source);
+                            if (availableCells.ContainsKey(update.target))
+                                tempAvailableCells.Add(update.target, oldView);
+                            else
+                                availableCells.Add(update.target, oldView);
+                            Updates.RemoveAt(index);
+                        }
+                    }
+                }
+                foreach (var item in tempAvailableCells)
+                    availableCells.Add(item.Key, item.Value);
             }
-
-            //如果move的里有选择的, 需要更新选择的IndexPath
-            var oldSelectedIndexPath = new List<NSIndexPath>();
-            for (int index = Updates.Count - 1; index >= 0; index--)
-            {
-                var update = Updates[index];
-
-                if (update.operateType == OperateItem.OperateType.move)
-                {
-                    if (CollectionView.SelectedRow.Contains(update.source))
-                    {
-                        CollectionView.SelectedRow.Remove(update.source);
-                        oldSelectedIndexPath.Add(update.target);
-                        break;
-                    }
-                }
-            }
-            CollectionView.SelectedRow.AddRange(oldSelectedIndexPath);
-
-            //move的需要获取在之前可见区域的viewHolder, 更新indexPath为最新的, 然后进行动画.
-            Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
-            for (int index = Updates.Count - 1; index >= 0; index--)
-            {
-                var update = Updates[index];
-
-                if (update.operateType == OperateItem.OperateType.move)//移动的且显示的直接替换
-                {
-                    if (availableCells.ContainsKey(update.source))
-                    {
-                        var oldView = availableCells[update.source];
-                        oldView.Operation = (int)OperateItem.OperateType.move;
-                        if (!oldView.Equals(CollectionView.DragedItem))//Drag的不需要动画, 因为自身会在Arrange中移动
-                            AnimationManager.Add(oldView);
-                        availableCells.Remove(update.source);
-                        if (availableCells.ContainsKey(update.target))
-                            tempAvailableCells.Add(update.target, oldView);
-                        else
-                            availableCells.Add(update.target, oldView);
-                        Updates.RemoveAt(index);
-                    }
-                }
-            }
-            foreach (var item in tempAvailableCells)
-                availableCells.Add(item.Key, item.Value);
-
             /*
              * Items
              */
@@ -292,7 +294,7 @@ namespace MauiUICollectionView.Layouts
             NSIndexPath newLastVisiableIndexPath = null;
             if (VisiableIndexPath.Count > 0)
                 newLastVisiableIndexPath = VisiableIndexPath[VisiableIndexPath.Count - 1];
-            
+
             if (preLastVisiableIndexPath == null || !preLastVisiableIndexPath.Equals(newLastVisiableIndexPath))//避免多次加载
             {
                 //判断是否是最后一个
@@ -307,23 +309,26 @@ namespace MauiUICollectionView.Layouts
                 }
             }
 
-            /*
-             * 标记insert, 添加到动画
-             */
-            var insertList = new List<NSIndexPath>();
-            foreach (var item in Updates)
+            if (isStartAnimate)
             {
-                if (item.operateType == OperateItem.OperateType.insert)
+                /*
+                 * 标记insert, 添加到动画
+                 */
+                var insertList = new List<NSIndexPath>();
+                foreach (var item in Updates)
                 {
-                    insertList.Add(item.source);
+                    if (item.operateType == OperateItem.OperateType.insert)
+                    {
+                        insertList.Add(item.source);
+                    }
                 }
-            }
-            foreach (var item in CollectionView.PreparedItems)
-            {
-                if (insertList.Contains(item.Key))//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
+                foreach (var item in CollectionView.PreparedItems)
                 {
-                    item.Value.Operation = (int)OperateItem.OperateType.insert;
-                    AnimationManager.Add(item.Value);
+                    if (insertList.Contains(item.Key))//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
+                    {
+                        item.Value.Operation = (int)OperateItem.OperateType.insert;
+                        AnimationManager.Add(item.Value);
+                    }
                 }
             }
             Updates.Clear();

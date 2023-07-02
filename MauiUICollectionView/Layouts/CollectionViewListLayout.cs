@@ -71,7 +71,7 @@
                                 CollectionView.AddSubview(cell);
                             //测量高度
                             Size measureSize;
-                            cell.WidthRequest = -1;
+                            cell.WidthRequest = inRect.Width;
                             cell.HeightRequest = -1;
                             if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//固定高度
                             {
@@ -104,7 +104,7 @@
 
                             var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                             var bounds = new Rect(0, itemsHeight + top, measureSize.Width != 0 ? measureSize.Width : inRect.Width, finalHeight);
-                            if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate)
+                            if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate && bounds!= cell.BoundsInLayout)//move + anim + diff bounds
                             {
                                 cell.OldBoundsInLayout = cell.BoundsInLayout;//move动画需要旧的位置
                                 cell.BoundsInLayout = bounds;

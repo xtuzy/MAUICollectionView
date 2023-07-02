@@ -41,7 +41,7 @@ namespace MauiUICollectionView.Gestures
                     var control = view as UIScrollView;
                     var point = recognizer.LocationInView(control);
                     var parameters = new SelectEventArgs(SelectStatus.Selected, new Point(point.X, point.Y - control.ContentOffset.Y));
-                    Debug.WriteLine(SelectStatus.Selected);
+                    //Debug.WriteLine(SelectStatus.Selected);
                     if (selectPointCommand?.CanExecute(parameters) == true)
                         selectPointCommand.Execute(parameters);
                 }
@@ -54,7 +54,7 @@ namespace MauiUICollectionView.Gestures
                 {
                     var control = view as UIScrollView;
                     var point = touch.LocationInView(view);//���صĻ��������content��
-                    Debug.WriteLine(statue);
+                    //Debug.WriteLine(statue);
                     var parameters = new SelectEventArgs(statue, new Point(point.X, point.Y - control.ContentOffset.Y));
                     if (SelectPointCommand?.CanExecute(parameters) == true)
                         SelectPointCommand.Execute(parameters);

@@ -22,7 +22,7 @@ public partial class DefaultTestPage : ContentPage
             Source = new Source(viewModel),
             SelectionMode = SelectionMode.Multiple,
             CanDrag = true,
-            //CanContextMenu = true,
+            CanContextMenu = true,
         };
         content.Content = tableView;
         tableView.ItemsLayout = new CollectionViewListLayout(tableView)

@@ -17,43 +17,58 @@
             <Button x:Name="Change" Text="Change" />
             <Button x:Name="Move" Text="Move" />
         </HorizontalStackLayout>
-        <RefreshView Grid.Row="1">
-            <CollectionView
-                x:Name="collectionView"
-                ItemSizingStrategy="MeasureAllItems"
-                SelectionMode="Single">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Margin="5,5,5,5">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Image
-                                    Grid.Column="0"
-                                    BackgroundColor="Gray"
-                                    HeightRequest="40" />
-                                <VerticalStackLayout Grid.Column="1">
-                                    <Label Text="{Binding PersonName}" />
-                                    <Label Text="{Binding PersonPhone}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                            <HorizontalStackLayout Grid.Row="1">
-                                <Image
-                                    Aspect="AspectFit"
-                                    BackgroundColor="Gray"
-                                    HeightRequest="100" />
-                            </HorizontalStackLayout>
+        <CollectionView
+            x:Name="collectionView"
+            Grid.Row="1"
+            ItemSizingStrategy="MeasureAllItems"
+            SelectionMode="Single">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid
+                        Margin="5,5,5,5"
+                        Padding="5"
+                        BackgroundColor="Black">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Image
+                                Grid.Column="0"
+                                BackgroundColor="AliceBlue"
+                                HeightRequest="40"
+                                WidthRequest="40" />
+                            <VerticalStackLayout Grid.Column="1">
+                                <Label Text="{Binding PersonName}" TextColor="White" />
+                                <Label Text="{Binding PersonPhone}" TextColor="White" />
+                            </VerticalStackLayout>
                         </Grid>
+                        <Label
+                            Grid.Row="1"
+                            LineBreakMode="WordWrap"
+                            MaxLines="3"
+                            Text="{Binding PersonTextBlog}"
+                            TextColor="White" />
+                        <HorizontalStackLayout Grid.Row="2">
+                            <Image
+                                Aspect="AspectFit"
+                                BackgroundColor="AliceBlue"
+                                HeightRequest="100"
+                                WidthRequest="100" />
+                            <Label
+                                Text="{Binding FirstComment}"
+                                TextColor="White"
+                                VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Grid>
 
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </RefreshView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
     </Grid>
 </ContentPage>

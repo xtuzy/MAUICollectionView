@@ -67,7 +67,8 @@ namespace MauiUICollectionView
                 if (stop)
                 {
                     //when set IsEnable = false, refreshview still run on Android, so i try not let ScrollView scroll to Top.
-                    ScrollToAsync(0, 0.1, false);
+                    if(ScrollY == 0)
+                        ScrollToAsync(0, 0.1, false);
                 }
 #endif
                 refreshView.IsRefreshing = false;
@@ -352,12 +353,12 @@ namespace MauiUICollectionView
             }
             else if (stopScroll)
             {
-                Debug.WriteLine(e.ScrollY);
+                //Debug.WriteLine(e.ScrollY);
                 ScrollToAsync(0, lastScrollY, false);//停止Scroll代表滑到旧的地方
             }
             else
             {
-                //Debug.WriteLine("Scrolled");
+                Debug.WriteLine("Scrolled");
                 scrollOffset = e.ScrollY - lastScrollY;
                 //如果DragItem能执行到这里, 说明非触摸, 使用鼠标可以滑动, 因此更新DragItem的滑动距离
                 if (DragedItem != null)
