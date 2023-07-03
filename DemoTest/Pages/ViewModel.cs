@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using MauiUICollectionView;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
 using The49.Maui.ContextMenu;
@@ -140,7 +141,8 @@ namespace DemoTest.Pages
             {
                 return sectionCell;
             }
-            return itemCell;
+            //return itemCell;
+            return itemCellSimple;
         }
 
         public float heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
@@ -152,6 +154,8 @@ namespace DemoTest.Pages
                     return 40;
                 case itemCell:
                     return MAUICollectionViewViewHolder.MeasureSelf;
+                case itemCellSimple:
+                    return MAUICollectionViewViewHolder.MeasureSelf;
                 default:
                     return 100;
             }
@@ -161,6 +165,7 @@ namespace DemoTest.Pages
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
         const string itemCell = "itemCell";
+        const string itemCellSimple = "itemCellSimple";
         public MAUICollectionViewViewHolder cellForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
         {
             //从tableView的一个队列里获取一个cell
@@ -169,10 +174,17 @@ namespace DemoTest.Pages
             if (oldViewHolder != null)//只需局部刷新
             {
                 cell = oldViewHolder;
-                var imageCell = cell as ItemViewHolder;
-                if (imageCell != null)
+                if (cell is ItemViewHolder itemcell)
                 {
-                    imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+                    if (itemcell != null)
+                    {
+                        itemcell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+                        itemcell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+                    }
+                }
+                else if (cell is ItemViewHolderSimple itemcellsimple)
+                {
+                    //if (itemcellsimple != null) itemcellsimple.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                 }
             }
             else
@@ -193,7 +205,7 @@ namespace DemoTest.Pages
 
                     cell = textCell;
                 }
-                else
+                else if (type == itemCell)
                 {
                     var imageCell = cell as ItemViewHolder;
                     if (imageCell == null)
@@ -210,24 +222,51 @@ namespace DemoTest.Pages
                             tableView.ReMeasure();
                         });
                         imageCell.InitMenu(command);
+                        imageCell.ModelView.TestButton.Clicked += async (sender, e) =>
+                        {
+                            await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={imageCell.IndexPath.Section} Row={imageCell.IndexPath.Row}", "OK");
+                        };
                     }
 
-                    if (type == itemCell)
-                    {
-                        //imageCell.ModelView.PersonIcon.Source = ViewModel.models[indexPath.Row].PersonIconUrl;
-                        imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
-                        imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
-                        imageCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
-                        //imageCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
-                        imageCell.ModelView.LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
-                    }
+                    //imageCell.ModelView.PersonIcon.Source = ViewModel.models[indexPath.Row].PersonIconUrl;
+                    imageCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
+                    imageCell.ModelView.PersonPhone.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+                    imageCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
+                    imageCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
 
                     cell = imageCell;
                 }
+                else if (type == itemCellSimple)
+                {
+                    var simpleCell = cell as ItemViewHolderSimple;
+                    if (simpleCell == null)
+                    {
+                        //没有,创建一个
+                        simpleCell = new ItemViewHolderSimple(new ModelViewSimple() { }, type) { };
+                        var command = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            RemoveData(arg.Row);
+                            tableView.RemoveItems(arg);
+                            tableView.ReMeasure();
+                        });
+                        simpleCell.InitMenu(command);
+                        simpleCell.ModelView.TestButton.Clicked += async (sender, e) =>
+                        {
+                            await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={simpleCell.IndexPath.Section} Row={simpleCell.IndexPath.Row}", "OK");
+                        };
+                    }
+
+                    simpleCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
+                    simpleCell.ModelView.PersonPhone.Text = ViewModel.models[indexPath.Row].PersonPhone;
+                    simpleCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
+                    simpleCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+
+                    cell = simpleCell;
+                }
             }
             cell.IndexPath = indexPath;
-            if(cell.ContextMenu!=null)
-              cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+            if (cell.ContextMenu != null)
+                cell.ContextMenu.IsEnable = tableView.CanContextMenu;
             return cell;
         }
     }
@@ -287,6 +326,7 @@ namespace DemoTest.Pages
 
         public ItemViewHolder(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
+            this.IsClippedToBounds = true;
             ModelView = itemView as ModelView;
         }
 
@@ -367,7 +407,7 @@ namespace DemoTest.Pages
         }
     }
 
-    public partial class ModelView : Border
+    public partial class ModelView : ConstraintLayout
     {
         ConstraintLayout rootLayout;
         public Image PersonIcon;
@@ -376,18 +416,23 @@ namespace DemoTest.Pages
         public Label ViewHolderIndex;
         public Label PersonTextBlog;
         public Image PersonImageBlog;
+        public Button TestButton;
         public Label FirstComment;
         public Image LikeIcon;
         public Image CommentIcon;
         public Image ShareIcon;
+
         public ModelView()
         {
-            this.StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(10) };
+            //this.StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(10) };
             //this.Margin = new Thickness(20, 0, 20, 20);
             this.BackgroundColor = new Color(30, 30, 30);
 
-            rootLayout = new ConstraintLayout() { ConstrainHeight = ConstraintSet.WrapContent, ConstrainWidth = ConstraintSet.MatchParent, ConstrainPaddingLeftDp = 5, ConstrainPaddingRightDp = 5 };
-            Content = rootLayout;
+            //rootLayout = new ConstraintLayout() { ConstrainHeight = ConstraintSet.WrapContent, ConstrainWidth = ConstraintSet.MatchParent, ConstrainPaddingLeftDp = 5, ConstrainPaddingRightDp = 5 };
+            //Content = rootLayout;
+            rootLayout = this;
+            this.ConstrainHeight = ConstraintSet.WrapContent;
+            this.ConstrainWidth = ConstraintSet.MatchParent;
             var PersonIconContainer = new Border() { StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(20) } };
             PersonIcon = new Image() { };
             PersonIconContainer.Content = PersonIcon;
@@ -396,14 +441,16 @@ namespace DemoTest.Pages
             ViewHolderIndex = new Label() { TextColor = Colors.White };
             PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap, MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
             PersonImageBlog = new Image() { BackgroundColor = Colors.AliceBlue };
+            TestButton = new Button() { };
             FirstComment = new Label();
             LikeIcon = new Image() { };
             var tab = new TapGestureRecognizer();
             tab.Tapped += LikeIcon_Clicked;
             LikeIcon.GestureRecognizers.Add(tab);
+            LikeIcon.Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" };
             CommentIcon = new Image() { Source = new FontImageSource() { Glyph = FontAwesomeIcons.Comment, FontFamily = "FontAwesome6FreeSolid900" } };
             ShareIcon = new Image() { Source = new FontImageSource() { Glyph = FontAwesomeIcons.Share, FontFamily = "FontAwesome6FreeSolid900" } };
-            rootLayout.AddElement(PersonIconContainer, PersonName, PersonPhone, ViewHolderIndex, PersonTextBlog, PersonImageBlog,
+            rootLayout.AddElement(PersonIconContainer, PersonName, PersonPhone, ViewHolderIndex, PersonTextBlog, PersonImageBlog, TestButton,
                 FirstComment, LikeIcon, CommentIcon, ShareIcon);
             using (var set = new FluentConstraintSet())
             {
@@ -414,11 +461,192 @@ namespace DemoTest.Pages
                     .Select(ViewHolderIndex).RightToRight(null, 5).TopToTop(null, 5)
                     .Select(PersonTextBlog).LeftToLeft(PersonIconContainer).TopToBottom(PersonIconContainer)
                     .Select(PersonImageBlog).LeftToLeft(PersonTextBlog).TopToBottom(PersonTextBlog).Width(100).Height(100)
+                    .Select(TestButton).LeftToRight(PersonImageBlog).CenterYTo(PersonImageBlog)
                     .Select(LikeIcon, CommentIcon, ShareIcon).CreateXChain(rootLayout, Edge.Left, rootLayout, Edge.Right, ChainStyle.Spread, new (View, float)[] { (LikeIcon, 1), (CommentIcon, 1), (ShareIcon, 1) })
                     .TopToBottom(PersonImageBlog).BottomToBottom(null, 5).Width(20).Height(20)
                     ;
                 set.ApplyTo(rootLayout);
             }
+        }
+
+        private void LikeIcon_Clicked(object sender, EventArgs e)
+        {
+            if ((LikeIcon.Source as FontImageSource)?.Color == Colors.Red)
+                (LikeIcon.Source as FontImageSource).Color = Colors.White;
+            else
+                (LikeIcon.Source as FontImageSource).Color = Colors.Red;
+            Console.WriteLine("Like Clicked");
+        }
+    }
+
+    internal class ItemViewHolderSimple : MAUICollectionViewViewHolder
+    {
+        public int NewCellIndex;
+
+        public ItemViewHolderSimple(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
+        {
+            ModelView = itemView as ModelViewSimple;
+        }
+
+        public ModelViewSimple ModelView;
+
+        public override void PrepareForReuse()
+        {
+            base.PrepareForReuse();
+            ModelView.PersonIcon.Source = null;
+            ModelView.PersonImageBlog.Source = null;
+            //ModelView.CommentIcon.Source = null;
+            //ModelView.ShareIcon.Source = null;
+            UpdateSelectionState(false);
+        }
+
+        Color DefaultColor = Colors.LightYellow;
+        public override void UpdateSelectionState(bool shouldHighlight)
+        {
+            if (DefaultColor == Colors.LightYellow)
+            {
+                DefaultColor = Content.BackgroundColor;
+            }
+            base.UpdateSelectionState(shouldHighlight);
+            if (shouldHighlight)
+                Content.BackgroundColor = Colors.Grey.WithAlpha(100);
+            else
+                Content.BackgroundColor = DefaultColor;
+        }
+
+        protected override void OnHandlerChanged()
+        {
+            base.OnHandlerChanged();
+#if ANDROID
+            var av = this.Handler.PlatformView as Android.Views.View;
+            var aContextMenu = new MauiUICollectionView.Gestures.AndroidContextMenu(av.Context, av);
+
+            //设置PopupMenu样式, see https://learn.microsoft.com/en-us/xamarin/android/user-interface/controls/popup-menu
+            aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
+            aContextMenu.PlatformMenu.MenuItemClick += (s1, arg1) =>
+            {
+                MenuCommand.Execute(IndexPath);
+            };
+            ContextMenu = aContextMenu;
+#endif
+        }
+
+
+        public Command MenuCommand;
+        public void InitMenu(Command command)
+        {
+            MenuCommand = command;
+#if IOS
+            var menu = new Menu();
+            var menuItem = new The49.Maui.ContextMenu.Action()
+            {
+                Title = "Delete",
+                Command = command,
+            };
+            menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
+            {
+                menuItem
+            };
+            ContextMenu = new MauiUICollectionView.Gestures.iOSContextMenu(this, menu);
+#elif WINDOWS || MACCATALYST
+            var menu = new MenuFlyout();
+            var menuItem = new MenuFlyoutItem()
+            {
+                Text = "Delete",
+                Command = command,
+                CommandParameter = IndexPath
+            };
+            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Add(menuItem);
+            ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+#endif
+        }
+    }
+
+    class ModelViewSimple : Grid
+    {
+        public Image PersonIcon;
+        public Label PersonName;
+        public Label PersonPhone;
+        public Label PersonTextBlog;
+        public Image PersonImageBlog;
+        public Button TestButton;
+        public Label FirstComment;
+        public Image LikeIcon;
+        public Image CommentIcon;
+        public Image ShareIcon;
+
+        public ModelViewSimple()
+        {
+            this.BackgroundColor = Colors.Black;
+            this.RowDefinitions = new RowDefinitionCollection
+            {
+                new RowDefinition(){ Height = GridLength.Auto },
+                new RowDefinition(){ Height = GridLength.Auto },
+                new RowDefinition(){ Height = GridLength.Auto },
+                new RowDefinition(){ Height = GridLength.Star },
+            };
+            var infoContainer = new Grid()
+            {
+                Padding = new Thickness(5),
+                ColumnDefinitions = new ColumnDefinitionCollection()
+                {
+                    new ColumnDefinition(){Width = GridLength.Auto},
+                    new ColumnDefinition(){Width = GridLength.Star},
+                }
+            };
+            PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap, MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
+            var imageblogContainer = new HorizontalStackLayout() { Margin = new Thickness(0, 5, 0, 5) };
+            var iconContainer = new Grid()
+            {
+                Margin = new Thickness(0, 5, 0, 5),
+                ColumnDefinitions = new ColumnDefinitionCollection()
+                {
+                    new ColumnDefinition(){Width = GridLength.Star},
+                    new ColumnDefinition(){Width = GridLength.Star},
+                    new ColumnDefinition(){Width = GridLength.Star},
+                }
+            };
+            this.Add(infoContainer);
+            this.Add(PersonTextBlog);
+            this.Add(imageblogContainer);
+            this.Add(iconContainer);
+
+            Grid.SetRow(infoContainer, 0);
+            Grid.SetRow(PersonTextBlog, 1);
+            Grid.SetRow(imageblogContainer, 2);
+            Grid.SetRow(iconContainer, 3);
+
+            PersonIcon = new Image() { WidthRequest = 40, HeightRequest = 40, BackgroundColor = Colors.AliceBlue };
+            var textInfo = new VerticalStackLayout() { Margin = new Thickness(5, 0, 0, 0) };
+            infoContainer.Add(PersonIcon);
+            infoContainer.Add(textInfo);
+            Grid.SetColumn(PersonIcon, 0);
+            Grid.SetColumn(textInfo, 1);
+            PersonName = new Label() { TextColor = Colors.White, };
+            PersonPhone = new Label() { TextColor = Colors.White };
+            textInfo.Add(PersonName);
+            textInfo.Add(PersonPhone);
+
+            PersonImageBlog = new Image() { WidthRequest = 100, HeightRequest = 100, BackgroundColor = Colors.AliceBlue };
+            TestButton = new Button() { BackgroundColor = Colors.Blue, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center };
+            imageblogContainer.Add(PersonImageBlog);
+            imageblogContainer.Add(TestButton);
+
+            LikeIcon = new Image() { WidthRequest = 20, Source = new FontImageSource() { Glyph = FontAwesomeIcons.ThumbsUp, FontFamily = "FontAwesome6FreeSolid900" }, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+            var tab = new TapGestureRecognizer();
+            tab.Tapped += LikeIcon_Clicked;
+            LikeIcon.GestureRecognizers.Add(tab);
+            CommentIcon = new Image() { WidthRequest = 20, Source = new FontImageSource() { Glyph = FontAwesomeIcons.Comment, FontFamily = "FontAwesome6FreeSolid900" }, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+            ShareIcon = new Image() { WidthRequest = 20, Source = new FontImageSource() { Glyph = FontAwesomeIcons.Share, FontFamily = "FontAwesome6FreeSolid900" }, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+
+            iconContainer.Add(LikeIcon);
+            iconContainer.Add(CommentIcon);
+            iconContainer.Add(ShareIcon);
+            Grid.SetColumn(LikeIcon, 0);
+            Grid.SetColumn(CommentIcon, 1);
+            Grid.SetColumn(ShareIcon, 2);
         }
 
         private void LikeIcon_Clicked(object sender, EventArgs e)

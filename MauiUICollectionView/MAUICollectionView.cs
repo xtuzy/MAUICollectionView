@@ -1,4 +1,5 @@
 ﻿using MauiUICollectionView.Layouts;
+
 namespace MauiUICollectionView
 {
     public partial class MAUICollectionView : ScrollView
@@ -56,13 +57,6 @@ namespace MauiUICollectionView
                 }
             }
         }
-
-        bool allowsSelection;
-        bool allowsSelectionDuringEditing;
-        bool editing;
-
-        float _sectionHeaderHeight;
-        float _sectionFooterHeight;
         #endregion
 
         bool _needsReload;
@@ -104,15 +98,15 @@ namespace MauiUICollectionView
 
         void Init()
         {
+            this.Orientation = ScrollOrientation.Vertical;
+            this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
+
             this.PreparedItems = new();
             this.ReusableViewHolders = new();
-            this.HorizontalScrollBarVisibility = ScrollBarVisibility.Never;
-            this.allowsSelection = true;
-            this.allowsSelectionDuringEditing = false;
-            this._sectionHeaderHeight = this._sectionFooterHeight = 22;
 
             this._setNeedsReload();
         }
+
 
         IMAUICollectionViewSource _source;
         public IMAUICollectionViewSource Source
@@ -140,8 +134,11 @@ namespace MauiUICollectionView
         /// <summary>
         /// 屏幕顶部和底部多加载Cell的高度, 对于平台ScrollView实现是平移画布的(Android, Windows), 大的扩展高度可以减少滑动时显示空白, 默认设置上下各扩展一屏幕高度.
         /// </summary>
+#if IOS
+        public int ExtendHeight => 0;
+#else
         public int ExtendHeight => (int)CollectionViewConstraintSize.Height;
-
+#endif
         public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
             // this is allowed to return nil if the cell isn't visible and is not restricted to only returning visible cells

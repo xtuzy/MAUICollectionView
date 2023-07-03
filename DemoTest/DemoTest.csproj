@@ -15,7 +15,7 @@
 		<ApplicationTitle>DemoTest</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.demotest</ApplicationId>
+		<ApplicationId>com.companyname.ademotest</ApplicationId>
 		<ApplicationIdGuid>3ef7b026-b4d1-43e7-ac92-e7fb9dabb7f4</ApplicationIdGuid>
 
 		<!-- Versions -->
@@ -28,6 +28,10 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)'=='net7.0-ios'">
+	  <ProvisioningType>manual</ProvisioningType>
 	</PropertyGroup>
 
 	<ItemGroup>

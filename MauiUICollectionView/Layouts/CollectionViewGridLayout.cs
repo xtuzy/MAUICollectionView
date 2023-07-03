@@ -89,7 +89,7 @@
                                     VisiableIndexPath.Add(indexPath);
                                 }
 
-                                if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate)
+                                if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
                                 {
                                     cell.OldBoundsInLayout = cell.BoundsInLayout;
                                     cell.BoundsInLayout = bounds;

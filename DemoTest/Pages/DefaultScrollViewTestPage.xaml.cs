@@ -1,3 +1,4 @@
+using System;
 using The49.Maui.ContextMenu;
 
 namespace DemoTest.Pages;
@@ -55,6 +56,17 @@ public partial class DefaultScrollViewTestPage : ContentPage
 
         ChangeY.Clicked += ChangeY_Clicked;
         RemoveView.Clicked += RemoveView_Clicked;
+        AddView.Clicked += AddView_Clicked;
+    }
+
+    private void AddView_Clicked(object sender, EventArgs e)
+    {
+        var youdaoCell = new Image() { HeightRequest = 50 };
+        youdaoCell.Source = "https://ydlunacommon-cdn.nosdn.127.net/cb776e6995f1c703706cf8c4c39a7520.png";
+
+        rootLayout.Children.Add(youdaoCell);
+        var text = new Label() { Margin = new Thickness(5), HeightRequest = 50, FontSize = 28, HorizontalTextAlignment = TextAlignment.Center, Text = (rootLayout.Children.Count/2 + 1).ToString(), BackgroundColor = Colors.Gray };
+        rootLayout.Children.Add(text);
     }
 
     private void RemoveView_Clicked(object sender, EventArgs e)
