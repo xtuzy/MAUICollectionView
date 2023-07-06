@@ -8,20 +8,20 @@
     Shell.FlyoutBehavior="Flyout">
 
     <ShellContent
-        Title="DefaultTestPage"
+        Title="ListLayoutTestPage"
         ContentTemplate="{DataTemplate pages:DefaultTestPage}"
-        Route="DefaultTestPage" />
+        Route="ListLayoutTestPage" />
     <ShellContent
         Title="GridLayoutTestPage"
         ContentTemplate="{DataTemplate pages:GridLayoutTestPage}"
         Route="GridLayoutTestPage" />
     <ShellContent
-        Title="DefaultScrollViewTestPage"
+        Title="OfficialScrollViewTestPage"
         ContentTemplate="{DataTemplate pages:DefaultScrollViewTestPage}"
-        Route="DefaultScrollViewTestPage" />
+        Route="OfficialScrollViewTestPage" />
     <ShellContent
-        Title="CollectionViewTestPage"
+        Title="OfficialCollectionViewTestPage"
         ContentTemplate="{DataTemplate pages:CollectionViewTestPage}"
-        Route="CollectionViewTestPage" />
+        Route="OfficialCollectionViewTestPage" />
 
 </Shell>

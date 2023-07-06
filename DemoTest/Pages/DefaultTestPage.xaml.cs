@@ -4,18 +4,36 @@ using MauiUICollectionView.Layouts;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
 using System.Diagnostics;
+using Yang.Maui.Helper.Device.Screen;
 using Yang.Maui.Helper.Image;
 using MAUICollectionView = MauiUICollectionView.MAUICollectionView;
 namespace DemoTest.Pages;
 
 public partial class DefaultTestPage : ContentPage
 {
+#if WINDOWS || __ANDROID__ || __IOS__
+    FrameRateCalculator fr;
+#endif
     internal static ViewModel viewModel;
     public DefaultTestPage()
     {
         viewModel = new ViewModel();
 
         InitializeComponent();
+
+
+#if WINDOWS || __ANDROID__ || __IOS__
+        if (fr == null)
+        {
+            fr = new FrameRateCalculator();
+            fr.FrameRateUpdated += (value) =>
+            {
+                this.Dispatcher.Dispatch(() => fpsLabel.Text = value.Frames.ToString());
+            };
+            fr.Start();
+        }
+#endif
+
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,

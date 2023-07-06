@@ -12,6 +12,14 @@
 
         </Grid.RowDefinitions>
         <HorizontalStackLayout>
+            <Label
+                x:Name="fpsLabel"
+                BackgroundColor="Black"
+                HorizontalTextAlignment="Center"
+                Text="FPS"
+                TextColor="AliceBlue"
+                VerticalTextAlignment="Center"
+                WidthRequest="50" />
             <Button x:Name="Add" Text="Add" />
             <Button x:Name="Remove" Text="Remove" />
             <Button x:Name="Change" Text="Change" />
@@ -21,54 +29,6 @@
             x:Name="collectionView"
             Grid.Row="1"
             ItemSizingStrategy="MeasureAllItems"
-            SelectionMode="Single">
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Grid
-                        Margin="5,5,5,5"
-                        Padding="5"
-                        BackgroundColor="Black">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Image
-                                Grid.Column="0"
-                                BackgroundColor="AliceBlue"
-                                HeightRequest="40"
-                                WidthRequest="40" />
-                            <VerticalStackLayout Grid.Column="1">
-                                <Label Text="{Binding PersonName}" TextColor="White" />
-                                <Label Text="{Binding PersonPhone}" TextColor="White" />
-                            </VerticalStackLayout>
-                        </Grid>
-                        <Label
-                            Grid.Row="1"
-                            LineBreakMode="WordWrap"
-                            MaxLines="3"
-                            Text="{Binding PersonTextBlog}"
-                            TextColor="White" />
-                        <HorizontalStackLayout Grid.Row="2">
-                            <Image
-                                Aspect="AspectFit"
-                                BackgroundColor="AliceBlue"
-                                HeightRequest="100"
-                                WidthRequest="100" />
-                            <Label
-                                Text="{Binding FirstComment}"
-                                TextColor="White"
-                                VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Grid>
-
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+            SelectionMode="Single" />
     </Grid>
 </ContentPage>

@@ -49,14 +49,14 @@ namespace MauiUICollectionView.Layouts
         {
             if (isStartAnimate)
             {
-                Debug.WriteLine("Anim ArrangeContents");
+                //Debug.WriteLine("Anim ArrangeContents");
 
                 AnimationManager.Run();
 
                 isStartAnimate = false;//disappear动画结束
             }
 
-            Debug.WriteLine("ArrangeContents");
+            //Debug.WriteLine("ArrangeContents");
 
             if (CollectionView.HeaderView != null)
             {
@@ -105,6 +105,8 @@ namespace MauiUICollectionView.Layouts
         /// </summary>
         int measureTimes = 0;
 
+
+
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
         /// </summary>
@@ -113,7 +115,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            Debug.WriteLine("Measure");
+            //Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
                 isStartAnimate = true;
@@ -287,7 +289,6 @@ namespace MauiUICollectionView.Layouts
             VisiableIndexPath.Clear();
             Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
             tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableCells);
-
             /*
              * 实现加载更多
              */
