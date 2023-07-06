@@ -16,6 +16,10 @@
         ContentTemplate="{DataTemplate pages:GridLayoutTestPage}"
         Route="GridLayoutTestPage" />
     <ShellContent
+        Title="ManyItemsVisiableTestPage"
+        ContentTemplate="{DataTemplate pages:ManyItemsVisiableTestPage}"
+        Route="ManyItemsVisiableTestPage" />
+    <ShellContent
         Title="OfficialScrollViewTestPage"
         ContentTemplate="{DataTemplate pages:DefaultScrollViewTestPage}"
         Route="OfficialScrollViewTestPage" />
@@ -23,5 +27,4 @@
         Title="OfficialCollectionViewTestPage"
         ContentTemplate="{DataTemplate pages:CollectionViewTestPage}"
         Route="OfficialCollectionViewTestPage" />
-
 </Shell>
