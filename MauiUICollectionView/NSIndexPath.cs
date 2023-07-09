@@ -75,5 +75,10 @@
         {
             return lhs.Compare(rhs) == 1;
         }
+
+        public override string ToString()
+        {
+            return $"{Section}-{Row}";
+        }
     }
 }

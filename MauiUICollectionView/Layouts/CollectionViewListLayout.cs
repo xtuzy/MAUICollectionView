@@ -21,20 +21,165 @@
         /// </summary>
         public double EstimatedRowHeight = 100;
 
+        /// <summary>
+        /// 为避免当数据量很大时需要循环很多次去计算总高度, 这里按每<see cref="ItemsCountInRegion">个Item为一组缓存一个高度供下次使用.
+        /// 缓存的策略是当需要MeasureSelf测量的Item出现在该区域时, 该区域内的缓存高度需要重新测量
+        /// </summary>
+        public double[] ItemsHeightCache;
+        public double AllItemCount = 0;
         protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
         {
+            var numberOfSections = CollectionView.NumberOfSections();
+            var allItemCount = 0;
+            for (int section = 0; section < numberOfSections; section++)
+            {
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
+                allItemCount += numberOfRows;
+            }
+
+            if (AllItemCount != allItemCount)//代表数据更新了
+            {
+                ItemsHeightCache = new double[allItemCount % ItemsCountInRegion > 0 ? allItemCount / ItemsCountInRegion + 1 : allItemCount / ItemsCountInRegion];
+                AllItemCount = allItemCount;
+            }
+
             double itemsHeight = 0;
 
             /* 
              * Items
              */
+            var targetRegionIndex = 0;
+            double recordRegionHeight = 0;
+            for (var regionIndex = 0; regionIndex < ItemsHeightCache.Length; regionIndex++)
+            {
+                if (ItemsHeightCache[0] == 0)//没有缓存时, 统计是无效的
+                    break;
+                if (recordRegionHeight + ItemsHeightCache[regionIndex] >= CollectionView.ScrollY)
+                {
+                    targetRegionIndex = regionIndex;
+                    break;
+                }
+                else
+                {
+                    recordRegionHeight += ItemsHeightCache[regionIndex];
+                }
+            }
+
+            for (var regionIndex = 0; regionIndex < ItemsHeightCache.Length; regionIndex++)
+            {
+                try
+                {
+                    if (regionIndex == targetRegionIndex)
+                    {
+                        //目标区域前后都仔细测量
+                        if (regionIndex - 1 >= 0)
+                        {
+                            var beforeTargetRegionIndex = regionIndex - 1;
+                            itemsHeight -= ItemsHeightCache[beforeTargetRegionIndex];//减去旧的
+                            var heightOfBeforeTargetRegion = CalculateHeightForVisiableRegion(beforeTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
+                            ItemsHeightCache[beforeTargetRegionIndex] = heightOfBeforeTargetRegion;
+                            itemsHeight += ItemsHeightCache[beforeTargetRegionIndex];
+                        }
+                        var targetRegionHeight = CalculateHeightForVisiableRegion(regionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
+                        ItemsHeightCache[regionIndex] = targetRegionHeight;
+                        itemsHeight += ItemsHeightCache[regionIndex];
+                        if (regionIndex + 1 < ItemsHeightCache.Length)
+                        {
+                            var afterTargetRegionIndex = regionIndex + 1;
+                            var heightOfAfterTargetRegion = CalculateHeightForVisiableRegion(afterTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
+                            ItemsHeightCache[afterTargetRegionIndex] = heightOfAfterTargetRegion;
+                            itemsHeight += ItemsHeightCache[afterTargetRegionIndex];
+                            regionIndex++;
+                        }
+                    }
+                    else
+                    {
+                        if (ItemsHeightCache[regionIndex] == 0)
+                        {
+                            ItemsHeightCache[regionIndex] = CalculateHeightForInvisiableRegion(regionIndex);
+                        }
+                        itemsHeight += ItemsHeightCache[regionIndex];
+                    }
+                }
+                catch (Exception ex)
+                {
+
+                }
+            }
+
+            return itemsHeight;
+        }
+
+        NSIndexPath GetStartIndexPathOfRegion(int index)
+        {
+            int startNeedMeasureItemIndex = index * ItemsCountInRegion;
+            int haveRecordItemsCountWhenFindStart = 0;
+            var sectionCount = CollectionView.NumberOfSections();
+            NSIndexPath startIndexPathOfRegion = null;
+
+            for (var section = 0; section < sectionCount; section++)
+            {
+                int rows = CollectionView.NumberOfItemsInSection(section);
+                if (haveRecordItemsCountWhenFindStart + rows >= startNeedMeasureItemIndex)
+                {
+                    var targetSectionUsedRowsCount = startNeedMeasureItemIndex - haveRecordItemsCountWhenFindStart;
+                    haveRecordItemsCountWhenFindStart = haveRecordItemsCountWhenFindStart + targetSectionUsedRowsCount;
+                    startIndexPathOfRegion = NSIndexPath.FromRowSection(targetSectionUsedRowsCount, section);
+                }
+                else
+                {
+                    haveRecordItemsCountWhenFindStart = haveRecordItemsCountWhenFindStart + rows;
+                }
+            }
+            return startIndexPathOfRegion;
+        }
+
+        double CalculateHeightForInvisiableRegion(int index)
+        {
+            var startIndexPath = GetStartIndexPathOfRegion(index);
+            double itemsHeight = 0;
             int numberOfSections = CollectionView.NumberOfSections();
-            for (int section = 0; section < numberOfSections; section++)
+            var haveMeasuredItemCount = 1;
+            for (int section = startIndexPath.Section; section < numberOfSections && haveMeasuredItemCount <= ItemsCountInRegion; section++)
             {
                 int numberOfRows = CollectionView.NumberOfItemsInSection(section);
-
-                for (int row = 0; row < numberOfRows; row++)
+                int row = 0;
+                if (section == startIndexPath.Section)
+                    row = startIndexPath.Row;
+                for (; row < numberOfRows && haveMeasuredItemCount <= ItemsCountInRegion; row++)
                 {
+                    haveMeasuredItemCount++;
+
+                    NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
+                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+                    //尝试用之前测量的值或者预设值估计底部在哪
+                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+
+                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    itemsHeight += rowMaybeHeight;
+                }
+            }
+
+            return itemsHeight;
+        }
+
+        const int ItemsCountInRegion = 100;
+        double CalculateHeightForVisiableRegion(int index, double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
+        {
+            var startIndexPath = GetStartIndexPathOfRegion(index);
+            double itemsHeight = 0;
+            int numberOfSections = CollectionView.NumberOfSections();
+            var haveMeasuredItemCount = 1;
+            for (int section = startIndexPath.Section; section < numberOfSections && haveMeasuredItemCount <= ItemsCountInRegion; section++)
+            {
+                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
+                int row = 0;
+                if (section == startIndexPath.Section)
+                    row = startIndexPath.Row;
+                for (; row < numberOfRows && haveMeasuredItemCount <= ItemsCountInRegion; row++)
+                {
+                    haveMeasuredItemCount++;
+
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
                     var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
                     //尝试用之前测量的值或者预设值估计底部在哪
@@ -57,7 +202,13 @@
                         if (cell != null)
                         {
                             //将Cell添加到正在显示的Cell字典
-                            CollectionView.PreparedItems.Add(indexPath, cell);
+                            try
+                            {
+                                CollectionView.PreparedItems.Add(indexPath, cell);
+                            }catch(Exception e)
+                            {
+
+                            }
                             //CollectionView.PreparedItems[indexPath] = cell;
                             if (availableCells.ContainsKey(indexPath))
                             {
@@ -104,7 +255,7 @@
 
                             var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                             var bounds = new Rect(0, itemsHeight + top, measureSize.Width != 0 ? measureSize.Width : inRect.Width, finalHeight);
-                            if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate && bounds!= cell.BoundsInLayout)//move + anim + diff bounds
+                            if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
                             {
                                 cell.OldBoundsInLayout = cell.BoundsInLayout;//move动画需要旧的位置
                                 cell.BoundsInLayout = bounds;
@@ -138,6 +289,7 @@
                     }
                 }
             }
+
             return itemsHeight;
         }
 

@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 using SharpConstraintLayout.Maui.Widget;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using The49.Maui.ContextMenu;
 using Yang.Maui.Helper.Image;
@@ -47,6 +48,7 @@ namespace DemoTest.Pages
         }
 
         public List<Model> models;
+        public ObservableCollection<Model> ObservableModels = new ObservableCollection<Model>();
         private Faker<Model> testModel;
         public ViewModel()
         {
@@ -58,13 +60,18 @@ namespace DemoTest.Pages
                 .RuleFor(m => m.PersonPhone, f => f.Person.Phone)
                 .RuleFor(m => m.PersonTextBlogTitle, f => f.WaffleText(1, false))
                 .RuleFor(m => m.PersonTextBlog, f => f.WaffleText(1, false))
-                .RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
+                //.RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
                 .RuleFor(m => m.FirstComment, f => f.WaffleText(1, false))
                 //.RuleFor(m => m.LikeIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
             models = testModel.Generate(1000);
+
+            foreach(var m in models)
+            {
+                ObservableModels.Add(m);
+            }
         }
 
         public Model Generate()

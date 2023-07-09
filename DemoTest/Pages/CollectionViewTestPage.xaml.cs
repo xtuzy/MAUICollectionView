@@ -34,34 +34,32 @@ public partial class CollectionViewTestPage : ContentPage
             view.BindingData();
             return view;
         });
-        collectionView.ItemsSource = viewModel.models;
+        collectionView.ItemsSource = viewModel.ObservableModels;
         collectionView.SelectionMode = SelectionMode.Single;
 
         Add.Clicked += (sender, e) =>
         {
             var index = 2;
-            viewModel.models.Insert(index, viewModel.Generate(1)[0]);
+            viewModel.ObservableModels.Insert(index, viewModel.Generate(1)[0]);
         };
 
         Remove.Clicked += (sender, e) =>
         {
             var index = 2;
-            viewModel.models.RemoveAt(index);
+            viewModel.ObservableModels.RemoveAt(index);
         };
 
         Move.Clicked += (sender, e) =>
         {
             var index = 3;
             var target = 1;
-            var item = viewModel.models[index];
-            viewModel.models.RemoveAt(index);
-            viewModel.models.Insert(target, item);
+            viewModel.ObservableModels.Move(3, 1);
         };
 
         Change.Clicked += (sender, e) =>
         {
             var index = 2;
-            viewModel.models[index] = viewModel.Generate(1)[0];
+            viewModel.ObservableModels[index] = viewModel.Generate(1)[0];
         };
     }
 }
