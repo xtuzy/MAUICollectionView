@@ -16,7 +16,7 @@ namespace DemoTest.Pages
         public static Stopwatch Stopwatch = new Stopwatch();
 
         public static List<long> Times = new List<long>();
-        public static int LimitCount = 100;
+        public static int LimitCount = 300;
         public static void CalculateMeanMeasureTimeAsync(long time)
         {
             if (Times.Count >= LimitCount)
@@ -111,12 +111,12 @@ namespace DemoTest.Pages
 
         public void RemoveData(int index)
         {
-            ViewModel.models.RemoveAt(index);
+            ViewModel.models.RemoveRange(index,3);
         }
 
         public void InsertData(int index)
         {
-            ViewModel.models.Insert(index, ViewModel.Generate());
+            ViewModel.models.InsertRange(index, ViewModel.Generate(3));
         }
 
         public void ChangeData(int index)
@@ -251,7 +251,7 @@ namespace DemoTest.Pages
                         var command = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
                             RemoveData(arg.Row);
-                            tableView.RemoveItems(arg);
+                            tableView.NotifyItemRangeRemoved(arg);
                             tableView.ReMeasure();
                         });
                         simpleCell.InitMenu(command);
