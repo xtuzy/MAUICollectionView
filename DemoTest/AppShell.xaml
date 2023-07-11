@@ -6,22 +6,25 @@
     xmlns:local="clr-namespace:DemoTest"
     xmlns:pages="clr-namespace:DemoTest.Pages"
     Shell.FlyoutBehavior="Flyout">
-
     <ShellContent
-        Title="DefaultTestPage"
+        Title="ManyItemsVisiableTestPage"
+        ContentTemplate="{DataTemplate pages:ManyItemsVisiableTestPage}"
+        Route="ManyItemsVisiableTestPage" />
+    <ShellContent
+        Title="ListLayoutTestPage"
         ContentTemplate="{DataTemplate pages:DefaultTestPage}"
-        Route="DefaultTestPage" />
+        Route="ListLayoutTestPage" />
     <ShellContent
         Title="GridLayoutTestPage"
         ContentTemplate="{DataTemplate pages:GridLayoutTestPage}"
         Route="GridLayoutTestPage" />
-    <ShellContent
-        Title="DefaultScrollViewTestPage"
-        ContentTemplate="{DataTemplate pages:DefaultScrollViewTestPage}"
-        Route="DefaultScrollViewTestPage" />
-    <ShellContent
-        Title="CollectionViewTestPage"
-        ContentTemplate="{DataTemplate pages:CollectionViewTestPage}"
-        Route="CollectionViewTestPage" />
 
+    <ShellContent
+        Title="OfficialScrollViewTestPage"
+        ContentTemplate="{DataTemplate pages:DefaultScrollViewTestPage}"
+        Route="OfficialScrollViewTestPage" />
+    <ShellContent
+        Title="OfficialCollectionViewTestPage"
+        ContentTemplate="{DataTemplate pages:CollectionViewTestPage}"
+        Route="OfficialCollectionViewTestPage" />
 </Shell>

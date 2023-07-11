@@ -66,7 +66,7 @@ public partial class GridLayoutTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).InsertData(index);
-            tableView.InsertItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0));
             tableView.ReMeasure();
         };
 
@@ -74,7 +74,7 @@ public partial class GridLayoutTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).RemoveData(index);
-            tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0));
+            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0));
             tableView.ReMeasure();
         };
 
@@ -91,7 +91,7 @@ public partial class GridLayoutTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.ChangeItem(new[] { NSIndexPath.FromRowSection(index, 0) });
+            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index, 0) });
             tableView.ReMeasure();
         };
     }

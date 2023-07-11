@@ -1,4 +1,5 @@
 ﻿using MauiUICollectionView.Layouts;
+using System;
 
 namespace MauiUICollectionView
 {
@@ -150,7 +151,7 @@ namespace MauiUICollectionView
         /// <summary>
         /// Reloads all the data and views in the collection view. 常在非数据末尾的位置插入或者移除大量数据时使用.
         /// </summary>
-        public void ReloadData()
+        public void NotifyDataSetChanged()
         {
             // clear the caches and remove the cells since everything is going to change
             foreach (var cell in PreparedItems.Values)
@@ -167,7 +168,7 @@ namespace MauiUICollectionView
             ReloadDataCount();//Section或者Item数目可能变化了, 重新加载
 
             this._needsReload = false;
-            (this as IView).InvalidateMeasure();
+            this.ReMeasure();
         }
 
         /// <summary>
@@ -181,25 +182,25 @@ namespace MauiUICollectionView
             }
 
             PreparedItems.Clear();
-            
+
             ReloadDataCount();
             this._needsReload = false;
 
-            (this as IView).InvalidateMeasure();
+            this.ReMeasure();
         }
 
         void _reloadDataIfNeeded()
         {
             if (_needsReload)
             {
-                this.ReloadData();
+                this.NotifyDataSetChanged();
             }
         }
 
         void _setNeedsReload()
         {
             _needsReload = true;
-            this.InvalidateMeasure();
+            this.ReMeasure();
         }
 
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
@@ -426,52 +427,98 @@ namespace MauiUICollectionView
         /// 通知CollectionView移除某Item, 需要做出改变.
         /// 移除会让移除项后面的Item需要调节高度, 这个高度需要动画改变
         /// </summary>
-        /// <param name="indexPaths"></param>
-        public void RemoveItems(NSIndexPath indexPaths)
+        /// <param name="indexPath"></param>
+        public void NotifyItemRangeRemoved(NSIndexPath indexPath, int count = 1)
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.Stop();
-            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = indexPaths });
 
+            var isRemoveBeforeVisiable = false;//remove before visible item, don't show visible position animation
+            var lastNeedRemoveIndexPath = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);//use last item, avoid remove visible item
+            if (lastNeedRemoveIndexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
+                isRemoveBeforeVisiable = true;
+
+            for (var index = 0; index < count; index++)
+            {
+                var needRemovedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
+                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = needRemovedIndexPath });
+            }
             //找到已经可见的Item和它们的IndexPath,和目标IndexPath
             foreach (var visiableItem in PreparedItems)
             {
-                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
+                if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
                 {
-                    if (visiableItem.Key.Row > indexPaths.Row)//大于移除item的row的需要更新IndexPath
+                    if (visiableItem.Key.Row > (indexPath.Row + count - 1))//大于移除item的row的需要更新IndexPath
                     {
-                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - count, visiableItem.Key.Section), animate = !isRemoveBeforeVisiable });
                     }
                 }
             }
+
             ReloadDataCount();
+
+            if (isRemoveBeforeVisiable)//if remove before visible, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            {
+                var visibleFirst = ItemsLayout.VisiableIndexPath.FirstOrDefault();
+                if (visibleFirst.Section == indexPath.Section && visibleFirst.Row - indexPath.Row  < count)//if remove first visible, we remeasure, not scroll
+                    this.ReMeasure();
+                else
+                {
+                    var removeAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                    ScrollToAsync(ScrollX, ScrollY - removeAllHight, false);
+                }
+            }
+            else
+            {
+                this.ReMeasure();
+            }
         }
 
         /// <summary>
         /// 通知CollectionView插入了Item, 需要做出改变.
         /// </summary>
-        /// <param name="indexPaths">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
-        public void InsertItems(NSIndexPath indexPaths)
+        /// <param name="indexPath">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
+        public void NotifyItemRangeInserted(NSIndexPath indexPath, int count = 1)
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.Stop();
-            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+
+            var isInsertBeforeVisiable = false;//insert before visible item, don't show visible position animation
+            if (indexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
+                isInsertBeforeVisiable = true;
+
+            //visible item maybe need move position when insert items
             foreach (var visiableItem in PreparedItems)
             {
-                if (visiableItem.Key.Section == indexPaths.Section)//同一section的item才变化
+                if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
                 {
-                    if (visiableItem.Key.Row >= indexPaths.Row)//大于等于item的row的需要更新IndexPath
+                    if (visiableItem.Key.Row >= indexPath.Row)//大于等于item的row的需要更新IndexPath
                     {
-                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + count, visiableItem.Key.Section), animate = !isInsertBeforeVisiable });
                     }
                 }
             }
-            //先move后面的, 再插入
-            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.insert, source = indexPaths });
+
+            //insert
+            for (var index = 0; index < count; index++)
+            {
+                var needInsertedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
+                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.insert, source = needInsertedIndexPath });
+            }
 
             ReloadDataCount();
+
+            if (isInsertBeforeVisiable)//if insert before VisibleItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            {
+                var insertAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                ScrollToAsync(ScrollX, ScrollY + insertAllHight, false);
+            }
+            else
+            {
+                this.ReMeasure();
+            }
         }
 
         public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
@@ -535,10 +582,10 @@ namespace MauiUICollectionView
                 }
             }
             ReloadDataCount();
+            this.ReMeasure();
         }
 
-
-        public void ChangeItem(IEnumerable<NSIndexPath> indexPaths)
+        public void NotifyItemRangeChanged(IEnumerable<NSIndexPath> indexPaths)
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
@@ -550,6 +597,7 @@ namespace MauiUICollectionView
                     Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.update, source = visiableItem.Key });
                 }
             }
+            this.ReMeasure();
         }
         #endregion
     }

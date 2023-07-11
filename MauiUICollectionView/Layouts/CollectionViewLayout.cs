@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace MauiUICollectionView.Layouts
+﻿namespace MauiUICollectionView.Layouts
 {
     /// <summary>
     /// 布局的逻辑放在此处
@@ -49,14 +47,14 @@ namespace MauiUICollectionView.Layouts
         {
             if (isStartAnimate)
             {
-                Debug.WriteLine("Anim ArrangeContents");
+                //Debug.WriteLine("Anim ArrangeContents");
 
                 AnimationManager.Run();
 
                 isStartAnimate = false;//disappear动画结束
             }
 
-            Debug.WriteLine("ArrangeContents");
+            //Debug.WriteLine("ArrangeContents");
 
             if (CollectionView.HeaderView != null)
             {
@@ -105,6 +103,8 @@ namespace MauiUICollectionView.Layouts
         /// </summary>
         int measureTimes = 0;
 
+
+
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
         /// </summary>
@@ -113,7 +113,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            Debug.WriteLine("Measure");
+            //Debug.WriteLine("Measure");
             if (Updates.Count > 0)
             {
                 isStartAnimate = true;
@@ -264,8 +264,11 @@ namespace MauiUICollectionView.Layouts
                         {
                             var oldView = availableCells[update.source];
                             oldView.Operation = (int)OperateItem.OperateType.move;
-                            if (!oldView.Equals(CollectionView.DragedItem))//Drag的不需要动画, 因为自身会在Arrange中移动
+                            if (!oldView.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
+                            && update.animate)
+                            {
                                 AnimationManager.Add(oldView);
+                            }
                             availableCells.Remove(update.source);
                             if (availableCells.ContainsKey(update.target))
                                 tempAvailableCells.Add(update.target, oldView);
@@ -287,7 +290,6 @@ namespace MauiUICollectionView.Layouts
             VisiableIndexPath.Clear();
             Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
             tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableCells);
-
             /*
              * 实现加载更多
              */
@@ -412,6 +414,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public abstract Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPath);
 
+        public abstract double GetItemsCurrentHeight(NSIndexPath indexPath, int count);
         public void Dispose()
         {
             AnimationManager.Dispose();

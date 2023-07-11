@@ -4,23 +4,41 @@ using MauiUICollectionView.Layouts;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
 using System.Diagnostics;
+using Yang.Maui.Helper.Device.Screen;
 using Yang.Maui.Helper.Image;
 using MAUICollectionView = MauiUICollectionView.MAUICollectionView;
 namespace DemoTest.Pages;
 
 public partial class DefaultTestPage : ContentPage
 {
+#if WINDOWS || __ANDROID__ || __IOS__
+    FrameRateCalculator fr;
+#endif
     internal static ViewModel viewModel;
     public DefaultTestPage()
     {
         viewModel = new ViewModel();
 
         InitializeComponent();
+
+
+#if WINDOWS || __ANDROID__ || __IOS__
+        if (fr == null)
+        {
+            fr = new FrameRateCalculator();
+            fr.FrameRateUpdated += (value) =>
+            {
+                this.Dispatcher.Dispatch(() => fpsLabel.Text = value.Frames.ToString());
+            };
+            fr.Start();
+        }
+#endif
+
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             Source = new Source(viewModel),
-            SelectionMode = SelectionMode.Multiple,
+            SelectionMode = SelectionMode.Single,
             CanDrag = true,
             CanContextMenu = true,
         };
@@ -85,16 +103,14 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).InsertData(index);
-            tableView.InsertItems(NSIndexPath.FromRowSection(index, 0));
-            tableView.ReMeasure();
+            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0),3);
         };
 
         Remove.Clicked += (sender, e) =>
         {
             var index = 2;
             (tableView.Source as Source).RemoveData(index);
-            tableView.RemoveItems(NSIndexPath.FromRowSection(index, 0));
-            tableView.ReMeasure();
+            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0),3);
         };
 
         Move.Clicked += (sender, e) =>
@@ -103,20 +119,18 @@ public partial class DefaultTestPage : ContentPage
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
             tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
-            tableView.ReMeasure();
         };
 
         Change.Clicked += (sender, e) =>
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.ChangeItem(new[] { NSIndexPath.FromRowSection(index, 0) });
-            tableView.ReMeasure();
+            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index, 0) });
         };
 
         Reload.Clicked += (sender, e) =>
         {
-            tableView.ReloadData();
+            tableView.NotifyDataSetChanged();
         };
 
         ChangeLayout.Clicked += (sender, e) =>
@@ -131,7 +145,7 @@ public partial class DefaultTestPage : ContentPage
         content.Command = new Command(() =>
         {
             (tableView.Source as Source).LoadMoreOnFirst();
-            tableView.ReloadData();
+            tableView.NotifyDataSetChanged();
             content.IsRefreshing = false;
         });
     }

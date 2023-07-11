@@ -9,14 +9,24 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <HorizontalStackLayout Grid.Row="0">
-            <Button x:Name="Add" Text="Add" />
-            <Button x:Name="Remove" Text="Remove" />
-            <Button x:Name="Change" Text="Change" />
-            <Button x:Name="Move" Text="Move" />
-            <Button x:Name="Reload" Text="Reload" />
-            <Button x:Name="ChangeLayout" Text="ReLayout" />
-        </HorizontalStackLayout>
+        <ScrollView Grid.Row="0" Orientation="Horizontal">
+            <HorizontalStackLayout>
+                <Label
+                    x:Name="fpsLabel"
+                    BackgroundColor="Black"
+                    HorizontalTextAlignment="Center"
+                    Text="FPS"
+                    TextColor="AliceBlue"
+                    VerticalTextAlignment="Center"
+                    WidthRequest="50" />
+                <Button x:Name="Add" Text="Add" />
+                <Button x:Name="Remove" Text="Remove" />
+                <Button x:Name="Change" Text="Change" />
+                <Button x:Name="Move" Text="Move" />
+                <Button x:Name="Reload" Text="Reload" />
+                <Button x:Name="ChangeLayout" Text="ReLayout" />
+            </HorizontalStackLayout>
+        </ScrollView>
         <ContentView Grid.Row="1">
             <RefreshView x:Name="content" />
         </ContentView>
