@@ -28,6 +28,8 @@
         //新的Index
         public NSIndexPath target;
         public OperateType operateType;
+
+        public bool animate = true;
     }
     #endregion
 }

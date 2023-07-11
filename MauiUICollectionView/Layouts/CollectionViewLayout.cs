@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace MauiUICollectionView.Layouts
+﻿namespace MauiUICollectionView.Layouts
 {
     /// <summary>
     /// 布局的逻辑放在此处
@@ -266,8 +264,11 @@ namespace MauiUICollectionView.Layouts
                         {
                             var oldView = availableCells[update.source];
                             oldView.Operation = (int)OperateItem.OperateType.move;
-                            if (!oldView.Equals(CollectionView.DragedItem))//Drag的不需要动画, 因为自身会在Arrange中移动
+                            if (!oldView.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
+                            && update.animate)
+                            {
                                 AnimationManager.Add(oldView);
+                            }
                             availableCells.Remove(update.source);
                             if (availableCells.ContainsKey(update.target))
                                 tempAvailableCells.Add(update.target, oldView);
@@ -413,6 +414,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public abstract Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPath);
 
+        public abstract double GetItemsCurrentHeight(NSIndexPath indexPath, int count);
         public void Dispose()
         {
             AnimationManager.Dispose();

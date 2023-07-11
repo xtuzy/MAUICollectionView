@@ -202,13 +202,8 @@
                         if (cell != null)
                         {
                             //将Cell添加到正在显示的Cell字典
-                            try
-                            {
-                                CollectionView.PreparedItems.Add(indexPath, cell);
-                            }catch(Exception e)
-                            {
+                            CollectionView.PreparedItems.Add(indexPath, cell);
 
-                            }
                             //CollectionView.PreparedItems[indexPath] = cell;
                             if (availableCells.ContainsKey(indexPath))
                             {
@@ -234,9 +229,9 @@
                                 measureSize = CollectionView.MeasureChild(cell, inRect.Width, double.PositiveInfinity).Request;
                                 if (measureSize.Height != 0)
                                 {
-                                    if (!MeasuredSelfHeightCache.ContainsKey(indexPath))
-                                        MeasuredSelfHeightCache.Add(indexPath, measureSize.Height);
-                                    else MeasuredSelfHeightCache[indexPath] = measureSize.Height;
+                                    //if (!MeasuredSelfHeightCache.ContainsKey(indexPath))
+                                    //MeasuredSelfHeightCache.Add(indexPath, measureSize.Height);
+                                    //else MeasuredSelfHeightCache[indexPath] = measureSize.Height;
 
                                     //存储同类型的高度
                                     if (!MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier))
@@ -386,6 +381,68 @@
                 }
             }
             return Rect.Zero;
+        }
+
+        public override double GetItemsCurrentHeight(NSIndexPath indexPath, int count)
+        {
+            var isBeforePreparedItems = false;
+            if (indexPath.Compare(CollectionView.PreparedItems.ToList().FirstOrDefault().Key) < 0)
+                isBeforePreparedItems = true;
+            double itemsHeight = 0;
+            for (var index = 0; index < count; index++)
+            {
+                var needMeasureIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
+                itemsHeight+=GetItemCurrentHeight(needMeasureIndexPath, !isBeforePreparedItems);
+            }
+
+            return itemsHeight;
+
+            double GetItemCurrentHeight(NSIndexPath indexPath, bool measureSelf)
+            {
+                if (CollectionView.PreparedItems.ContainsKey(indexPath))
+                {
+                    return CollectionView.PreparedItems[indexPath].BoundsInLayout.Height;
+                }
+                else
+                {
+                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+
+                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+
+                    var rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant;
+
+                    if (measureSelf)
+                    {
+                        var w = CollectionView.PreparedItems[VisiableIndexPath[0]].BoundsInLayout.Width;
+                        MAUICollectionViewViewHolder cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, null, w);
+
+                        if (cell != null)
+                        {
+                            //添加到ScrollView, 必须先添加才有测量值
+                            if (!CollectionView.ContentView.Children.Contains(cell))
+                                CollectionView.AddSubview(cell);
+                            //测量高度
+                            Size measureSize;
+                            cell.WidthRequest = w;
+                            cell.HeightRequest = -1;
+                            if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//固定高度
+                            {
+                                cell.HeightRequest = rowHeightWant;
+                                measureSize = CollectionView.MeasureChild(cell, w, rowHeightWant).Request;
+                            }
+                            else
+                            {
+                                measureSize = CollectionView.MeasureChild(cell, w, double.PositiveInfinity).Request;
+                            }
+
+                            var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (measureSize.Height != 0 ? measureSize.Height : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                            rowMaybeHeight = finalHeight;
+                            CollectionView.RecycleViewHolder(cell);
+                        }
+                    }
+                    return rowMaybeHeight;
+                }
+            }
         }
     }
 }

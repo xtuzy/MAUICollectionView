@@ -432,6 +432,11 @@ namespace MauiUICollectionView
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.Stop();
+
+            var isRemoveBeforeVisiable = false;//remove before visible item, don't show visible position animation
+            if (indexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
+                isRemoveBeforeVisiable = true;
+
             for (var index = 0; index < count; index++)
             {
                 var needRemovedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
@@ -444,12 +449,28 @@ namespace MauiUICollectionView
                 {
                     if (visiableItem.Key.Row > (indexPath.Row + count - 1))//大于移除item的row的需要更新IndexPath
                     {
-                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - count, visiableItem.Key.Section) });
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - count, visiableItem.Key.Section), animate = !isRemoveBeforeVisiable });
                     }
                 }
             }
+
             ReloadDataCount();
-            this.ReMeasure();
+
+            if (isRemoveBeforeVisiable)//if remvoe before PreparedItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            {
+                var visibleFirst = ItemsLayout.VisiableIndexPath.FirstOrDefault();
+                if (visibleFirst.Section == indexPath.Section && visibleFirst.Row - indexPath.Row  < count)//if remove first visible, we remeasure, not scroll
+                    this.ReMeasure();
+                else
+                {
+                    var removeAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                    ScrollToAsync(ScrollX, ScrollY - removeAllHight, false);
+                }
+            }
+            else
+            {
+                this.ReMeasure();
+            }
         }
 
         /// <summary>
@@ -461,18 +482,24 @@ namespace MauiUICollectionView
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.Stop();
-            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
+
+            var isInsertBeforeVisiable = false;//insert before visible item, don't show visible position animation
+            if (indexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
+                isInsertBeforeVisiable = true;
+
+            //visible item maybe need move position when insert items
             foreach (var visiableItem in PreparedItems)
             {
                 if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
                 {
                     if (visiableItem.Key.Row >= indexPath.Row)//大于等于item的row的需要更新IndexPath
                     {
-                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + count, visiableItem.Key.Section) });
+                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + count, visiableItem.Key.Section), animate = !isInsertBeforeVisiable });
                     }
                 }
             }
-            //先move后面的, 再插入
+
+            //insert
             for (var index = 0; index < count; index++)
             {
                 var needInsertedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
@@ -480,7 +507,16 @@ namespace MauiUICollectionView
             }
 
             ReloadDataCount();
-            this.ReMeasure();
+
+            if (isInsertBeforeVisiable)//if insert before VisibleItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            {
+                var insertAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                ScrollToAsync(ScrollX, ScrollY + insertAllHight, false);
+            }
+            else
+            {
+                this.ReMeasure();
+            }
         }
 
         public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
@@ -546,7 +582,6 @@ namespace MauiUICollectionView
             ReloadDataCount();
             this.ReMeasure();
         }
-
 
         public void NotifyItemRangeChanged(IEnumerable<NSIndexPath> indexPaths)
         {

@@ -219,5 +219,10 @@
             }
             return Rect.Zero;
         }
+
+        public override double GetItemsCurrentHeight(NSIndexPath indexPath, int count)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
