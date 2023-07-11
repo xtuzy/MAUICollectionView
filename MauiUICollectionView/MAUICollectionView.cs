@@ -1,4 +1,5 @@
 ﻿using MauiUICollectionView.Layouts;
+using System;
 
 namespace MauiUICollectionView
 {
@@ -434,7 +435,8 @@ namespace MauiUICollectionView
                 ItemsLayout.AnimationManager.Stop();
 
             var isRemoveBeforeVisiable = false;//remove before visible item, don't show visible position animation
-            if (indexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
+            var lastNeedRemoveIndexPath = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);//use last item, avoid remove visible item
+            if (lastNeedRemoveIndexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
                 isRemoveBeforeVisiable = true;
 
             for (var index = 0; index < count; index++)
@@ -456,7 +458,7 @@ namespace MauiUICollectionView
 
             ReloadDataCount();
 
-            if (isRemoveBeforeVisiable)//if remvoe before PreparedItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            if (isRemoveBeforeVisiable)//if remove before visible, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
             {
                 var visibleFirst = ItemsLayout.VisiableIndexPath.FirstOrDefault();
                 if (visibleFirst.Section == indexPath.Section && visibleFirst.Row - indexPath.Row  < count)//if remove first visible, we remeasure, not scroll
