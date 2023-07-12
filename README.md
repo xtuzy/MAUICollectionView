@@ -26,6 +26,7 @@ https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-
 - RefreshView
 - Context Menu
 
-## Awesome Libraries
+## Awesome Resources
 - [Chameleon](https://github.com/BigZaphod/Chameleon)
 - [CollectionView](https://github.com/TheNounProject/CollectionView)
+- [how-view-recycling-works](https://learn.microsoft.com/en-us/xamarin/android/user-interface/layouts/recycler-view/parts-and-functionality#how-view-recycling-works)
