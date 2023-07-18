@@ -389,6 +389,11 @@ namespace MauiUICollectionView.Layouts
             // 重新测量后, 需要显示的已经存入缓存的字典, 剩余的放入可重用列表
             foreach (MAUICollectionViewViewHolder cell in availableCells.Values)
             {
+                if(cell == CollectionView.DragedItem)
+                {
+                    CollectionView.PreparedItems.Add(cell.IndexPath, cell);
+                    continue;
+                }
                 if (cell.ReuseIdentifier != default)
                 {
                     CollectionView.RecycleViewHolder(cell);

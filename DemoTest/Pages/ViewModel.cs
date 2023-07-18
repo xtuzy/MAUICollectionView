@@ -201,7 +201,7 @@ namespace DemoTest.Pages
             return itemCellSimple;
         }
 
-        public float heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
+        public double heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
             switch (type)

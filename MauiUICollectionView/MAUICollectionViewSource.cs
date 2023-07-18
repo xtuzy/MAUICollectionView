@@ -2,25 +2,27 @@
 {
     public class MAUICollectionViewSource : IMAUICollectionViewSource
     {
-        public numberOfRowsInSectionDelegate NumberOfItems { get; set; }
+        public Func<MAUICollectionView, int, int> NumberOfItems { get; set; }
 
-        public cellForRowAtIndexPathDelegate ViewHolderForItem { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder, double, MAUICollectionViewViewHolder> ViewHolderForItem { get; set; }
 
-        public numberOfSectionsInTableViewDelegate NumberOfSections { get; set; }
+        public Func<MAUICollectionView, int> NumberOfSections { get; set; }
 
-        public willXRowAtIndexPathDelegate WillSelectItem { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillSelectItem { get; set; }
 
-        public willXRowAtIndexPathDelegate WillDeselectItem { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillDeselectItem { get; set; }
 
-        public didXRowAtIndexPathDelegate DidSelectItem { get; set; }
+        public Action<MAUICollectionView, NSIndexPath> DidSelectItem { get; set; }
 
-        public didXRowAtIndexPathDelegate DidDeselectItem { get; set; }
+        public Action<MAUICollectionView, NSIndexPath> DidDeselectItem { get; set; }
 
-        public heightForRowAtIndexPathDelegate HeightForItem { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, double> HeightForItem { get; set; }
 
-        public reuseIdentifierForRowAtIndexPathDelegate ReuseIdForItem { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, string> ReuseIdForItem { get; set; }
 
         public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; set; }
+
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDropTo { get; set; }
 
         public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder> DidPrepareItem { get; set; }
 

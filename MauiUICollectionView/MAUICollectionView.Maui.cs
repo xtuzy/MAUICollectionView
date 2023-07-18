@@ -274,7 +274,7 @@ namespace MauiUICollectionView
                         if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
-                            Source.WantDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                            Source?.WantDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
                         }
                     }
 
@@ -286,9 +286,16 @@ namespace MauiUICollectionView
                     if (DragedItem == null)
                         return;
 
+                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    Source?.WantDropTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                    
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
                     DragedItem.Scale = 1;
+                    if (!DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath[0], ItemsLayout.VisibleIndexPath.LastOrDefault()))
+                    {
+                        RecycleViewHolder(DragedItem);
+                    }
                     DragedItem = null;
                     lastDragPosition = args.point;
                     stopScroll = false;

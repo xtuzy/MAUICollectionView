@@ -23,23 +23,29 @@
     /// </summary>
     public interface IMAUICollectionViewSource
     {
-        public numberOfRowsInSectionDelegate NumberOfItems { get; }
+        public Func<MAUICollectionView, int, int> NumberOfItems { get; }
         /// <summary>
         /// 获取对应IndexPath的ViewHolder
         /// </summary>
-        public cellForRowAtIndexPathDelegate ViewHolderForItem { get; }
-        public numberOfSectionsInTableViewDelegate NumberOfSections { get; }
+        public Func<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder, double, MAUICollectionViewViewHolder> ViewHolderForItem { get; }
+        public Func<MAUICollectionView, int> NumberOfSections { get; }
 
-        willXRowAtIndexPathDelegate WillSelectItem { get; }
-        willXRowAtIndexPathDelegate WillDeselectItem { get; }
+        Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillSelectItem { get; }
+        Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillDeselectItem { get; }
 
-        didXRowAtIndexPathDelegate DidSelectItem { get; }
-        didXRowAtIndexPathDelegate DidDeselectItem { get; }
+        Action<MAUICollectionView, NSIndexPath> DidSelectItem { get; }
+        Action<MAUICollectionView, NSIndexPath> DidDeselectItem { get; }
 
-        heightForRowAtIndexPathDelegate HeightForItem { get; }
-        reuseIdentifierForRowAtIndexPathDelegate ReuseIdForItem { get; }
-
+        Func<MAUICollectionView, NSIndexPath, double> HeightForItem { get; }
+        Func<MAUICollectionView, NSIndexPath, string> ReuseIdForItem { get; }
+        /// <summary>
+        /// When running Drag operate, will still load it.
+        /// </summary>
         public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; }
+        /// <summary>
+        /// When finish Drag operate, will load it.
+        /// </summary>
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDropTo { get; }
 
         /// <summary>
         /// prepared items, will show, now you can modify some action of items

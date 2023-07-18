@@ -39,7 +39,7 @@ public partial class DefaultTestPage : ContentPage
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             Source = new Source(viewModel),
             SelectionMode = SelectionMode.Multiple,
-            //CanDrag = true,
+            CanDrag = true,
             CanContextMenu = true,
         };
         content.Content = tableView;

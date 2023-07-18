@@ -14,7 +14,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             Source = new Source(viewModel),
             SelectionMode = SelectionMode.Multiple,
-            //CanDrag = true,
+            CanDrag = true,
             CanContextMenu = true,
         };
         Content = tableView;
@@ -52,7 +52,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             return itemCell;
         }
 
-        public float heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
+        public double heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
             switch (type)
@@ -107,11 +107,13 @@ public partial class ManyItemsVisiableTestPage : ContentPage
 
             public Label Name;
             public Label Phone;
+            public Label Id;
             public ItemViewHolder(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
             {
                 var grid = itemView as Grid;
                 grid.ColumnDefinitions = new ColumnDefinitionCollection()
                 {
+                    new ColumnDefinition(){ Width = GridLength.Star},
                     new ColumnDefinition(){ Width = GridLength.Star},
                     new ColumnDefinition(){ Width = GridLength.Star}
                 };
@@ -127,11 +129,21 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                     HorizontalOptions = LayoutOptions.Start,
                     VerticalOptions = LayoutOptions.Center
                 };
+                Id = new Label()
+                {
+                    VerticalTextAlignment =TextAlignment.Center,
+                    HorizontalOptions = LayoutOptions.Start,
+                    VerticalOptions = LayoutOptions.Center
+                };
                 grid.Add(Name);
                 grid.Add(Phone);
+                grid.Add(Id);
 
                 Grid.SetColumn(Name, 0);
                 Grid.SetColumn(Phone, 1);
+                Grid.SetColumn(Id, 2);
+
+                Id.SetBinding(Label.TextProperty, new Binding(nameof(IndexPath), source: this));
 
 #if WINDOWS || MACCATALYST
                 var menu = new MenuFlyout();

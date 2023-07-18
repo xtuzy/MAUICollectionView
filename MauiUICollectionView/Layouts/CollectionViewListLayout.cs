@@ -270,15 +270,6 @@
                     }
                     else//如果不在布局区域内
                     {
-                        if (availableCells.ContainsKey(indexPath))
-                        {
-                            var cell = availableCells[indexPath];
-                            if (cell.ReuseIdentifier != default)
-                            {
-                                availableCells.Remove(indexPath);
-                                CollectionView.RecycleViewHolder(cell);
-                            }
-                        }
                         itemsHeight += rowMaybeHeight;
                     }
                 }
