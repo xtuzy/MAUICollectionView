@@ -274,7 +274,7 @@ namespace MauiUICollectionView
                         if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
-                            Source.WillDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                            Source.WantDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
                         }
                     }
 

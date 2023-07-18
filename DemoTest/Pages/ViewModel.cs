@@ -97,7 +97,7 @@ namespace DemoTest.Pages
             ViewHolderForItem += cellForRowAtIndexPathMethod;
             NumberOfSections += numberOfSectionsInTableViewMethod;
             ReuseIdForItem += reuseIdentifierForRowAtIndexPathMethod;
-            WillDragTo += WillDragToMethod;
+            WantDragTo += WillDragToMethod;
             DidPrepareItem += preparedItemsMethod;
         }
 

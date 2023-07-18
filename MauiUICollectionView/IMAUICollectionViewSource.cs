@@ -39,7 +39,7 @@
         heightForRowAtIndexPathDelegate HeightForItem { get; }
         reuseIdentifierForRowAtIndexPathDelegate ReuseIdForItem { get; }
 
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WillDragTo { get; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; }
 
         /// <summary>
         /// prepared items, will show, now you can modify some action of items

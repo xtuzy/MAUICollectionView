@@ -20,7 +20,7 @@
 
         public reuseIdentifierForRowAtIndexPathDelegate ReuseIdForItem { get; set; }
 
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WillDragTo { get; set; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; set; }
 
         public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder> DidPrepareItem { get; set; }
 
