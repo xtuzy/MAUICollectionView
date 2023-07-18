@@ -23,23 +23,28 @@
     /// </summary>
     public interface IMAUICollectionViewSource
     {
-        public numberOfRowsInSectionDelegate numberOfItemsInSection { get; }
+        public numberOfRowsInSectionDelegate NumberOfItems { get; }
         /// <summary>
         /// 获取对应IndexPath的ViewHolder
         /// </summary>
-        public cellForRowAtIndexPathDelegate cellForRowAtIndexPath { get; }
-        public numberOfSectionsInTableViewDelegate numberOfSectionsInCollectionView { get; }
+        public cellForRowAtIndexPathDelegate ViewHolderForItem { get; }
+        public numberOfSectionsInTableViewDelegate NumberOfSections { get; }
 
-        willXRowAtIndexPathDelegate willSelectRowAtIndexPath { get; }
-        willXRowAtIndexPathDelegate willDeselectRowAtIndexPath { get; }
+        willXRowAtIndexPathDelegate WillSelectItem { get; }
+        willXRowAtIndexPathDelegate WillDeselectItem { get; }
 
-        didXRowAtIndexPathDelegate didSelectRowAtIndexPath { get; }
-        didXRowAtIndexPathDelegate didDeselectRowAtIndexPath { get; }
+        didXRowAtIndexPathDelegate DidSelectItem { get; }
+        didXRowAtIndexPathDelegate DidDeselectItem { get; }
 
-        heightForRowAtIndexPathDelegate heightForRowAtIndexPath { get; }
-        reuseIdentifierForRowAtIndexPathDelegate reuseIdentifierForRowAtIndexPath { get; }
+        heightForRowAtIndexPathDelegate HeightForItem { get; }
+        reuseIdentifierForRowAtIndexPathDelegate ReuseIdForItem { get; }
 
-        public Action<MAUICollectionView, NSIndexPath> lastItemWillShow { get; }
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> willDragTo { get; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WillDragTo { get; }
+
+        /// <summary>
+        /// prepared items, will show, now you can modify some action of items
+        /// </summary>
+        public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder> DidPrepareItem { get; }
+        public Action<MAUICollectionView> WillArrange { get; }
     }
 }

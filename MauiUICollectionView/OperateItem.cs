@@ -9,19 +9,27 @@
             /// <summary>
             /// 移除de
             /// </summary>
-            remove,
+            Remove,
             /// <summary>
             /// 新增的
             /// </summary>
-            insert,
+            Insert,
             /// <summary>
-            /// 移动的, 代表IndexPath改变的
+            /// 移动的, 代表IndexPath改变的, 位置也变的
             /// </summary>
-            move,
+            Move,
             /// <summary>
-            /// 内容更新的
+            /// 内容全部更新的, 可理解为替换, 内部实现为替换View
             /// </summary>
-            update
+            Update,
+            /// <summary>
+            /// 位置不变, 但IndexPath变. 此tag专为AnimationManager设计, 在AnimationManager不对其进行动画.
+            /// </summary>
+            MoveNow,
+            /// <summary>
+            /// 此tag专为AnimationManager设计, 在AnimationManager不对其进行动画.
+            /// </summary>
+            RemoveNow
         }
         //旧Index
         public NSIndexPath source;
@@ -29,7 +37,7 @@
         public NSIndexPath target;
         public OperateType operateType;
 
-        public bool animate = true;
+        public bool operateAnimate = true;
     }
     #endregion
 }

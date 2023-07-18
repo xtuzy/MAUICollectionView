@@ -140,12 +140,12 @@ namespace MauiUICollectionView
                             if (old.Equals(indexPath))//单选时, 如果点击了已选的, 不取消选择
                                 continue;
                             DeselectRowAtIndexPath(old);
-                            Source?.didDeselectRowAtIndexPath?.Invoke(this, indexPath);
+                            Source?.DidDeselectItem?.Invoke(this, indexPath);
                         }
                         if (indexPath != null)
                         {
                             this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
-                            Source?.didSelectRowAtIndexPath?.Invoke(this, indexPath);
+                            Source?.DidSelectItem?.Invoke(this, indexPath);
                         }
                     }
                     else if (SelectionMode == SelectionMode.Multiple)
@@ -153,14 +153,14 @@ namespace MauiUICollectionView
                         if (SelectedRow.Contains(indexPath))//多选模式下, 点击已经选择了的会取消选择
                         {
                             DeselectRowAtIndexPath(indexPath);
-                            Source?.didDeselectRowAtIndexPath?.Invoke(this, indexPath);
+                            Source?.DidDeselectItem?.Invoke(this, indexPath);
                         }
                         else
                         {
                             if (indexPath != null)
                             {
                                 this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
-                                Source?.didSelectRowAtIndexPath?.Invoke(this, indexPath);
+                                Source?.DidSelectItem?.Invoke(this, indexPath);
                             }
                         }
                     }
@@ -274,7 +274,7 @@ namespace MauiUICollectionView
                         if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
-                            Source.willDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                            Source.WillDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
                         }
                     }
 
@@ -367,7 +367,7 @@ namespace MauiUICollectionView
                 }
                 lastScrollY = e.ScrollY;
                 //Console.WriteLine($"Scrolled {e.ScrollY}");
-                ItemsLayout.AnimationManager.Stop();
+                ItemsLayout.AnimationManager.StopOperateAnim();
             }
             ReMeasure();
         }

@@ -38,8 +38,8 @@ public partial class DefaultTestPage : ContentPage
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             Source = new Source(viewModel),
-            SelectionMode = SelectionMode.Single,
-            CanDrag = true,
+            SelectionMode = SelectionMode.Multiple,
+            //CanDrag = true,
             CanContextMenu = true,
         };
         content.Content = tableView;
@@ -101,14 +101,14 @@ public partial class DefaultTestPage : ContentPage
         //Add
         Add.Clicked += (sender, e) =>
         {
-            var index = 2;
+            var index = 10;
             (tableView.Source as Source).InsertData(index);
             tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0),3);
         };
 
         Remove.Clicked += (sender, e) =>
         {
-            var index = 2;
+            var index = 10;
             (tableView.Source as Source).RemoveData(index);
             tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0),3);
         };

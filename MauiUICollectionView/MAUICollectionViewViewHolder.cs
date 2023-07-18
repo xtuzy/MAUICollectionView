@@ -35,7 +35,7 @@ namespace MauiUICollectionView
 
         void _updateSelectionState()
         {
-            bool shouldHighlight =  _selected;
+            bool shouldHighlight = _selected;
             UpdateSelectionState(shouldHighlight);
         }
 
@@ -74,7 +74,7 @@ namespace MauiUICollectionView
             Selected = false;
             this.TranslationX = 0;
             this.TranslationY = 0;
-            this.Opacity = 0;
+            this.Opacity = 1;
             this.ZIndex = 1;
             Operation = -1;
         }
@@ -86,10 +86,18 @@ namespace MauiUICollectionView
         /// <summary>
         /// <see cref="OperateItem.OperateType"/>, if no operate, set to -1
         /// </summary>
-        public int Operation;
+        public int Operation = -1;
 
         public IContextMenu ContextMenu { get; set; }
-         
+
         public Rect DragBoundsInLayout = Rect.Zero;
+
+        public override string ToString()
+        {
+            if (IndexPath != null)
+                return $"IndexPath={IndexPath} Operation={Operation}";
+            else
+                return base.ToString();
+        }
     }
 }

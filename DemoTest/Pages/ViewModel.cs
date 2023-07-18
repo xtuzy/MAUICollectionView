@@ -68,7 +68,7 @@ namespace DemoTest.Pages
                 ;
             models = testModel.Generate(1000);
 
-            foreach(var m in models)
+            foreach (var m in models)
             {
                 ObservableModels.Add(m);
             }
@@ -92,13 +92,24 @@ namespace DemoTest.Pages
         {
             ViewModel = viewModel;
 
-            heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
-            numberOfItemsInSection += numberOfRowsInSectionMethod;
-            cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
-            numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
-            reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
-            lastItemWillShow += lastItemWillShowMethod;
-            willDragTo += WillDragToMethod;
+            HeightForItem += heightForRowAtIndexPathMethod;
+            NumberOfItems += numberOfRowsInSectionMethod;
+            ViewHolderForItem += cellForRowAtIndexPathMethod;
+            NumberOfSections += numberOfSectionsInTableViewMethod;
+            ReuseIdForItem += reuseIdentifierForRowAtIndexPathMethod;
+            WillDragTo += WillDragToMethod;
+            DidPrepareItem += preparedItemsMethod;
+        }
+
+        /// <summary>
+        /// modify action of items that will show
+        /// </summary>
+        /// <param name="view"></param>
+        /// <param name="indexPath"></param>
+        /// <param name="viewHolder"></param>
+        private void preparedItemsMethod(MAUICollectionView view, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder)
+        {
+
         }
 
         private void WillDragToMethod(MAUICollectionView collectionView, NSIndexPath path1, NSIndexPath path2)
@@ -111,7 +122,7 @@ namespace DemoTest.Pages
 
         public void RemoveData(int index)
         {
-            ViewModel.models.RemoveRange(index,3);
+            ViewModel.models.RemoveRange(index, 3);
         }
 
         public void InsertData(int index)
@@ -218,7 +229,7 @@ namespace DemoTest.Pages
                 cell = oldViewHolder;
                 if (cell is ItemViewHolderSimple itemcellsimple)
                 {
-                    if(itemcellsimple != null) 
+                    if (itemcellsimple != null)
                         itemcellsimple.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
                 }
             }
@@ -239,7 +250,8 @@ namespace DemoTest.Pages
                     textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row}";
 
                     cell = textCell;
-                }else if (type == itemCellSimple)
+                }
+                else if (type == itemCellSimple)
                 {
                     var simpleCell = cell as ItemViewHolderSimple;
                     if (simpleCell == null)
@@ -248,13 +260,19 @@ namespace DemoTest.Pages
                         simpleCell = new ItemViewHolderSimple(new ModelViewSimple() { }, type) { };
                         simpleCell.NewCellIndex = ++newCellCount;
                         simpleCell.ModelView.CommentCountLabel.Text = simpleCell.NewCellIndex.ToString();
-                        var command = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
                             RemoveData(arg.Row);
-                            tableView.NotifyItemRangeRemoved(arg);
+                            tableView.NotifyItemRangeRemoved(arg, 3);
                             tableView.ReMeasure();
                         });
-                        simpleCell.InitMenu(command);
+                        var insertCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            InsertData(arg.Row);
+                            tableView.NotifyItemRangeInserted(arg, 3);
+                            tableView.ReMeasure();
+                        });
+                        simpleCell.InitMenu(deleteCommand, insertCommand);
                         simpleCell.ModelView.TestButton.Clicked += async (sender, e) =>
                         {
                             await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={simpleCell.IndexPath.Section} Row={simpleCell.IndexPath.Row}", "OK");
@@ -272,7 +290,6 @@ namespace DemoTest.Pages
                     cell = simpleCell;
                 }
             }
-            cell.IndexPath = indexPath;
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = tableView.CanContextMenu;
             return cell;
@@ -376,40 +393,65 @@ namespace DemoTest.Pages
             aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
             aContextMenu.PlatformMenu.MenuItemClick += (s1, arg1) =>
             {
-                MenuCommand.Execute(IndexPath);
+                switch(arg1.Item.ItemId)
+                {
+                    case Resource.Id.delete_item:
+                        DeleteMenuCommand.Execute(IndexPath);
+                        break;
+                    case Resource.Id.insert_item:
+                        InsertMenuCommand.Execute(IndexPath);
+                        break;
+                }
             };
             ContextMenu = aContextMenu;
 #endif
         }
 
 
-        public Command MenuCommand;
-        public void InitMenu(Command command)
+        public Command DeleteMenuCommand;
+        public Command InsertMenuCommand;
+        public void InitMenu(Command deleteCommand, Command insertCommand)
         {
-            MenuCommand = command;
+            DeleteMenuCommand = deleteCommand;
+            InsertMenuCommand = insertCommand;
 #if IOS
             var menu = new Menu();
-            var menuItem = new The49.Maui.ContextMenu.Action()
+            var deleteMenuItem = new The49.Maui.ContextMenu.Action()
             {
                 Title = "Delete",
-                Command = command,
+                Command = deleteCommand,
             };
-            menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            var insertMenuItem = new The49.Maui.ContextMenu.Action()
+            {
+                Title = "Insert",
+                Command = insertCommand,
+            };
+            deleteMenuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            insertMenuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
             {
-                menuItem
+                deleteMenuItem,
+                insertMenuItem
             };
             ContextMenu = new MauiUICollectionView.Gestures.iOSContextMenu(this, menu);
 #elif WINDOWS || MACCATALYST
             var menu = new MenuFlyout();
-            var menuItem = new MenuFlyoutItem()
+            var deleteMenuItem = new MenuFlyoutItem()
             {
                 Text = "Delete",
-                Command = command,
+                Command = deleteCommand,
                 CommandParameter = IndexPath
             };
-            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-            menu.Add(menuItem);
+            var insertMenuItem = new MenuFlyoutItem()
+            {
+                Text = "Insert",
+                Command = insertCommand,
+                CommandParameter = IndexPath
+            };
+            deleteMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            insertMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Add(deleteMenuItem);
+            menu.Add(insertMenuItem);
             ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
         }
@@ -454,9 +496,9 @@ namespace DemoTest.Pages
             PersonIconContainer.Content = PersonIcon;
             var personInfoContainer = new HorizontalStackLayout();
             var personTextInfoContainer = new VerticalStackLayout();
-             PersonName = new Label() { TextColor = Colors.White };
-           var personOtherInfoContainer = new HorizontalStackLayout();
-             PersonGender = new Label() { TextColor = Colors.White };
+            PersonName = new Label() { TextColor = Colors.White };
+            var personOtherInfoContainer = new HorizontalStackLayout();
+            PersonGender = new Label() { TextColor = Colors.White };
             PersonPhone = new Label() { Margin = new Thickness(5, 0, 0, 0), TextColor = Colors.White };
             personOtherInfoContainer.Add(PersonGender);
             personOtherInfoContainer.Add(PersonPhone);

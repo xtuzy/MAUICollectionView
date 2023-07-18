@@ -20,16 +20,6 @@
         public Size AspectRatio { get; set; } = new Size(1, 1);
 
         /// <summary>
-        /// 存储同类型的已经显示的Row的行高, 用于估计未显示的行.
-        /// </summary>
-        public Dictionary<string, double> MeasuredSelfHeightCacheForReuse = new Dictionary<string, double>();
-
-        /// <summary>
-        /// 存储所有测量的行高
-        /// </summary>
-        public Dictionary<NSIndexPath, double> MeasuredSelfHeightCache = new Dictionary<NSIndexPath, double>();
-
-        /// <summary>
         /// Image测量可能首先获得的高度为0, 造成要显示Item数目过多. 这个值尽量接近最终高度.
         /// </summary>
         public double EstimatedRowHeight = 100;
@@ -53,26 +43,23 @@
                     for (var currentRow = row; currentRow < numberOfRows && currentRow < row + ColumnCount; currentRow++)
                     {
                         NSIndexPath indexPath = NSIndexPath.FromRowSection(currentRow, section);
-
+                        var itemRect = new Rect(0, rowMaybeTop, itemWidth, rowMaybeHeight);
                         //如果在可见区域, 就详细测量
-                        if ((rowMaybeTop >= inRect.Top && rowMaybeTop <= inRect.Bottom)
-                           || (rowMaybeBottom >= inRect.Top && rowMaybeBottom <= inRect.Bottom)
-                           || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))
+                        if (itemRect.IntersectsWith(inRect))
                         {
                             //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
                             MAUICollectionViewViewHolder cell = null;
                             if (availableCells.ContainsKey(indexPath))
+                            {
                                 cell = availableCells[indexPath];
-                            cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, cell, inRect.Width);
+                                availableCells.Remove(indexPath);
+                            }
+                            cell = CollectionView.Source.ViewHolderForItem(CollectionView, indexPath, cell, inRect.Width);
 
                             if (cell != null)
                             {
                                 //将Cell添加到正在显示的Cell字典
                                 CollectionView.PreparedItems.Add(indexPath, cell);
-                                //CollectionView.PreparedItems[indexPath] = cell;
-                                if (availableCells.ContainsKey(indexPath)) availableCells.Remove(indexPath);
-                                //Cell是否是正在被选择的
-                                cell.Selected = CollectionView.SelectedRow.Contains(indexPath);
 
                                 //添加到ScrollView, 必须先添加才有测量值
                                 if (!CollectionView.ContentView.Children.Contains(cell))
@@ -86,10 +73,10 @@
                                 //存储可见的
                                 if (bounds.IntersectsWith(visiableRect))
                                 {
-                                    VisiableIndexPath.Add(indexPath);
+                                    VisibleIndexPath.Add(indexPath);
                                 }
 
-                                if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
+                                if (cell.Operation == (int)OperateItem.OperateType.Move && isStartOperateAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
                                 {
                                     cell.OldBoundsInLayout = cell.BoundsInLayout;
                                     cell.BoundsInLayout = bounds;
@@ -98,6 +85,14 @@
                                 {
                                     cell.BoundsInLayout = bounds;
                                 }
+
+                                //here have a chance to change appearance of this item
+                                CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, cell);
+                                itemsHeight += cell.BoundsInLayout.Height;
+                            }
+                            else
+                            {
+                                throw new NotImplementedException($"Get ViewHolder is null of {indexPath} from {nameof(MAUICollectionViewSource.ViewHolderForItem)}.");
                             }
                         }
                         else//如果不可见
@@ -111,9 +106,9 @@
                                     CollectionView.RecycleViewHolder(cell);
                                 }
                             }
+                            itemsHeight += rowMaybeHeight;
                         }
                     }
-                    itemsHeight += rowMaybeHeight;
                 }
             }
             return itemsHeight;

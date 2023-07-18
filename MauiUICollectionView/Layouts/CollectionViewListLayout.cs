@@ -7,16 +7,6 @@
         }
 
         /// <summary>
-        /// 存储同类型的已经显示的Row的行高, 用于估计未显示的行.
-        /// </summary>
-        public Dictionary<string, double> MeasuredSelfHeightCacheForReuse = new Dictionary<string, double>();
-
-        /// <summary>
-        /// 存储所有测量的行高
-        /// </summary>
-        public Dictionary<NSIndexPath, double> MeasuredSelfHeightCache = new Dictionary<NSIndexPath, double>();
-
-        /// <summary>
         /// Image测量可能首先获得的高度为0, 造成要显示Item数目过多. 这个值尽量接近最终高度.
         /// </summary>
         public double EstimatedRowHeight = 100;
@@ -67,43 +57,36 @@
 
             for (var regionIndex = 0; regionIndex < ItemsHeightCache.Length; regionIndex++)
             {
-                try
+                if (regionIndex == targetRegionIndex)
                 {
-                    if (regionIndex == targetRegionIndex)
+                    //目标区域前后都仔细测量
+                    if (regionIndex - 1 >= 0)
                     {
-                        //目标区域前后都仔细测量
-                        if (regionIndex - 1 >= 0)
-                        {
-                            var beforeTargetRegionIndex = regionIndex - 1;
-                            itemsHeight -= ItemsHeightCache[beforeTargetRegionIndex];//减去旧的
-                            var heightOfBeforeTargetRegion = CalculateHeightForVisiableRegion(beforeTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
-                            ItemsHeightCache[beforeTargetRegionIndex] = heightOfBeforeTargetRegion;
-                            itemsHeight += ItemsHeightCache[beforeTargetRegionIndex];
-                        }
-                        var targetRegionHeight = CalculateHeightForVisiableRegion(regionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
-                        ItemsHeightCache[regionIndex] = targetRegionHeight;
-                        itemsHeight += ItemsHeightCache[regionIndex];
-                        if (regionIndex + 1 < ItemsHeightCache.Length)
-                        {
-                            var afterTargetRegionIndex = regionIndex + 1;
-                            var heightOfAfterTargetRegion = CalculateHeightForVisiableRegion(afterTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
-                            ItemsHeightCache[afterTargetRegionIndex] = heightOfAfterTargetRegion;
-                            itemsHeight += ItemsHeightCache[afterTargetRegionIndex];
-                            regionIndex++;
-                        }
+                        var beforeTargetRegionIndex = regionIndex - 1;
+                        itemsHeight -= ItemsHeightCache[beforeTargetRegionIndex];//减去旧的
+                        var heightOfBeforeTargetRegion = CalculateHeightForVisiableRegion(beforeTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
+                        ItemsHeightCache[beforeTargetRegionIndex] = heightOfBeforeTargetRegion;
+                        itemsHeight += ItemsHeightCache[beforeTargetRegionIndex];
                     }
-                    else
+                    var targetRegionHeight = CalculateHeightForVisiableRegion(regionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
+                    ItemsHeightCache[regionIndex] = targetRegionHeight;
+                    itemsHeight += ItemsHeightCache[regionIndex];
+                    if (regionIndex + 1 < ItemsHeightCache.Length)
                     {
-                        if (ItemsHeightCache[regionIndex] == 0)
-                        {
-                            ItemsHeightCache[regionIndex] = CalculateHeightForInvisiableRegion(regionIndex);
-                        }
-                        itemsHeight += ItemsHeightCache[regionIndex];
+                        var afterTargetRegionIndex = regionIndex + 1;
+                        var heightOfAfterTargetRegion = CalculateHeightForVisiableRegion(afterTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
+                        ItemsHeightCache[afterTargetRegionIndex] = heightOfAfterTargetRegion;
+                        itemsHeight += ItemsHeightCache[afterTargetRegionIndex];
+                        regionIndex++;
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-
+                    if (ItemsHeightCache[regionIndex] == 0)
+                    {
+                        ItemsHeightCache[regionIndex] = CalculateHeightForInvisiableRegion(regionIndex);
+                    }
+                    itemsHeight += ItemsHeightCache[regionIndex];
                 }
             }
 
@@ -151,16 +134,21 @@
                     haveMeasuredItemCount++;
 
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+                    var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
                     //尝试用之前测量的值或者预设值估计底部在哪
-                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
-
-                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = GetRowMaybeHeight(indexPath, reuseIdentifier);
                     itemsHeight += rowMaybeHeight;
                 }
             }
 
             return itemsHeight;
+        }
+
+        double GetRowMaybeHeight(NSIndexPath indexPath, string reuseIdentifier)
+        {
+            var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
+
+            return rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
         }
 
         const int ItemsCountInRegion = 100;
@@ -181,36 +169,39 @@
                     haveMeasuredItemCount++;
 
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+                    var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
                     //尝试用之前测量的值或者预设值估计底部在哪
                     var rowMaybeTop = itemsHeight + top;
-                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
-
-                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = GetRowMaybeHeight(indexPath, reuseIdentifier);
                     var rowMaybeBottom = rowMaybeTop + rowMaybeHeight;
+                    var itemRect = new Rect(0, rowMaybeTop, inRect.Width, rowMaybeHeight);
                     //如果在布局区域, 就详细测量
-                    if ((rowMaybeTop >= inRect.Top && rowMaybeTop <= inRect.Bottom)//Item的顶部在布局区域内
-                       || (rowMaybeBottom >= inRect.Top && rowMaybeBottom <= inRect.Bottom)//Item的底部在布局区域内
-                       || (rowMaybeTop <= inRect.Top && rowMaybeBottom >= inRect.Bottom))//Item包含布局区域
+                    if (itemRect.IntersectsWith(inRect))//Item与布局区域相交
                     {
                         //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
                         MAUICollectionViewViewHolder cell = null;
                         if (availableCells.ContainsKey(indexPath))
+                        {
                             cell = availableCells[indexPath];
-                        cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, cell, inRect.Width);
-
+                            availableCells.Remove(indexPath);
+                        }
+                        if (cell != null)
+                        {
+                            //can update partial control in ViewHolder
+                            cell = CollectionView.Source.ViewHolderForItem(CollectionView, indexPath, cell, inRect.Width);
+                        }
+                        else
+                        {
+                            //get ViewHolder that maybe be new or reuse from recycle cache
+                            cell = CollectionView.Source.ViewHolderForItem(CollectionView, indexPath, cell, inRect.Width);
+                            //cell.Scale = 1;
+                            ///cell.TranslationX = 0;
+                            //cell.TranslationY = 0;
+                        }
                         if (cell != null)
                         {
                             //将Cell添加到正在显示的Cell字典
                             CollectionView.PreparedItems.Add(indexPath, cell);
-
-                            //CollectionView.PreparedItems[indexPath] = cell;
-                            if (availableCells.ContainsKey(indexPath))
-                            {
-                                availableCells.Remove(indexPath);
-                            }
-                            //Cell是否是正在被选择的
-                            cell.Selected = CollectionView.SelectedRow.Contains(indexPath);
 
                             //添加到ScrollView, 必须先添加才有测量值
                             if (!CollectionView.ContentView.Children.Contains(cell))
@@ -219,21 +210,18 @@
                             Size measureSize;
                             cell.WidthRequest = inRect.Width;
                             cell.HeightRequest = -1;
-                            if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//固定高度
+                            var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
+                            if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//fixed value
                             {
                                 cell.HeightRequest = rowHeightWant;
                                 measureSize = CollectionView.MeasureChild(cell, inRect.Width, rowHeightWant).Request;
                             }
-                            else
+                            else//need measure
                             {
                                 measureSize = CollectionView.MeasureChild(cell, inRect.Width, double.PositiveInfinity).Request;
                                 if (measureSize.Height != 0)
                                 {
-                                    //if (!MeasuredSelfHeightCache.ContainsKey(indexPath))
-                                    //MeasuredSelfHeightCache.Add(indexPath, measureSize.Height);
-                                    //else MeasuredSelfHeightCache[indexPath] = measureSize.Height;
-
-                                    //存储同类型的高度
+                                    //store height for same identify
                                     if (!MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier))
                                     {
                                         MeasuredSelfHeightCacheForReuse.Add(cell.ReuseIdentifier, measureSize.Height);
@@ -248,11 +236,13 @@
                                 }
                             }
 
-                            var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                            var finalHeight = measureSize.Height;//GetRowMaybeHeight(indexPath, reuseIdentifier);
                             var bounds = new Rect(0, itemsHeight + top, measureSize.Width != 0 ? measureSize.Width : inRect.Width, finalHeight);
-                            if (cell.Operation == (int)OperateItem.OperateType.move && isStartAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
+
+                            //store bounds,  we will use it when arrange
+                            if (cell.Operation == (int)OperateItem.OperateType.Move && isStartOperateAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
                             {
-                                cell.OldBoundsInLayout = cell.BoundsInLayout;//move动画需要旧的位置
+                                cell.OldBoundsInLayout = cell.BoundsInLayout;//move operate need old position to make animation
                                 cell.BoundsInLayout = bounds;
                             }
                             else
@@ -260,13 +250,22 @@
                                 cell.BoundsInLayout = bounds;
                             }
 
-                            //存储可见的
-                            if (bounds.IntersectsWith(visiableRect))
+                            //here have a chance to change appearance of this item
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, cell);
+                            
+                            cell.IndexPath = indexPath;
+
+                            //record visible item
+                            if (cell.BoundsInLayout.IntersectsWith(visiableRect))
                             {
-                                VisiableIndexPath.Add(indexPath);
+                                VisibleIndexPath.Add(indexPath);
                             }
 
-                            itemsHeight += finalHeight;
+                            itemsHeight += cell.BoundsInLayout.Height;
+                        }
+                        else
+                        {
+                            throw new NotImplementedException($"Get ViewHolder is null of {indexPath} from {nameof(MAUICollectionViewSource.ViewHolderForItem)}.");
                         }
                     }
                     else//如果不在布局区域内
@@ -326,11 +325,11 @@
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+                    var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
 
-                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+                    var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
 
-                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
                     tempBottom = totalHeight + rowMaybeHeight;
                     if (totalHeight <= point.Y && tempBottom >= point.Y)
                     {
@@ -363,11 +362,11 @@
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+                    var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
 
-                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+                    var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
 
-                    var rowMaybeHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCache.ContainsKey(indexPath) ? MeasuredSelfHeightCache[indexPath] : MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                    var rowMaybeHeight = GetRowMaybeHeight(indexPath, reuseIdentifier);
                     tempBottom = totalHeight + rowMaybeHeight;
 
                     if (indexPath.Section == indexPathTarget.Section && indexPath.Row == indexPathTarget.Row)
@@ -392,7 +391,7 @@
             for (var index = 0; index < count; index++)
             {
                 var needMeasureIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
-                itemsHeight+=GetItemCurrentHeight(needMeasureIndexPath, !isBeforePreparedItems);
+                itemsHeight += GetItemCurrentHeight(needMeasureIndexPath, !isBeforePreparedItems);
             }
 
             return itemsHeight;
@@ -405,16 +404,16 @@
                 }
                 else
                 {
-                    var reuseIdentifier = CollectionView.Source.reuseIdentifierForRowAtIndexPath(CollectionView, indexPath);
+                    var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
 
-                    var rowHeightWant = CollectionView.Source.heightForRowAtIndexPath(CollectionView, indexPath);
+                    var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
 
-                    var rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight) : rowHeightWant;
+                    var rowMaybeHeight = GetRowMaybeHeight(indexPath, reuseIdentifier);
 
                     if (measureSelf)
                     {
-                        var w = CollectionView.PreparedItems[VisiableIndexPath[0]].BoundsInLayout.Width;
-                        MAUICollectionViewViewHolder cell = CollectionView.Source.cellForRowAtIndexPath(CollectionView, indexPath, null, w);
+                        var w = CollectionView.PreparedItems[VisibleIndexPath[0]].BoundsInLayout.Width;
+                        MAUICollectionViewViewHolder cell = CollectionView.Source.ViewHolderForItem(CollectionView, indexPath, null, w);
 
                         if (cell != null)
                         {
