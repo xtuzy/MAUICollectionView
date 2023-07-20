@@ -76,7 +76,7 @@
                                     VisibleIndexPath.Add(indexPath);
                                 }
 
-                                if (cell.Operation == (int)OperateItem.OperateType.Move && isStartOperateAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
+                                if (cell.Operation == (int)OperateItem.OperateType.Move && IsOperating && bounds != cell.BoundsInLayout)//move + anim + diff bounds
                                 {
                                     cell.OldBoundsInLayout = cell.BoundsInLayout;
                                     cell.BoundsInLayout = bounds;
@@ -114,25 +114,13 @@
             return itemsHeight;
         }
 
-        /// <summary>
-        /// 可见的区域中的点在哪一行
-        /// </summary>
-        /// <param name="point">相对于TableView的位置, 可以是在TableView上设置手势获取的位置</param>
-        /// <returns></returns>
-        public override NSIndexPath IndexPathForVisibaleRowAtPointOfCollectionView(Point point)
+        public override NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
         {
-            var contentOffset = CollectionView.ScrollY;
-            point.Y = point.Y + contentOffset;//相对于content
-            return IndexPathForRowAtPointOfContentView(point);
-        }
-
-        /// <summary>
-        /// 迭代全部内容计算点在哪
-        /// </summary>
-        /// <param name="point">相对与Content的位置</param>
-        /// <returns></returns>
-        public override NSIndexPath IndexPathForRowAtPointOfContentView(Point point)
-        {
+            if (!baseOnContent)
+            {
+                var contentOffset = CollectionView.ScrollY;
+                point.Y = point.Y + contentOffset;//convert to base on content
+            }
             double totalHeight = 0;
             double tempBottom = 0;
             if (CollectionView.HeaderView != null)
@@ -175,7 +163,7 @@
             return null;
         }
 
-        public override Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPathTarget)
+        public override Rect RectForItem(NSIndexPath indexPathTarget)
         {
             double totalHeight = 0;
             double tempBottom = 0;
@@ -215,7 +203,7 @@
             return Rect.Zero;
         }
 
-        public override double GetItemsCurrentHeight(NSIndexPath indexPath, int count)
+        public override double HeightForItems(NSIndexPath indexPath, int count)
         {
             throw new NotImplementedException();
         }

@@ -25,9 +25,9 @@ public partial class GridLayoutTestPage : ContentPage
         {
             var p = e.GetPosition(tableView);
 #if IOS
-            var indexPath = tableView.ItemsLayout.IndexPathForRowAtPointOfContentView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value);
 #else
-            var indexPath = tableView.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value, false);
 #endif
             if (indexPath != null)
                 tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);

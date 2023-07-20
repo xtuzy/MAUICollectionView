@@ -130,7 +130,7 @@ namespace MauiUICollectionView
             {
                 if (args.status == SelectStatus.Selected)
                 {
-                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
 
                     if (SelectionMode == SelectionMode.Single)
                     {
@@ -177,7 +177,7 @@ namespace MauiUICollectionView
             if (CanContextMenu)
             {
                 var args = (Point)t;
-                var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args);
+                var indexPath = this.ItemsLayout.ItemAtPoint(args, false);
                 if (PreparedItems.ContainsKey(indexPath))
                 {
                     var item = PreparedItems[indexPath];
@@ -206,7 +206,7 @@ namespace MauiUICollectionView
                 {
                     StopRefresh(true);
 
-                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
 
                     if (PreparedItems.ContainsKey(indexPath))
                     {
@@ -223,7 +223,7 @@ namespace MauiUICollectionView
                 {
                     if (DragedItem == null)
                         return;
-                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
 
                     if (args.Device == GestureDevice.Touch)
                     {
@@ -286,7 +286,7 @@ namespace MauiUICollectionView
                     if (DragedItem == null)
                         return;
 
-                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
                     Source?.WantDropTo?.Invoke(this, DragedItem.IndexPath, indexPath);
                     
                     DragedItem.DragBoundsInLayout = Rect.Zero;
@@ -347,8 +347,10 @@ namespace MauiUICollectionView
         /// 与上次滑动的差值
         /// </summary>
         public double scrollOffset { get; private set; } = 0;
+        public bool  IsScrolling { get; internal set; }
         private void TableView_Scrolled(object sender, ScrolledEventArgs e)
         {
+            IsScrolling = true;
             if (enableAutoScroll)
             {
                 scrollOffset = e.ScrollY - lastScrollY;

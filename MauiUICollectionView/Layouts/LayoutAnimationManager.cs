@@ -6,13 +6,17 @@
     public class LayoutAnimationManager : IDisposable
     {
         /// <summary>
-        /// define action when item appear. value is 0-1.
+        /// define action when item appear when scroll down. value is 0-1.
         /// </summary>
-        public Action<MAUICollectionViewViewHolder, double> AppearAnimAction { get; set; }
+        public Action<MAUICollectionViewViewHolder, double> ItemAppearAnimAction { get; set; }
         /// <summary>
-        /// define action when item disappear. value is 0-1.
+        /// define action when item disappear when scroll down. value is 0-1.
         /// </summary>
-        public Action<MAUICollectionViewViewHolder, double> DisAppearAnimAction { get; set; }
+        public Action<MAUICollectionViewViewHolder, double> ItemDisappearAnimAction { get; set; }
+
+        public Action<MAUICollectionViewViewHolder, double> InsertItemAppearAnimAction { get; set; }
+        
+        public Action<MAUICollectionViewViewHolder, double> RemoveItemDisppearAnimAction { get; set; }
 
         MAUICollectionView CollectionView;
 
@@ -23,6 +27,7 @@
         private Animation moveOperateAnimation;
         private Animation removeOperateAnimation;
         private Animation insertOperateAnimation;
+
         /// <summary>
         /// 需要Animation立即停止时, 我们用这个tag立即停止动画循环, 让其不设置值.
         /// </summary>
@@ -31,19 +36,29 @@
         public LayoutAnimationManager(MAUICollectionView collectionView)
         {
             CollectionView = collectionView;
-            AppearAnimAction = (view, value) =>
+            ItemAppearAnimAction = (view, value) =>
             {
                 view.Opacity = value;
                 view.TranslationX = view.BoundsInLayout.Width * (1 - value);
             };
-            DisAppearAnimAction = (view, value) =>
+            ItemDisappearAnimAction = (view, value) =>
             {
                 view.TranslationX = view.BoundsInLayout.Width * value;
                 view.Opacity = 1 - value;
             };
+            InsertItemAppearAnimAction = (view, value) =>
+            {
+                view.Opacity = value;
+                view.Scale = 0.9 + 0.1 * value;
+            };
+            RemoveItemDisppearAnimAction = (view, value) =>
+            {
+                view.Opacity = 1 - value;
+                //view.Scale = 1 - 0.1 * value;
+            };
         }
 
-        public void Add(MAUICollectionViewViewHolder viewHolder)
+        protected internal void Add(MAUICollectionViewViewHolder viewHolder)
         {
             operateItems.Add(viewHolder);
         }
@@ -91,9 +106,10 @@
         /// <summary>
         /// 重新布局之前运行, 运行完需恢复正常布局流程. 像move和remove都是移动当前的item, 其在重新布局之前
         /// </summary>
-        public void Run(bool runOperateAnim)
+        public void Run(bool runScrollAnim, bool runOperateAnim)
         {
-            RunScrollAnim();
+            if (runScrollAnim)
+                RunScrollAnim();
             if (runOperateAnim)
                 RunOperateAnim();
         }
@@ -102,18 +118,18 @@
         /// </summary>
         List<NSIndexPath> InScrollAnimItem = new List<NSIndexPath>();
         /// <summary>
-        /// when scroll, item maybe need anim. we also set finial state of item that no operate
+        /// when scroll, item maybe need animation. we also set finial state of item that no operate
         /// </summary>
         public virtual void RunScrollAnim()
         {
-            if (CollectionView.scrollOffset > 0)//swipe up
+            if (HasScrollAnim && //like official CollectionView don't have default scroll animation, we use this can easy let it like official action
+                CollectionView.scrollOffset > 0)//swipe up
             {
                 foreach (var indexPath in CollectionView.PreparedItems.Keys)
                 {
                     var item = CollectionView.PreparedItems[indexPath];
 
-                    if (HasScrollAnim && 
-                        AppearAnimAction != null && 
+                    if (ItemAppearAnimAction != null &&
                         !indexPath.IsInRange(CollectionView.ItemsLayout.OldPreparedItems[0], CollectionView.ItemsLayout.OldPreparedItems[1]) &&
                         item != CollectionView.DragedItem)//show new item
                     {
@@ -123,7 +139,7 @@
                             InScrollAnimItem.Add(item.IndexPath);
                             var animation = new Animation(v =>
                             {
-                                AppearAnimAction?.Invoke(item, v);
+                                ItemAppearAnimAction?.Invoke(item, v);
                             }, 0, 1);
                             animation.Commit(CollectionView, indexPath.ToString(), 16, 500, Easing.CubicIn, (v, b) =>
                             {
@@ -148,11 +164,12 @@
                 {
                     var item = CollectionView.PreparedItems[indexPath];
 
-                    if (item.Operation == -1 && !InScrollAnimItem.Contains(indexPath))
+                    if (item.Operation == -1 && // we only set state of no operate items
+                        !InScrollAnimItem.Contains(indexPath))// if not animating
                     {
-                        item.Opacity = 1;
-                        item.TranslationX = 0;
-                        item.TranslationY = 0;
+                        //item.Opacity = 1;
+                        //item.TranslationX = 0;
+                        //item.TranslationY = 0;
                     }
                 }
             }
@@ -185,7 +202,7 @@
                 var item = operateItems[i];
                 if (item.Operation == (int)OperateItem.OperateType.Insert)
                 {
-                    item.Opacity = 0;
+                    item.Opacity = 0; // insert item must is invisible at first, it need show after move animation
                     listInsertViewHolder.Add(item);
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.Remove)
@@ -205,7 +222,7 @@
                 else if (item.Operation == (int)OperateItem.OperateType.MoveNow)
                 {
                     item.Opacity = 1;
-                    //item.TranslationX = 0;
+                    item.TranslationX = 0;
                     item.TranslationY = 0;
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.RemoveNow)
@@ -220,12 +237,8 @@
 
             if (listInsertViewHolder.Count > 0)
             {
-                if (AppearAnimAction == null)
+                if (InsertItemAppearAnimAction == null)
                 {
-                    foreach (var item in listInsertViewHolder)
-                    {
-                        item.Opacity = 1;
-                    };
                 }
                 else
                 {
@@ -235,13 +248,14 @@
                             return;
                         foreach (var item in listInsertViewHolder)
                         {
-                            AppearAnimAction?.Invoke(item, v);
+                            InsertItemAppearAnimAction?.Invoke(item, v);
                         };
                     }, 0, 1);
                 }
             }
 
             //move Items的初始状态应该是Arrange在目标位置, tanslate后在之前的位置
+            var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault().Value;
             if (listMoveViewHolder.Count > 0)
             {
                 for (var i = listMoveViewHolder.Count - 1; i >= 0; i--)
@@ -251,6 +265,11 @@
                     item.OldBoundsInLayout != item.BoundsInLayout)
                     {
                         item.Opacity = 1;
+                        if (item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom)//不在PreparedItem里的没有重新Arrange, 我们基于旧的位置
+                        {
+                            CollectionView.LayoutChild(item, item.BoundsInLayout);
+                        }
+
                         item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * 1;
                         item.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * 1;
                     }
@@ -268,17 +287,16 @@
                         if (item.OldBoundsInLayout != Rect.Zero &&
                         item.OldBoundsInLayout != item.BoundsInLayout)
                         {
-                            //Debug.WriteLine(v);
-                            item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * v;
-                            item.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * v;
+                            item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * (1 - v);
+                            item.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * (1 - v);
                         }
                     };
-                }, 1, 0);
+                }, 0, 1);
             }
 
             if (listRemoveViewHolder.Count > 0)
             {
-                if (DisAppearAnimAction == null)
+                if (RemoveItemDisppearAnimAction == null)
                 {
                     foreach (var item in listRemoveViewHolder)
                     {
@@ -293,7 +311,7 @@
                             return;
                         foreach (var item in listRemoveViewHolder)
                         {
-                            DisAppearAnimAction?.Invoke(item, v);
+                            RemoveItemDisppearAnimAction?.Invoke(item, v);
                         };
                     }, 0, 1);
                 }
@@ -385,11 +403,23 @@
             }
             else
             {
+                var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault().Value;
+
                 foreach (var item in operateItems)
                 {
                     if (item.Operation == (int)OperateItem.OperateType.Remove)
                     {
                         CollectionView.RecycleViewHolder(item);//如果动画步骤有问题, 此处确保回收
+                    }
+
+                    if (item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom)
+                    {
+                        CollectionView.RecycleViewHolder(item);
+                    }
+
+                    if(item.Operation == (int)OperateItem.OperateType.Insert)
+                    {
+                        item.Opacity = 1;//if no insert animation, we show item when move animation finish
                     }
 
                     item.Operation = -1;

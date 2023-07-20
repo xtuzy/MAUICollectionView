@@ -74,6 +74,7 @@ namespace MauiUICollectionView
             Selected = false;
             this.TranslationX = 0;
             this.TranslationY = 0;
+            this.Scale = 1;
             this.Opacity = 1;
             this.ZIndex = 1;
             Operation = -1;
@@ -95,7 +96,7 @@ namespace MauiUICollectionView
         public override string ToString()
         {
             if (IndexPath != null)
-                return $"IndexPath={IndexPath} Operation={Operation}";
+                return $"IndexPath={IndexPath} Operation={Operation} Guid={this.Id}";
             else
                 return base.ToString();
         }

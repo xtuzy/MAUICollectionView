@@ -240,7 +240,9 @@
                             var bounds = new Rect(0, itemsHeight + top, measureSize.Width != 0 ? measureSize.Width : inRect.Width, finalHeight);
 
                             //store bounds,  we will use it when arrange
-                            if (cell.Operation == (int)OperateItem.OperateType.Move && isStartOperateAnimate && bounds != cell.BoundsInLayout)//move + anim + diff bounds
+                            if (cell.Operation == (int)OperateItem.OperateType.Move && 
+                                IsOperating && 
+                                bounds != cell.BoundsInLayout)//move + anim + diff bounds
                             {
                                 cell.OldBoundsInLayout = cell.BoundsInLayout;//move operate need old position to make animation
                                 cell.BoundsInLayout = bounds;
@@ -252,7 +254,7 @@
 
                             //here have a chance to change appearance of this item
                             CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, cell);
-                            
+
                             cell.IndexPath = indexPath;
 
                             //record visible item
@@ -270,6 +272,22 @@
                     }
                     else//如果不在布局区域内
                     {
+                        if (availableCells.ContainsKey(indexPath))//we want store bounds info for invisible item, because maybe we need it to make animation
+                        {
+                            var cell = availableCells[indexPath];
+
+                            if (cell.Operation == (int)OperateItem.OperateType.Move 
+                                && IsOperating 
+                                && itemRect != cell.BoundsInLayout)//move + anim + diff bounds
+                            {
+                                cell.OldBoundsInLayout = cell.BoundsInLayout;//move operate need old position to make animation
+                                cell.BoundsInLayout = itemRect;
+                            }
+                            else
+                            {
+                                cell.BoundsInLayout = itemRect;
+                            }
+                        }
                         itemsHeight += rowMaybeHeight;
                     }
                 }
@@ -278,25 +296,13 @@
             return itemsHeight;
         }
 
-        /// <summary>
-        /// 可见的区域中的点在哪一行
-        /// </summary>
-        /// <param name="point">相对于TableView的位置, 可以是在TableView上设置手势获取的位置</param>
-        /// <returns></returns>
-        public override NSIndexPath IndexPathForVisibaleRowAtPointOfCollectionView(Point point)
+        public override NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
         {
-            var contentOffset = CollectionView.ScrollY;
-            point.Y = point.Y + contentOffset;//相对于content
-            return IndexPathForRowAtPointOfContentView(point);
-        }
-
-        /// <summary>
-        /// 迭代全部内容计算点在哪
-        /// </summary>
-        /// <param name="point">相对与Content的位置</param>
-        /// <returns></returns>
-        public override NSIndexPath IndexPathForRowAtPointOfContentView(Point point)
-        {
+            if (!baseOnContent)
+            {
+                var contentOffset = CollectionView.ScrollY;
+                point.Y = point.Y + contentOffset;//convert to base on content
+            }
             double totalHeight = 0;
             double tempBottom = 0;
             if (CollectionView.HeaderView != null)
@@ -309,19 +315,26 @@
                 totalHeight = tempBottom;
             }
 
-            var number = CollectionView.NumberOfSections();
-            for (int section = 0; section < number; section++)
+            var numberOfSections = CollectionView.NumberOfSections();
+            for (int section = 0; section < numberOfSections; section++)
             {
                 int numberOfRows = CollectionView.NumberOfItemsInSection(section);
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
-
-                    var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
-
-                    var rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
+                    double rowMaybeHeight = 0;
+                    if (CollectionView.PreparedItems.ContainsKey(indexPath))
+                    {
+                        rowMaybeHeight = CollectionView.PreparedItems[indexPath].BoundsInLayout.Height;
+                    }
+                    else
+                    {
+                        var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
+                        var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
+                        rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
+                    }
                     tempBottom = totalHeight + rowMaybeHeight;
+
                     if (totalHeight <= point.Y && tempBottom >= point.Y)
                     {
                         return indexPath;
@@ -336,7 +349,7 @@
             return null;
         }
 
-        public override Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPathTarget)
+        public override Rect RectForItem(NSIndexPath indexPathTarget)
         {
             double totalHeight = 0;
             double tempBottom = 0;
@@ -346,18 +359,24 @@
                 totalHeight = tempBottom;
             }
 
-            var number = CollectionView.NumberOfSections();
-            for (int section = 0; section < number; section++)
+            var numberOfSections = CollectionView.NumberOfSections();
+            for (int section = 0; section < numberOfSections; section++)
             {
                 int numberOfRows = CollectionView.NumberOfItemsInSection(section);
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);
-                    var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
-
-                    var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
-
-                    var rowMaybeHeight = GetRowMaybeHeight(indexPath, reuseIdentifier);
+                    double rowMaybeHeight = 0;
+                    if (CollectionView.PreparedItems.ContainsKey(indexPath))
+                    {
+                        rowMaybeHeight = CollectionView.PreparedItems[indexPath].BoundsInLayout.Height;
+                    }
+                    else
+                    {
+                        var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
+                        var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
+                        rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
+                    }
                     tempBottom = totalHeight + rowMaybeHeight;
 
                     if (indexPath.Section == indexPathTarget.Section && indexPath.Row == indexPathTarget.Row)
@@ -373,7 +392,7 @@
             return Rect.Zero;
         }
 
-        public override double GetItemsCurrentHeight(NSIndexPath indexPath, int count)
+        public override double HeightForItems(NSIndexPath indexPath, int count)
         {
             var isBeforePreparedItems = false;
             if (indexPath.Compare(CollectionView.PreparedItems.ToList().FirstOrDefault().Key) < 0)

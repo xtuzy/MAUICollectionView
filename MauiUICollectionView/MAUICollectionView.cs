@@ -315,7 +315,7 @@ namespace MauiUICollectionView
         /// <param name="animated"></param>
         public void ScrollToRowAtIndexPath(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
-            var rect = ItemsLayout.RectForRowOfIndexPathInContentView(indexPath);
+            var rect = ItemsLayout.RectForItem(indexPath);
             switch (scrollPosition)
             {
                 case ScrollPosition.None:
@@ -477,7 +477,7 @@ namespace MauiUICollectionView
                     this.ReMeasure();
                 else
                 {
-                    var removeAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                    var removeAllHight = ItemsLayout.HeightForItems(indexPath, count);
                     ScrollToAsync(ScrollX, ScrollY - removeAllHight, false);
                 }
             }
@@ -526,7 +526,7 @@ namespace MauiUICollectionView
 
             if (isInsertBeforeVisiable)//if insert before VisibleItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
             {
-                var insertAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                var insertAllHight = ItemsLayout.HeightForItems(indexPath, count);
                 ScrollToAsync(ScrollX, ScrollY + insertAllHight, false);
             }
             else

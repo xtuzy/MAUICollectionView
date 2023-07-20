@@ -39,7 +39,7 @@ public partial class DefaultTestPage : ContentPage
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             Source = new Source(viewModel),
             SelectionMode = SelectionMode.Multiple,
-            CanDrag = true,
+            //CanDrag = true,
             CanContextMenu = true,
         };
         content.Content = tableView;
@@ -53,9 +53,9 @@ public partial class DefaultTestPage : ContentPage
         {
             var p = e.GetPosition(tableView);
 #if IOS
-            var indexPath = tableView.ItemsLayout.IndexPathForRowAtPointOfContentView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value);
 #else
-            var indexPath = tableView.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value, false);
 #endif
             if (indexPath != null)
                 tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
