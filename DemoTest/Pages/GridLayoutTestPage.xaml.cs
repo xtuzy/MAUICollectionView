@@ -64,18 +64,18 @@ public partial class GridLayoutTestPage : ContentPage
         //Add
         Add.Clicked += (sender, e) =>
         {
-            var index = 2;
-            (tableView.Source as Source).InsertData(index);
-            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0));
-            tableView.ReMeasure();
+            var index = 3;
+            var count = 3;
+            (tableView.Source as Source).InsertData(0, index, count);
+            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0), count);
         };
 
         Remove.Clicked += (sender, e) =>
         {
-            var index = 2;
-            (tableView.Source as Source).RemoveData(index);
-            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0));
-            tableView.ReMeasure();
+            var index = 3;
+            var count = 3;
+            (tableView.Source as Source).RemoveData(0, index, count);
+            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0), count);
         };
 
         Move.Clicked += (sender, e) =>

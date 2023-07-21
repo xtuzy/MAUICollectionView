@@ -1,13 +1,10 @@
 ﻿using Bogus;
 using MauiUICollectionView;
-using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
-using SharpConstraintLayout.Maui.Widget;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using The49.Maui.ContextMenu;
-using Yang.Maui.Helper.Image;
 
 namespace DemoTest.Pages
 {
@@ -47,7 +44,7 @@ namespace DemoTest.Pages
             }
         }
 
-        public List<Model> models;
+        public List<List<Model>> models;
         public ObservableCollection<Model> ObservableModels = new ObservableCollection<Model>();
         private Faker<Model> testModel;
         public ViewModel()
@@ -66,9 +63,20 @@ namespace DemoTest.Pages
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
-            models = testModel.Generate(1000);
-
-            foreach (var m in models)
+            var modelsList = testModel.Generate(1000);
+            models = new List<List<Model>>();
+            for (var index = 0; index < 10; index++)
+            {
+                var list = new List<Model>();
+                var lineStart = index * 10;
+                for (var i = 0; i < 10; i++)
+                {
+                    var itemIndex = lineStart + i;
+                    list.Add(modelsList[itemIndex]);
+                }
+                models.Add(list);
+            }
+            foreach (var m in modelsList)
             {
                 ObservableModels.Add(m);
             }
@@ -120,32 +128,32 @@ namespace DemoTest.Pages
             MoveData(path1.Row, path2.Row);
         }
 
-        public void RemoveData(int index)
+        public void RemoveData(int section, int row, int count = 3)
         {
-            ViewModel.models.RemoveRange(index, 3);
+            ViewModel.models[section].RemoveRange(row, count);
         }
 
-        public void InsertData(int index)
+        public void InsertData(int section, int row, int count = 3)
         {
-            ViewModel.models.InsertRange(index, ViewModel.Generate(3));
+            ViewModel.models[section].InsertRange(row, ViewModel.Generate(count));
         }
 
         public void ChangeData(int index)
         {
-            ViewModel.models[index] = ViewModel.Generate();
+            ViewModel.models[0][index] = ViewModel.Generate();
         }
 
         public void MoveData(int index, int toIndex)
         {
-            var item = ViewModel.models[index];
-            ViewModel.models.RemoveAt(index);
-            ViewModel.models.Insert(toIndex, item);
+            var item = ViewModel.models[0][index];
+            ViewModel.models[0].RemoveAt(index);
+            ViewModel.models[0].Insert(toIndex, item);
         }
 
         public void LoadMoreOnFirst()
         {
             var models = ViewModel.Generate(20);
-            ViewModel.models.InsertRange(0, models);
+            ViewModel.models[0].InsertRange(0, models);
         }
 
         public void lastItemWillShowMethod(MAUICollectionView collectionView, NSIndexPath indexPath)
@@ -167,7 +175,7 @@ namespace DemoTest.Pages
                 }
                 await Task.Delay(2000);
                 var models = ViewModel.Generate(20);
-                ViewModel.models.AddRange(models);
+                ViewModel.models[ViewModel.models.Count - 1].AddRange(models);
 
                 collectionView.ReloadDataCount();
                 if (loading != null)
@@ -183,12 +191,12 @@ namespace DemoTest.Pages
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
         {
-            return 1;
+            return ViewModel.models.Count;
         }
 
         public int numberOfRowsInSectionMethod(MAUICollectionView tableView, int section)
         {
-            return ViewModel.models.Count;
+            return ViewModel.models[section].Count;
         }
 
         public string reuseIdentifierForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
@@ -262,14 +270,20 @@ namespace DemoTest.Pages
                         simpleCell.ModelView.CommentCountLabel.Text = simpleCell.NewCellIndex.ToString();
                         var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
-                            RemoveData(arg.Row);
-                            tableView.NotifyItemRangeRemoved(arg, 3);
+                            var count = 3;
+                            var distance = arg.Row + count - ViewModel.models[arg.Section].Count;
+                            if (distance < 0)
+                                RemoveData(arg.Section, arg.Row, count);
+                            else
+                                RemoveData(arg.Section, arg.Row, ViewModel.models[arg.Section].Count - arg.Row);
+                            tableView.NotifyItemRangeRemoved(arg, count);
                             tableView.ReMeasure();
                         });
                         var insertCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
-                            InsertData(arg.Row);
-                            tableView.NotifyItemRangeInserted(arg, 3);
+                            var count = 3;
+                            InsertData(arg.Section, arg.Row, count);
+                            tableView.NotifyItemRangeInserted(arg, count);
                             tableView.ReMeasure();
                         });
                         simpleCell.InitMenu(deleteCommand, insertCommand);
@@ -279,12 +293,12 @@ namespace DemoTest.Pages
                         };
                     }
 
-                    simpleCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
-                    simpleCell.ModelView.PersonGender.Text = ViewModel.models[indexPath.Row].PersonGender;
-                    simpleCell.ModelView.PersonPhone.Text = ViewModel.models[indexPath.Row].PersonPhone;
-                    simpleCell.ModelView.PersonTextBlogTitle.Text = ViewModel.models[indexPath.Row].PersonTextBlogTitle;
-                    simpleCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
-                    simpleCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
+                    simpleCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonName;
+                    simpleCell.ModelView.PersonGender.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonGender;
+                    simpleCell.ModelView.PersonPhone.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonPhone;
+                    simpleCell.ModelView.PersonTextBlogTitle.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonTextBlogTitle;
+                    simpleCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Section][indexPath.Row].PersonImageBlogUrl;
+                    simpleCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonTextBlog;
                     simpleCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
 
                     cell = simpleCell;
@@ -323,6 +337,9 @@ namespace DemoTest.Pages
             grid.Add(TextView);
             TextView.HorizontalOptions = LayoutOptions.Center;
             TextView.VerticalOptions = LayoutOptions.Center;
+            TextView.BackgroundColor = Colors.Gray;
+            TextView.TextColor = Colors.White;
+            TextView.FontAttributes = FontAttributes.Bold;
         }
 
         public override void PrepareForReuse()
@@ -393,7 +410,7 @@ namespace DemoTest.Pages
             aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
             aContextMenu.PlatformMenu.MenuItemClick += (s1, arg1) =>
             {
-                switch(arg1.Item.ItemId)
+                switch (arg1.Item.ItemId)
                 {
                     case Resource.Id.delete_item:
                         DeleteMenuCommand.Execute(IndexPath);

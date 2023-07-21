@@ -108,6 +108,7 @@
                     var targetSectionUsedRowsCount = startNeedMeasureItemIndex - haveRecordItemsCountWhenFindStart;
                     haveRecordItemsCountWhenFindStart = haveRecordItemsCountWhenFindStart + targetSectionUsedRowsCount;
                     startIndexPathOfRegion = NSIndexPath.FromRowSection(targetSectionUsedRowsCount, section);
+                    break;
                 }
                 else
                 {
@@ -362,7 +363,7 @@
             var numberOfSections = CollectionView.NumberOfSections();
             for (int section = 0; section < numberOfSections; section++)
             {
-                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
+                int numberOfRows = section == indexPathTarget.Section? indexPathTarget.Row + 1 : CollectionView.NumberOfItemsInSection(section);
                 for (int row = 0; row < numberOfRows; row++)
                 {
                     NSIndexPath indexPath = NSIndexPath.FromRowSection(row, section);

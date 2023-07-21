@@ -15,7 +15,7 @@
         public Action<MAUICollectionViewViewHolder, double> ItemDisappearAnimAction { get; set; }
 
         public Action<MAUICollectionViewViewHolder, double> InsertItemAppearAnimAction { get; set; }
-        
+
         public Action<MAUICollectionViewViewHolder, double> RemoveItemDisppearAnimAction { get; set; }
 
         MAUICollectionView CollectionView;
@@ -54,12 +54,14 @@
             RemoveItemDisppearAnimAction = (view, value) =>
             {
                 view.Opacity = 1 - value;
-                //view.Scale = 1 - 0.1 * value;
+                view.Scale = 1 - 0.1 * value;
             };
         }
 
         protected internal void Add(MAUICollectionViewViewHolder viewHolder)
         {
+            if (operateItems.Contains(viewHolder))
+                return;
             operateItems.Add(viewHolder);
         }
 
@@ -228,10 +230,7 @@
                 else if (item.Operation == (int)OperateItem.OperateType.RemoveNow)
                 {
                     item.Opacity = 0;
-                    CollectionView.Dispatcher.Dispatch(() =>
-                    {
-                        CollectionView.RecycleViewHolder(item);
-                    });
+                    CollectionView.RecycleViewHolder(item);
                 }
             }
 
@@ -255,6 +254,7 @@
             }
 
             //move Items的初始状态应该是Arrange在目标位置, tanslate后在之前的位置
+            var firstPreparedItem = CollectionView.PreparedItems.FirstOrDefault().Value;
             var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault().Value;
             if (listMoveViewHolder.Count > 0)
             {
@@ -265,7 +265,9 @@
                     item.OldBoundsInLayout != item.BoundsInLayout)
                     {
                         item.Opacity = 1;
-                        if (item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom)//不在PreparedItem里的没有重新Arrange, 我们基于旧的位置
+                        if (item.BoundsInLayout.Bottom <= firstPreparedItem.BoundsInLayout.Top ||
+                            item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom
+                            )//不在PreparedItem里的没有重新Arrange, 我们基于旧的位置
                         {
                             CollectionView.LayoutChild(item, item.BoundsInLayout);
                         }
@@ -403,6 +405,7 @@
             }
             else
             {
+                var firstPreparedItem = CollectionView.PreparedItems.FirstOrDefault().Value;
                 var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault().Value;
 
                 foreach (var item in operateItems)
@@ -412,12 +415,13 @@
                         CollectionView.RecycleViewHolder(item);//如果动画步骤有问题, 此处确保回收
                     }
 
-                    if (item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom)
+                    if (item.BoundsInLayout.Bottom <= firstPreparedItem.BoundsInLayout.Top ||
+                        item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom)
                     {
                         CollectionView.RecycleViewHolder(item);
                     }
 
-                    if(item.Operation == (int)OperateItem.OperateType.Insert)
+                    if (item.Operation == (int)OperateItem.OperateType.Insert)
                     {
                         item.Opacity = 1;//if no insert animation, we show item when move animation finish
                     }

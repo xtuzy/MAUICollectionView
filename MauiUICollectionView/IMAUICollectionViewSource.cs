@@ -1,22 +1,5 @@
 ﻿namespace MauiUICollectionView
 {
-    public delegate NSIndexPath willXRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath);
-    public delegate void didXRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath);
-    public delegate float heightForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath);
-    public delegate string reuseIdentifierForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath);
-
-    public delegate int numberOfRowsInSectionDelegate(MAUICollectionView tableView, int section);
-    /// <summary>
-    /// 获取IndexPath对应的ViewHolder
-    /// </summary>
-    /// <param name="tableView"></param>
-    /// <param name="indexPath"></param>
-    /// <param name="oldViewHolder">依旧可见的, 仅被移动的ViewHolder, 其可能需要更新IndexPath信息</param>
-    /// <param name="widthConstrain">对ViewHolder可能需要大小设置时, 这个宽度是一个参考值, 对于GridLayout, 其平分CollectionView的宽度, 对于ListLayout其等于CollectionView的宽</param>
-    /// <returns></returns>
-    public delegate MAUICollectionViewViewHolder cellForRowAtIndexPathDelegate(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain);
-    public delegate int numberOfSectionsInTableViewDelegate(MAUICollectionView tableView);
-
     /// <summary>
     /// 最新的Api见
     /// https://learn.microsoft.com/en-us/dotnet/api/uikit.uitableviewdatasource.caneditrow?view=xamarin-ios-sdk-12
@@ -38,6 +21,10 @@
 
         Func<MAUICollectionView, NSIndexPath, double> HeightForItem { get; }
         Func<MAUICollectionView, NSIndexPath, string> ReuseIdForItem { get; }
+        /// <summary>
+        /// If item is section's header or footer, item's Row of IndexPath must be 0 or last one, <see cref="Layouts.CollectionViewLayout"/> can layout according to it.
+        /// </summary>
+        Func<MAUICollectionView, NSIndexPath, bool> IsSectionItem { get; }
         /// <summary>
         /// When running Drag operate, will still load it.
         /// </summary>

@@ -348,7 +348,7 @@ namespace MauiUICollectionView.Layouts
                             if (!viewHolder.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
                             && update.operateAnimate)//move的可以是没有动画但位置移动的
                             {
-                                viewHolder.OldBoundsInLayout = RectForItem(update.source); // try get old bounds
+                                viewHolder.OldBoundsInLayout = update.source== update.target && viewHolder.OldBoundsInLayout==Rect.Zero ? RectForItem(NSIndexPath.FromRowSection(update.source.Row - update.moveCount, update.source.Section)) : RectForItem(update.source); // try get old bounds
                                 viewHolder.Operation = (int)OperateItem.OperateType.Move;
                                 AnimationManager.Add(viewHolder);
                             }
@@ -414,6 +414,7 @@ namespace MauiUICollectionView.Layouts
              */
             tableHeight += MeasureFooter(tableHeight, layoutItemsInRect.Width);
 
+            Debug.WriteLine($"ChildCount={CollectionView.ContentView.Children.Count} PreparedItem={CollectionView.PreparedItems.Count} RecycleCount={CollectionView.ReusableViewHolders.Count}");
             //Debug.WriteLine("TableView Content Height:" + tableHeight);
             return new Size(tableViewBoundsSize.Width, tableHeight);
         }

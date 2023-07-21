@@ -39,12 +39,12 @@ public partial class ManyItemsVisiableTestPage : ContentPage
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
         {
-            return 1;
+            return ViewModel.models.Count;
         }
 
         public int numberOfRowsInSectionMethod(MAUICollectionView tableView, int section)
         {
-            return ViewModel.models.Count;
+            return ViewModel.models[section].Count;
         }
 
         public string reuseIdentifierForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
@@ -90,8 +90,8 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                         textCell = new ItemViewHolder(new Grid(), type) { };
                     }
 
-                    textCell.Name.Text = ViewModel.models[indexPath.Row].PersonName;
-                    textCell.Phone.Text = ViewModel.models[indexPath.Row].PersonPhone;
+                    textCell.Name.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonName;
+                    textCell.Phone.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonPhone;
 
                     cell = textCell;
                 }

@@ -20,6 +20,8 @@
 
         public Func<MAUICollectionView, NSIndexPath, string> ReuseIdForItem { get; set; }
 
+        public Func<MAUICollectionView, NSIndexPath, bool> IsSectionItem { get; set; }
+        
         public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; set; }
 
         public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDropTo { get; set; }

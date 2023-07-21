@@ -38,6 +38,8 @@
         public OperateType operateType;
 
         public bool operateAnimate = true;
+
+        public int moveCount = 0;
     }
     #endregion
 }

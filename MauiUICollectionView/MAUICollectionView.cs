@@ -422,6 +422,25 @@ namespace MauiUICollectionView
 
         #region 操作
 
+        NSIndexPath GetNextItem(NSIndexPath indexPath)
+        {
+            if(indexPath.Row < NumberOfItemsInSection(indexPath.Section) -1) // have next item in same section
+            {
+                return NSIndexPath.FromRowSection(indexPath.Row + 1, indexPath.Section);
+            }
+            else // find next item from next section
+            {
+                if(indexPath.Section < NumberOfSections() -1)
+                {
+                    return NSIndexPath.FromRowSection(0, indexPath.Section+1);
+                }
+                else //don't have next section
+                {
+                    return null;
+                }
+            }
+        }
+
         /// <summary>
         /// 通知CollectionView移除某Item, 需要做出改变.
         /// 移除会让移除项后面的Item需要调节高度, 这个高度需要动画改变
@@ -429,6 +448,7 @@ namespace MauiUICollectionView
         /// <param name="indexPath"></param>
         public void NotifyItemRangeRemoved(NSIndexPath indexPath, int count = 1)
         {
+            if (count < 1 || indexPath.Row + count > NumberOfItemsInSection(indexPath.Section)) return;
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.StopOperateAnim();
@@ -443,26 +463,43 @@ namespace MauiUICollectionView
             if (lastNeedRemoveIndexPath.Compare(ItemsLayout.VisibleIndexPath.FirstOrDefault()) < 0)
                 isRemovedBeforeVisible = true;
 
+            NSIndexPath lastRemovedIndexPath = NSIndexPath.FromRowSection(indexPath.Row - 1, indexPath.Section);
             for (var index = 0; index < count; index++)
             {
-                var needRemovedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
+                var needRemovedIndexPath = GetNextItem(lastRemovedIndexPath);
+                if (needRemovedIndexPath.Section != indexPath.Section)
+                    break;
                 Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Remove, source = needRemovedIndexPath, operateAnimate = !(ItemsLayout.VisibleIndexPath.FirstOrDefault().Row - indexPath.Row >= count) });
+                lastRemovedIndexPath = needRemovedIndexPath;
             }
 
             //移动2*count数目的Item:第一部分 count items 填充移除的, 后面的填充移动的
-            for (var index = 1; index <= 2 * count; index++)
+            NSIndexPath lastMovedIndexPath = lastNeedRemoveIndexPath;
+            for (var moveCount = 1; moveCount <= 2 * count; moveCount++)
             {
-                var needMovedIndexPath = NSIndexPath.FromRowSection(lastNeedRemoveIndexPath.Row + index, lastNeedRemoveIndexPath.Section);
-                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = needMovedIndexPath, target = NSIndexPath.FromRowSection(needMovedIndexPath.Row - count, needMovedIndexPath.Section), operateAnimate = !isRemovedBeforeVisible });
+                var needMovedIndexPath = GetNextItem(lastMovedIndexPath);
+                if (needMovedIndexPath == null) continue;
+                Updates.Add(new OperateItem() { 
+                    operateType = OperateItem.OperateType.Move, 
+                    source = needMovedIndexPath, 
+                    target = needMovedIndexPath.Section == indexPath.Section ? NSIndexPath.FromRowSection(needMovedIndexPath.Row - count, needMovedIndexPath.Section) : needMovedIndexPath, //if not same section, don't change IndexPath
+                    operateAnimate = !isRemovedBeforeVisible,
+                    moveCount = -count
+                });
+                lastMovedIndexPath = needMovedIndexPath;
             }
 
-            var lastMovedIndexPath = NSIndexPath.FromRowSection(lastNeedRemoveIndexPath.Row + 2 * count, lastNeedRemoveIndexPath.Section);
-            //如果显示的item过多, 可能也需要移动
+            lastMovedIndexPath = NSIndexPath.FromRowSection(lastNeedRemoveIndexPath.Row + 2 * count, lastNeedRemoveIndexPath.Section);
+            //if visible items is too more(> 2 * count), maybe need more more.
             foreach (var visibleItem in PreparedItems)
             {
-                if (visibleItem.Key > lastMovedIndexPath)//同一section的item才变化
+                if (visibleItem.Key > lastMovedIndexPath)
                 {
-                    Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visibleItem.Key, target = NSIndexPath.FromRowSection(visibleItem.Key.Row - count, visibleItem.Key.Section), operateAnimate = !isRemovedBeforeVisible });
+                    Updates.Add(new OperateItem() { 
+                        operateType = OperateItem.OperateType.Move, 
+                        source = visibleItem.Key, 
+                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row - count, visibleItem.Key.Section) : visibleItem.Key, 
+                        operateAnimate = !isRemovedBeforeVisible });
                 }
             }
 
@@ -493,6 +530,7 @@ namespace MauiUICollectionView
         /// <param name="indexPath">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
         public void NotifyItemRangeInserted(NSIndexPath indexPath, int count = 1)
         {
+            if (count < 1) return;
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.StopOperateAnim();

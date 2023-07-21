@@ -66,7 +66,7 @@ public partial class DefaultTestPage : ContentPage
         var headerButton = new Button() { Text = "Header GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
+            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(9, 1), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Header");
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
@@ -77,7 +77,7 @@ public partial class DefaultTestPage : ContentPage
         var footerButton = new Button() { Text = "Footer GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
+            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(9, 1), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Footer");
         };
         var footActivityIndicator = new ActivityIndicator() { Color = Colors.Red, IsVisible = false, IsRunning = false, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
@@ -101,16 +101,22 @@ public partial class DefaultTestPage : ContentPage
         //Add
         Add.Clicked += (sender, e) =>
         {
-            var index = 10;
-            (tableView.Source as Source).InsertData(index);
-            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0),3);
+            var index = 3;
+            var count = 3;
+            (tableView.Source as Source).InsertData(0, index, count);
+            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0), count);
         };
 
         Remove.Clicked += (sender, e) =>
         {
-            var index = 10;
-            (tableView.Source as Source).RemoveData(index);
-            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0),3);
+            var arg = NSIndexPath.FromRowSection(3, 0);
+            var count = 3;
+            var distance = arg.Row + count - viewModel.models[arg.Section].Count;
+            if (distance < 0)
+                (tableView.Source as Source).RemoveData(arg.Section, arg.Row, count);
+            else
+                (tableView.Source as Source).RemoveData(arg.Section, arg.Row, viewModel.models[arg.Section].Count - arg.Row);
+            tableView.NotifyItemRangeRemoved(arg, count);
         };
 
         Move.Clicked += (sender, e) =>

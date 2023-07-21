@@ -67,6 +67,7 @@ namespace MauiUICollectionView
         /// </summary>
         public virtual void PrepareForReuse()
         {
+            IndexPath = null;
             this.HeightRequest = -1; //避免之前的Cell被设置了固定值
             this.WidthRequest = -1; //避免之前的Cell被设置了固定值
             OldBoundsInLayout = Rect.Zero;

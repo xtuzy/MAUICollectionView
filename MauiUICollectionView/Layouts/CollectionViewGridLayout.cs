@@ -10,7 +10,7 @@
         }
 
         /// <summary>
-        /// 分成几列
+        /// Split width.
         /// </summary>
         public int ColumnCount { get; set; } = 2;
 
@@ -18,11 +18,6 @@
         /// The default height to apply to all items
         /// </summary>
         public Size AspectRatio { get; set; } = new Size(1, 1);
-
-        /// <summary>
-        /// Image测量可能首先获得的高度为0, 造成要显示Item数目过多. 这个值尽量接近最终高度.
-        /// </summary>
-        public double EstimatedRowHeight = 100;
 
         protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
         {
