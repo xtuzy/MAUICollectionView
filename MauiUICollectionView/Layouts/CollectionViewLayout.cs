@@ -475,6 +475,7 @@ namespace MauiUICollectionView.Layouts
 
         /// <summary>
         /// Get total height of items. we also measure invisible items after visible item, because it be used to adjust ScrollY for stay don't move visible items when Remove or Insert.
+        /// Notice, these items' section should be same.
         /// </summary>
         /// <param name="indexPath"></param>
         /// <param name="count"></param>

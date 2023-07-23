@@ -100,13 +100,23 @@ namespace DemoTest.Pages
         {
             ViewModel = viewModel;
 
-            HeightForItem += heightForRowAtIndexPathMethod;
-            NumberOfItems += numberOfRowsInSectionMethod;
-            ViewHolderForItem += cellForRowAtIndexPathMethod;
-            NumberOfSections += numberOfSectionsInTableViewMethod;
-            ReuseIdForItem += reuseIdentifierForRowAtIndexPathMethod;
+            HeightForItem += HeightForItemMethod;
+            NumberOfItems += NumberOfItemsMethod;
+            ViewHolderForItem += ViewHolderForItemMethod;
+            NumberOfSections += NumberOfSectionsMethod;
+            ReuseIdForItem += ReuseIdForItemMethod;
             WantDragTo += WillDragToMethod;
-            DidPrepareItem += preparedItemsMethod;
+            DidPrepareItem += DidPrepareItemMethod;
+            IsSectionItem += IsSectionItemMethod;
+        }
+
+        bool IsSectionItemMethod(MAUICollectionView view, NSIndexPath indexPath)
+        {
+            var id = ReuseIdForItemMethod(view, indexPath);
+            if (id == sectionCell)
+                return true;
+            else
+                return false;
         }
 
         /// <summary>
@@ -115,7 +125,7 @@ namespace DemoTest.Pages
         /// <param name="view"></param>
         /// <param name="indexPath"></param>
         /// <param name="viewHolder"></param>
-        private void preparedItemsMethod(MAUICollectionView view, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder)
+        private void DidPrepareItemMethod(MAUICollectionView view, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder)
         {
 
         }
@@ -189,29 +199,28 @@ namespace DemoTest.Pages
             });
         }
 
-        public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
+        public int NumberOfSectionsMethod(MAUICollectionView tableView)
         {
             return ViewModel.models.Count;
         }
 
-        public int numberOfRowsInSectionMethod(MAUICollectionView tableView, int section)
+        public int NumberOfItemsMethod(MAUICollectionView tableView, int section)
         {
-            return ViewModel.models[section].Count;
+            return ViewModel.models[section].Count + 1; //+1 is add section header
         }
 
-        public string reuseIdentifierForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
+        public string ReuseIdForItemMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
             if (indexPath.Row == 0)
             {
                 return sectionCell;
             }
-            //return itemCell;
             return itemCellSimple;
         }
 
-        public double heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
+        public double HeightForItemMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
-            var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
+            var type = ReuseIdForItemMethod(tableView, indexPath);
             switch (type)
             {
                 case sectionCell:
@@ -223,14 +232,19 @@ namespace DemoTest.Pages
             }
         }
 
+        Model GetItemData(NSIndexPath indexPath)
+        {
+            return ViewModel.models[indexPath.Section][indexPath.Row - 1];
+        }
+
         int newCellCount = 0;
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
         const string itemCellSimple = "itemCellSimple";
-        public MAUICollectionViewViewHolder cellForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
+        public MAUICollectionViewViewHolder ViewHolderForItemMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
         {
             //从tableView的一个队列里获取一个cell
-            var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
+            var type = ReuseIdForItemMethod(tableView, indexPath);
             MAUICollectionViewViewHolder cell;
             if (oldViewHolder != null)//只需局部刷新
             {
@@ -271,11 +285,14 @@ namespace DemoTest.Pages
                         var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
                             var count = 3;
-                            var distance = arg.Row + count - ViewModel.models[arg.Section].Count;
+                            var distance = arg.Row - 1 + count - ViewModel.models[arg.Section].Count;
                             if (distance < 0)
-                                RemoveData(arg.Section, arg.Row, count);
+                                RemoveData(arg.Section, arg.Row - 1, count);
                             else
-                                RemoveData(arg.Section, arg.Row, ViewModel.models[arg.Section].Count - arg.Row);
+                            {
+                                count = ViewModel.models[arg.Section].Count - (arg.Row - 1);
+                                RemoveData(arg.Section, arg.Row - 1, count);
+                            }
                             tableView.NotifyItemRangeRemoved(arg, count);
                             tableView.ReMeasure();
                         });
@@ -293,12 +310,13 @@ namespace DemoTest.Pages
                         };
                     }
 
-                    simpleCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonName;
-                    simpleCell.ModelView.PersonGender.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonGender;
-                    simpleCell.ModelView.PersonPhone.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonPhone;
-                    simpleCell.ModelView.PersonTextBlogTitle.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonTextBlogTitle;
-                    simpleCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Section][indexPath.Row].PersonImageBlogUrl;
-                    simpleCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonTextBlog;
+                    var data = GetItemData(indexPath);
+                    simpleCell.ModelView.PersonName.Text = data.PersonName;
+                    simpleCell.ModelView.PersonGender.Text = data.PersonGender;
+                    simpleCell.ModelView.PersonPhone.Text = data.PersonPhone;
+                    simpleCell.ModelView.PersonTextBlogTitle.Text = data.PersonTextBlogTitle;
+                    simpleCell.ModelView.PersonImageBlog.Source = data.PersonImageBlogUrl;
+                    simpleCell.ModelView.PersonTextBlog.Text = data.PersonTextBlog;
                     simpleCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
 
                     cell = simpleCell;

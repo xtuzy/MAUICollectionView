@@ -448,7 +448,11 @@ namespace MauiUICollectionView
         /// <param name="indexPath"></param>
         public void NotifyItemRangeRemoved(NSIndexPath indexPath, int count = 1)
         {
-            if (count < 1 || indexPath.Row + count > NumberOfItemsInSection(indexPath.Section)) return;
+            if (count < 1) return;
+            if(indexPath.Row + count > NumberOfItemsInSection(indexPath.Section))
+            {
+                throw new IndexOutOfRangeException("Removed item beyond data");
+            }
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.StopOperateAnim();
