@@ -131,7 +131,7 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index, 0) });
+            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index + 1, 0) });
         };
 
         Reload.Clicked += (sender, e) =>

@@ -58,6 +58,9 @@
                         }
                         else
                         {
+                            if (cell.Operation == (int)OperateItem.OperateType.Move &&
+                                IsOperating)
+                                cell.OldBoundsInLayout = Rect.Zero;
                             cell.BoundsInLayout = bounds;
                         }
 
@@ -167,7 +170,7 @@
                         }
                     }
                 }
-                else//first mot, we try know allDataItem in rect
+                else//first not, we try know allDataItem in rect
                 {
                     var allDataItemRect = new Rect(0, itemsHeight + firstItemHeight + top, inRect.Width, sectionAllDataItemsHeight);
                     if (allDataItemRect.IntersectsWith(inRect))
@@ -205,10 +208,16 @@
 
                 }
 
-
                 var lastItemHeight = lastIsSectionItem == true ? CollectionView.Source.HeightForItem(CollectionView, lastItem) : 0;
 
                 itemsHeight = itemsHeight + firstItemHeight + sectionAllDataItemsHeight + lastItemHeight;
+            }
+
+            //if viewHolder is invisible, we calculate its position for animation
+            foreach(var viewHolder in availableCells)
+            {
+                var rect = RectForItem(viewHolder.Key);
+                measureItem(viewHolder.Key, rect, false);
             }
 
             return itemsHeight;

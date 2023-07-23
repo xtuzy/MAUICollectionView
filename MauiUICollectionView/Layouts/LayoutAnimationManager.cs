@@ -70,7 +70,7 @@
         /// <summary>
         /// if you don't need animation for scroll, set false.
         /// </summary>
-        public bool HasScrollAnim { get; set; } = true;
+        public bool HasScrollAnim { get; set; } = false;
 
         /// <summary>
         /// internal load this method when new operation be done, it will stop all animation of last operation.
@@ -329,20 +329,14 @@
                     foreach (var item in listRemoveViewHolder)
                     {
                         operateItems.Remove(item);
-                        CollectionView.Dispatcher.Dispatch(() =>
-                        {
-                            CollectionView.RecycleViewHolder(item);
-                        });
+                        CollectionView.RecycleViewHolder(item);
                     }
                     //remove了中间的
                     if (moveOperateAnimation != null)
                     {
                         moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 250, null, (v, b) =>
                         {
-                            CollectionView.Dispatcher.Dispatch(() =>
-                            {
-                                CollectionView.ReMeasure();
-                            });
+                            CollectionView.ReMeasure();
                             OperateAnimFinished();
                         });
                     }
@@ -358,10 +352,7 @@
                 {
                     moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 250, null, (v, b) =>
                     {
-                        CollectionView.Dispatcher.Dispatch(() =>
-                        {
-                            CollectionView.ReMeasure();
-                        });
+                        CollectionView.ReMeasure();
                         //插入到中间时, 既有move又有insert
                         if (insertOperateAnimation != null)
                         {

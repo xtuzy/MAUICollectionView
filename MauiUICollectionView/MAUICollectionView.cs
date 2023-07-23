@@ -137,7 +137,7 @@ namespace MauiUICollectionView
 #if IOS
         public int ExtendHeight => 0;
 #else
-        public int ExtendHeight => (int)CollectionViewConstraintSize.Height * 0;
+        public int ExtendHeight => (int)CollectionViewConstraintSize.Height * 1;
 #endif
         public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
         {
@@ -424,15 +424,15 @@ namespace MauiUICollectionView
 
         NSIndexPath GetNextItem(NSIndexPath indexPath)
         {
-            if(indexPath.Row < NumberOfItemsInSection(indexPath.Section) -1) // have next item in same section
+            if (indexPath.Row < NumberOfItemsInSection(indexPath.Section) - 1) // have next item in same section
             {
                 return NSIndexPath.FromRowSection(indexPath.Row + 1, indexPath.Section);
             }
             else // find next item from next section
             {
-                if(indexPath.Section < NumberOfSections() -1)
+                if (indexPath.Section < NumberOfSections() - 1)
                 {
-                    return NSIndexPath.FromRowSection(0, indexPath.Section+1);
+                    return NSIndexPath.FromRowSection(0, indexPath.Section + 1);
                 }
                 else //don't have next section
                 {
@@ -449,7 +449,7 @@ namespace MauiUICollectionView
         public void NotifyItemRangeRemoved(NSIndexPath indexPath, int count = 1)
         {
             if (count < 1) return;
-            if(indexPath.Row + count > NumberOfItemsInSection(indexPath.Section))
+            if (indexPath.Row + count > NumberOfItemsInSection(indexPath.Section))
             {
                 throw new IndexOutOfRangeException("Removed item beyond data");
             }
@@ -483,9 +483,10 @@ namespace MauiUICollectionView
             {
                 var needMovedIndexPath = GetNextItem(lastMovedIndexPath);
                 if (needMovedIndexPath == null) continue;
-                Updates.Add(new OperateItem() { 
-                    operateType = OperateItem.OperateType.Move, 
-                    source = needMovedIndexPath, 
+                Updates.Add(new OperateItem()
+                {
+                    operateType = OperateItem.OperateType.Move,
+                    source = needMovedIndexPath,
                     target = needMovedIndexPath.Section == indexPath.Section ? NSIndexPath.FromRowSection(needMovedIndexPath.Row - count, needMovedIndexPath.Section) : needMovedIndexPath, //if not same section, don't change IndexPath
                     operateAnimate = !isRemovedBeforeVisible,
                     moveCount = -count
@@ -499,11 +500,13 @@ namespace MauiUICollectionView
             {
                 if (visibleItem.Key > lastMovedIndexPath)
                 {
-                    Updates.Add(new OperateItem() { 
-                        operateType = OperateItem.OperateType.Move, 
-                        source = visibleItem.Key, 
-                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row - count, visibleItem.Key.Section) : visibleItem.Key, 
-                        operateAnimate = !isRemovedBeforeVisible });
+                    Updates.Add(new OperateItem()
+                    {
+                        operateType = OperateItem.OperateType.Move,
+                        source = visibleItem.Key,
+                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row - count, visibleItem.Key.Section) : visibleItem.Key,
+                        operateAnimate = !isRemovedBeforeVisible
+                    });
                 }
             }
 
@@ -543,15 +546,19 @@ namespace MauiUICollectionView
             if (indexPath.Compare(ItemsLayout.VisibleIndexPath.FirstOrDefault()) < 0)
                 isInsertBeforeVisiable = true;
 
-            //visible item maybe need move position when insert items
-            foreach (var visiableItem in PreparedItems)
+            //visible item maybe need move position after insert items
+            foreach (var visibleItem in PreparedItems)
             {
-                if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
+                if (!(visibleItem.Key < indexPath))
                 {
-                    if (visiableItem.Key.Row >= indexPath.Row)//大于等于item的row的需要更新IndexPath
+                    Updates.Add(new OperateItem()
                     {
-                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + count, visiableItem.Key.Section), operateAnimate = !isInsertBeforeVisiable });
-                    }
+                        moveCount = count,
+                        operateType = OperateItem.OperateType.Move,
+                        source = visibleItem.Key,
+                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row + count, visibleItem.Key.Section) : visibleItem.Key,
+                        operateAnimate = !isInsertBeforeVisiable
+                    });
                 }
             }
 
@@ -559,7 +566,11 @@ namespace MauiUICollectionView
             for (var index = 0; index < count; index++)
             {
                 var needInsertedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
-                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Insert, source = needInsertedIndexPath });
+                Updates.Add(new OperateItem()
+                {
+                    operateType = OperateItem.OperateType.Insert,
+                    source = needInsertedIndexPath
+                });
             }
 
             ReloadDataCount();
