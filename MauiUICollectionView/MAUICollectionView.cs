@@ -57,6 +57,28 @@ namespace MauiUICollectionView
                 }
             }
         }
+
+        View _emptyView;
+        public View EmptyView
+        {
+            set
+            {
+                //如果已经存在, 先移除
+                if (_emptyView != null && _emptyView != value)
+                {
+                    if (ContentView.Contains(_emptyView))
+                    {
+                        ContentView.Remove(_emptyView);
+                    }
+                }
+
+                if (value != null && _emptyView != value)
+                {
+                    _emptyView = value;
+                    ContentView.Insert(1, _emptyView);//插入到底部
+                }
+            }
+        }
         #endregion
 
         bool _needsReload;
@@ -116,14 +138,28 @@ namespace MauiUICollectionView
             {
                 _source = value;
 
-                _sourceHas.numberOfSectionsInCollectionView = _source.NumberOfSections != null;
-                _sourceHas.numberOfItemsInSection = _source.NumberOfItems != null;
+                if (_source != null)
+                {
+                    _sourceHas.numberOfSectionsInCollectionView = _source.NumberOfSections != null;
+                    _sourceHas.numberOfItemsInSection = _source.NumberOfItems != null;
 
-                _sourceHas.heightForRowAtIndexPath = _source.HeightForItem != null;
-                _sourceHas.willSelectRowAtIndexPath = _source.WillSelectItem != null;
-                _sourceHas.didSelectRowAtIndexPath = _source.DidSelectItem != null;
-                _sourceHas.willDeselectRowAtIndexPath = _source.WillDeselectItem != null;
-                _sourceHas.didDeselectRowAtIndexPath = _source.DidDeselectItem != null;
+                    _sourceHas.heightForRowAtIndexPath = _source.HeightForItem != null;
+                    _sourceHas.willSelectRowAtIndexPath = _source.WillSelectItem != null;
+                    _sourceHas.didSelectRowAtIndexPath = _source.DidSelectItem != null;
+                    _sourceHas.willDeselectRowAtIndexPath = _source.WillDeselectItem != null;
+                    _sourceHas.didDeselectRowAtIndexPath = _source.DidDeselectItem != null;
+                }
+                else
+                {
+                    _sourceHas.numberOfSectionsInCollectionView = false;
+                    _sourceHas.numberOfItemsInSection = false;
+
+                    _sourceHas.heightForRowAtIndexPath = false;
+                    _sourceHas.willSelectRowAtIndexPath = false;
+                    _sourceHas.didSelectRowAtIndexPath = false;
+                    _sourceHas.willDeselectRowAtIndexPath = false;
+                    _sourceHas.didDeselectRowAtIndexPath = false;
+                }
 
                 this._setNeedsReload();
             }
@@ -207,7 +243,7 @@ namespace MauiUICollectionView
             this._reloadDataIfNeeded();
             Size size = Size.Zero;
 
-            if (ItemsLayout != null)
+            if (ItemsLayout != null && Source != null)
             {
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
                 {
@@ -222,27 +258,43 @@ namespace MauiUICollectionView
                 size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
             }
 
+            // set empty view
+            if (ItemsLayout != null && Source != null)
+            {
+                if (_emptyView != null && _emptyView.IsVisible == true)
+                    _emptyView.IsVisible = false;
+            }
+            else
+            {
+                if (_emptyView != null)
+                {
+                    if (_emptyView.IsVisible == false)
+                        _emptyView.IsVisible = true;
+                    _emptyView.MeasureSelf(this.Width, this.Height);
+                }
+            }
+
+            // measure background view
             if (_backgroundView != null)
             {
                 if (size != Size.Zero)
-                    MeasureChild(_backgroundView, size.Width, size.Height);
+                    _backgroundView.MeasureSelf(size.Width, size.Height);
                 else
-                    MeasureChild(_backgroundView, widthConstraint, heightConstraint);
+                    _backgroundView.MeasureSelf(widthConstraint, heightConstraint);
             }
 
             return size;
         }
 
-        public SizeRequest MeasureChild(Element element, double widthConstraint, double heightConstraint)
-        {
-            return (element as IView).Measure(widthConstraint, heightConstraint);
-        }
-
-        bool animating = false;
         public partial void OnContentViewLayout()
         {
+            if ((ItemsLayout == null || Source == null) && _emptyView != null)
+            {
+                _emptyView.ArrangeSelf(new Rect(0, 0, this.Width, this.Height));
+            }
+
             if (_backgroundView != null)
-                LayoutChild(_backgroundView, ContentView.Bounds);
+                _backgroundView.ArrangeSelf(ContentView.Bounds);
 
             ItemsLayout?.ArrangeContents();
         }

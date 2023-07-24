@@ -55,16 +55,16 @@ namespace MauiUICollectionView.Layouts
 
             if (CollectionView.HeaderView != null)
             {
-                CollectionView.LayoutChild(CollectionView.HeaderView, CollectionView.HeaderView.BoundsInLayout);
+                CollectionView.HeaderView.ArrangeSelf(CollectionView.HeaderView.BoundsInLayout);
             }
 
             // layout sections and rows
             foreach (var cell in CollectionView.PreparedItems)
             {
                 if (cell.Value == CollectionView.DragedItem)
-                    CollectionView.LayoutChild(cell.Value, cell.Value.DragBoundsInLayout);
+                    cell.Value.ArrangeSelf(cell.Value.DragBoundsInLayout);
                 else
-                    CollectionView.LayoutChild(cell.Value, cell.Value.BoundsInLayout);
+                    cell.Value.ArrangeSelf(cell.Value.BoundsInLayout);
 
                 //避免Measure时处理错误回收了可见的Item
                 if (CollectionView.ReusableViewHolders.Contains(cell.Value))
@@ -77,12 +77,12 @@ namespace MauiUICollectionView.Layouts
             {
                 //if (item.Opacity != 0)
                 //    item.Opacity = 0;
-                CollectionView.LayoutChild(item, new Rect(0, 0 - item.Bounds.Height, item.Width, item.Height));
+                item.ArrangeSelf(new Rect(0, 0 - item.Bounds.Height, item.Width, item.Height));
             }
 
             if (CollectionView.FooterView != null)
             {
-                CollectionView.LayoutChild(CollectionView.FooterView, CollectionView.FooterView.BoundsInLayout);
+                CollectionView.FooterView.ArrangeSelf(CollectionView.FooterView.BoundsInLayout);
             }
         }
 
@@ -424,7 +424,7 @@ namespace MauiUICollectionView.Layouts
             //表头的View是确定的, 我们可以直接测量
             if (CollectionView.HeaderView != null)
             {
-                var measuredSize = CollectionView.MeasureChild(CollectionView.HeaderView, widthConstraint, double.PositiveInfinity).Request;
+                var measuredSize = CollectionView.HeaderView.MeasureSelf(widthConstraint, double.PositiveInfinity).Request;
                 CollectionView.HeaderView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }
@@ -452,7 +452,7 @@ namespace MauiUICollectionView.Layouts
             //表尾的View是确定的, 我们可以直接测量
             if (CollectionView.FooterView != null)
             {
-                var measuredSize = CollectionView.MeasureChild(CollectionView.FooterView, widthConstraint, double.PositiveInfinity).Request;
+                var measuredSize = CollectionView.FooterView.MeasureSelf(widthConstraint, double.PositiveInfinity).Request;
                 CollectionView.FooterView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }

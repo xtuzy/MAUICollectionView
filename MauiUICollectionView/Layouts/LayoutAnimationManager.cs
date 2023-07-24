@@ -269,7 +269,7 @@
                             item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom
                             )//不在PreparedItem里的没有重新Arrange, 我们基于旧的位置
                         {
-                            CollectionView.LayoutChild(item, item.BoundsInLayout);
+                            item.ArrangeSelf(item.BoundsInLayout);
                         }
 
                         item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * 1;

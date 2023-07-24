@@ -46,7 +46,7 @@
                         //测量高度
                         cell.WidthRequest = itemRect.Width;
                         cell.HeightRequest = unknowItemHeight ? -1 : itemRect.Height;
-                        var measureSize = CollectionView.MeasureChild(cell, itemRect.Width, unknowItemHeight ? double.PositiveInfinity : itemRect.Height).Request;
+                        var measureSize = cell.MeasureSelf(itemRect.Width, unknowItemHeight ? double.PositiveInfinity : itemRect.Height).Request;
                         var bounds = new Rect(itemRect.X, itemRect.Y, measureSize.Width, measureSize.Height);
 
                         if (cell.Operation == (int)OperateItem.OperateType.Move && // move

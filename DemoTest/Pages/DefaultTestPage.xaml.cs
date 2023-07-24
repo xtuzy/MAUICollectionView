@@ -37,14 +37,22 @@ public partial class DefaultTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-            Source = new Source(viewModel),
+           
             SelectionMode = SelectionMode.Multiple,
             //CanDrag = true,
             CanContextMenu = true,
         };
-        content.Content = tableView;
         tableView.ItemsLayout = new CollectionViewListLayout(tableView)
         {
+        };
+        content.Content = tableView;
+        this.SetSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = new Source(viewModel);
+        };
+        this.RemoveSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = null;
         };
 
         //ѡ��Item
@@ -86,6 +94,7 @@ public partial class DefaultTestPage : ContentPage
 
         tableView.FooterView = new MAUICollectionViewViewHolder(footer, "foot");
 
+        tableView.EmptyView = new Grid() { BackgroundColor = Colors.Yellow, Children = { new Label() { Text = "No data!", TextColor = Colors.Black, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center } } };
         tableView.BackgroundView = new Grid() { BackgroundColor = Colors.LightPink };
 
         this.Loaded += (sender, e) =>

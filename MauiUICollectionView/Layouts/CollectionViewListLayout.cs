@@ -215,11 +215,11 @@
                             if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//fixed value
                             {
                                 cell.HeightRequest = rowHeightWant;
-                                measureSize = CollectionView.MeasureChild(cell, inRect.Width, rowHeightWant).Request;
+                                measureSize = cell.MeasureSelf(inRect.Width, rowHeightWant).Request;
                             }
                             else//need measure
                             {
-                                measureSize = CollectionView.MeasureChild(cell, inRect.Width, double.PositiveInfinity).Request;
+                                measureSize = cell.MeasureSelf(inRect.Width, double.PositiveInfinity).Request;
                                 if (measureSize.Height != 0)
                                 {
                                     //store height for same identify
@@ -438,11 +438,11 @@
                             if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//固定高度
                             {
                                 cell.HeightRequest = rowHeightWant;
-                                measureSize = CollectionView.MeasureChild(cell, w, rowHeightWant).Request;
+                                measureSize = cell.MeasureSelf(w, rowHeightWant).Request;
                             }
                             else
                             {
-                                measureSize = CollectionView.MeasureChild(cell, w, double.PositiveInfinity).Request;
+                                measureSize = cell.MeasureSelf(w, double.PositiveInfinity).Request;
                             }
 
                             var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (measureSize.Height != 0 ? measureSize.Height : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);

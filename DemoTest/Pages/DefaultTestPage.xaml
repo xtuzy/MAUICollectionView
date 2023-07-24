@@ -19,12 +19,14 @@
                     TextColor="AliceBlue"
                     VerticalTextAlignment="Center"
                     WidthRequest="50" />
+                <Button x:Name="SetSource" Text="SetSource" />
+                <Button x:Name="RemoveSource" Text="RemoveSource" />
                 <Button x:Name="Add" Text="Add" />
                 <Button x:Name="Remove" Text="Remove" />
                 <Button x:Name="Change" Text="Change" />
                 <Button x:Name="Move" Text="Move" />
                 <Button x:Name="Reload" Text="Reload" />
-                <Button x:Name="ChangeLayout" Text="ReLayout" />
+                <Button x:Name="ChangeLayout" Text="ChangeLayout" />
             </HorizontalStackLayout>
         </ScrollView>
         <ContentView Grid.Row="1">
