@@ -134,32 +134,32 @@ namespace MauiUICollectionView
 
                     if (SelectionMode == SelectionMode.Single)
                     {
-                        for (int index = SelectedRow.Count - 1; index >= 0; index--)
+                        for (int index = SelectedItems.Count - 1; index >= 0; index--)
                         {
-                            var old = SelectedRow[index];
+                            var old = SelectedItems[index];
                             if (old.Equals(indexPath))//单选时, 如果点击了已选的, 不取消选择
                                 continue;
-                            DeselectRowAtIndexPath(old);
+                            DeselectItem(old);
                             Source?.DidDeselectItem?.Invoke(this, indexPath);
                         }
                         if (indexPath != null)
                         {
-                            this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                            this.SelectItem(indexPath, false, ScrollPosition.None);
                             Source?.DidSelectItem?.Invoke(this, indexPath);
                         }
                     }
                     else if (SelectionMode == SelectionMode.Multiple)
                     {
-                        if (SelectedRow.Contains(indexPath))//多选模式下, 点击已经选择了的会取消选择
+                        if (SelectedItems.Contains(indexPath))//多选模式下, 点击已经选择了的会取消选择
                         {
-                            DeselectRowAtIndexPath(indexPath);
+                            DeselectItem(indexPath);
                             Source?.DidDeselectItem?.Invoke(this, indexPath);
                         }
                         else
                         {
                             if (indexPath != null)
                             {
-                                this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                                this.SelectItem(indexPath, false, ScrollPosition.None);
                                 Source?.DidSelectItem?.Invoke(this, indexPath);
                             }
                         }
@@ -382,6 +382,9 @@ namespace MauiUICollectionView
         }
 
         SelectionMode selectionMode = SelectionMode.None;
+        /// <summary>
+        /// Specify selection mode.
+        /// </summary>
         public SelectionMode SelectionMode
         {
             get => selectionMode;
@@ -390,7 +393,7 @@ namespace MauiUICollectionView
                 if (value == SelectionMode.None)
                 {
                     //设置成None时清除之前选择的
-                    SelectedRow?.Clear();
+                    SelectedItems?.Clear();
                 }
                 selectionMode = value;
             }
@@ -412,6 +415,9 @@ namespace MauiUICollectionView
         }
 
         bool canDrag = false;
+        /// <summary>
+        /// Set whether item can be dragged or dropped after long press. 
+        /// </summary>
         public bool CanDrag
         {
             set
@@ -424,6 +430,9 @@ namespace MauiUICollectionView
         }
 
         bool canContextMenu = false;
+        /// <summary>
+        /// Set whether show ContextMenu after long press. 
+        /// </summary>
         public bool CanContextMenu
         {
             set
@@ -437,7 +446,9 @@ namespace MauiUICollectionView
         }
 
         #endregion
-
+        /// <summary>
+        /// custom a layout as content of ScrollView
+        /// </summary>
         public class ContentViewForScrollView : Layout
         {
             MAUICollectionView container;

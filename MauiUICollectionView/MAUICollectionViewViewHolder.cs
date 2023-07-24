@@ -9,7 +9,7 @@ namespace MauiUICollectionView
 
         public const float MeasureSelf = -1;
         /// <summary>
-        /// 存储Item的位置和大小, 在Measure时设置, Arrange时使用它作为最终的参数
+        /// Store position and size of item. set it when Measure, and use it as the final parameter when Arrange
         /// </summary>
         public Rect BoundsInLayout;
 
@@ -40,7 +40,7 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 子类实现它来设置被选择时如何显示.
+        /// The subclass implements it to set how it is displayed when selected.
         /// </summary>
         /// <param name="shouldHighlight"></param>
         public virtual void UpdateSelectionState(bool shouldHighlight)
@@ -63,13 +63,13 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 重置ViewHolder的状态, 子类可以在其中清空View的内容. 例如, ViewHolder被回收时, 对象并没有被销毁, 会一直占用内存, 其中展示的Image也会一直被缓存, 因此可在此处设置Image为空.
+        /// Resets the state of the ViewHolder, where subclasses can empty the contents of the View. For example, when the ViewHolder is recycled, the object is not destroyed, it will always occupy memory, and the displayed Image will always be cached, so you can set the Image to empty here.
         /// </summary>
         public virtual void PrepareForReuse()
         {
             IndexPath = null;
-            this.HeightRequest = -1; //避免之前的Cell被设置了固定值
-            this.WidthRequest = -1; //避免之前的Cell被设置了固定值
+            this.HeightRequest = -1; //Avoid having a fixed value be set
+            this.WidthRequest = -1; 
             OldBoundsInLayout = Rect.Zero;
             BoundsInLayout = Rect.Zero;
             Selected = false;
@@ -82,9 +82,10 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 内部用于需要移动Item的操作, 为动画提供位置
+        /// provide position for animation of item that be moved.
         /// </summary>
         public Rect OldBoundsInLayout = Rect.Zero;
+        
         /// <summary>
         /// <see cref="OperateItem.OperateType"/>, if no operate, set to -1
         /// </summary>
@@ -92,6 +93,9 @@ namespace MauiUICollectionView
 
         public IContextMenu ContextMenu { get; set; }
 
+        /// <summary>
+        /// store position and size for dragged item, it be arranged according to this.
+        /// </summary>
         public Rect DragBoundsInLayout = Rect.Zero;
 
         public override string ToString()

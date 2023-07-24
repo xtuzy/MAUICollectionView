@@ -13,7 +13,7 @@ namespace MauiUICollectionView.Layouts
             AnimationManager = new LayoutAnimationManager(collectionView);
         }
 
-        public LayoutAnimationManager AnimationManager { get; set; }
+        public ILayoutAnimationManager AnimationManager { get; set; }
 
 
         /*
@@ -222,7 +222,7 @@ namespace MauiUICollectionView.Layouts
                             {
                                 viewHolder.Operation = (int)OperateItem.OperateType.RemoveNow;
                             }
-                            AnimationManager.Add(viewHolder);
+                            AnimationManager.AddOperatedItem(viewHolder);
 
                             Updates.RemoveAt(index);
                         }
@@ -234,7 +234,7 @@ namespace MauiUICollectionView.Layouts
                         {
                             var viewHolder = availableViewHolders[update.source];
                             viewHolder.Operation = (int)OperateItem.OperateType.Update;
-                            AnimationManager.Add(viewHolder);
+                            AnimationManager.AddOperatedItem(viewHolder);
                             availableViewHolders.Remove(update.source);
                             Updates.RemoveAt(index);
                         }
@@ -297,12 +297,12 @@ namespace MauiUICollectionView.Layouts
                             && update.operateAnimate)//move的可以是没有动画但位置移动的
                             {
                                 oldViewHolder.Operation = (int)OperateItem.OperateType.Move;
-                                AnimationManager.Add(oldViewHolder);
+                                AnimationManager.AddOperatedItem(oldViewHolder);
                             }
                             if (!update.operateAnimate)
                             {
                                 oldViewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
-                                AnimationManager.Add(oldViewHolder);
+                                AnimationManager.AddOperatedItem(oldViewHolder);
                             }
                             availableViewHolders.Remove(update.source);
                             if (availableViewHolders.ContainsKey(update.target))
@@ -328,7 +328,7 @@ namespace MauiUICollectionView.Layouts
              */
             foreach (var item in CollectionView.PreparedItems)
             {
-                item.Value.Selected = CollectionView.SelectedRow.Contains(item.Key);
+                item.Value.Selected = CollectionView.SelectedItems.Contains(item.Key);
             }
 
             /*
@@ -350,12 +350,12 @@ namespace MauiUICollectionView.Layouts
                             {
                                 viewHolder.OldBoundsInLayout = update.source== update.target && viewHolder.OldBoundsInLayout==Rect.Zero ? RectForItem(NSIndexPath.FromRowSection(update.source.Row - update.moveCount, update.source.Section)) : RectForItem(update.source); // try get old bounds
                                 viewHolder.Operation = (int)OperateItem.OperateType.Move;
-                                AnimationManager.Add(viewHolder);
+                                AnimationManager.AddOperatedItem(viewHolder);
                             }
                             if (!update.operateAnimate)
                             {
                                 viewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
-                                AnimationManager.Add(viewHolder);
+                                AnimationManager.AddOperatedItem(viewHolder);
                             }
                             Updates.RemoveAt(index);
                         }
@@ -380,7 +380,7 @@ namespace MauiUICollectionView.Layouts
                     if (insertList.ContainsKey(item.Key))//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
                     {
                         item.Value.Operation = (int)OperateItem.OperateType.Insert;
-                        AnimationManager.Add(item.Value);
+                        AnimationManager.AddOperatedItem(item.Value);
                     }
                 }
                 insertList.Clear();
@@ -441,11 +441,11 @@ namespace MauiUICollectionView.Layouts
         /// 
         /// </summary>
         /// <param name="top"></param>
-        /// <param name="inRect"></param>
-        /// <param name="visiableRect">可见区域, 对应于ScrollView大小</param>
+        /// <param name="inRect">rect for prepared items</param>
+        /// <param name="visibleRect">rect for visible items</param>
         /// <param name="availableCells"></param>
         /// <returns></returns>
-        protected abstract double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells);
+        protected abstract double MeasureItems(double top, Rect inRect, Rect visibleRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells);
 
         protected virtual double MeasureFooter(double top, double widthConstraint)
         {

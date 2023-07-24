@@ -3,7 +3,7 @@
     /// <summary>
     /// manage operate and scroll animation.
     /// </summary>
-    public class LayoutAnimationManager : IDisposable
+    public class LayoutAnimationManager : ILayoutAnimationManager
     {
         /// <summary>
         /// define action when item appear when scroll down. value is 0-1.
@@ -58,7 +58,7 @@
             };
         }
 
-        protected internal void Add(MAUICollectionViewViewHolder viewHolder)
+        public void AddOperatedItem(MAUICollectionViewViewHolder viewHolder)
         {
             if (operateItems.Contains(viewHolder))
                 return;
@@ -115,6 +115,7 @@
             if (runOperateAnim)
                 RunOperateAnim();
         }
+
         /// <summary>
         /// record last which item do scroll animation, animation need some time, so avoid next time set this item.
         /// </summary>

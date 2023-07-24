@@ -8,7 +8,7 @@
     {
         public Func<MAUICollectionView, int, int> NumberOfItems { get; }
         /// <summary>
-        /// 获取对应IndexPath的ViewHolder
+        /// Get and set ViewHolder.
         /// </summary>
         public Func<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder, double, MAUICollectionViewViewHolder> ViewHolderForItem { get; }
         public Func<MAUICollectionView, int> NumberOfSections { get; }

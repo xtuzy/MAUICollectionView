@@ -83,24 +83,25 @@ namespace MauiUICollectionView
 
         bool _needsReload;
         /// <summary>
-        /// 被选择的Item
+        /// The selected Items
         /// </summary>
-        public List<NSIndexPath> SelectedRow = new();
+        public List<NSIndexPath> SelectedItems = new();
 
         /// <summary>
-        /// 被拖拽用来排序的Item, 其IndexPath会在拖动时更新
+        /// Item that are dragged and dropped to sort. Its IndexPath updates when you drag.
         /// </summary>
         public MAUICollectionViewViewHolder DragedItem;
 
         /// <summary>
-        /// 当前正在布局区域中的Items, 与可见区域不同, 布局区域可能大于可见区域, 因为快速滑动时上下可能出现空白, 为了避免空白需要绘制大于可见区域的
+        /// Items in the layout area. Layout area unlike the visible area, the layout area may be larger than the visible area, because there may be white space up and down when sliding quickly, and it is necessary to draw larger than the visible area to avoid blanks.
         /// </summary>
         public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> PreparedItems;
+        
         /// <summary>
-        /// 回收的等待重复利用的ViewHolder
+        /// Recycled ViewHolders waiting to be reused
         /// </summary>
         public List<MAUICollectionViewViewHolder> ReusableViewHolders;
-        public int MaxReusableViewHolderCount = 5;
+        int MaxReusableViewHolderCount = 5;
 
         SourceHas _sourceHas;
         struct SourceHas
@@ -165,6 +166,9 @@ namespace MauiUICollectionView
             }
         }
 
+        /// <summary>
+        /// Specify layout for CollectionView
+        /// </summary>
         public CollectionViewLayout ItemsLayout;
 
         /// <summary>
@@ -175,7 +179,8 @@ namespace MauiUICollectionView
 #else
         public int ExtendHeight => (int)CollectionViewConstraintSize.Height * 1;
 #endif
-        public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
+
+        public MAUICollectionViewViewHolder ViewHolderForItem(NSIndexPath indexPath)
         {
             // this is allowed to return nil if the cell isn't visible and is not restricted to only returning visible cells
             // so this simple call should be good enough.
@@ -184,7 +189,7 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// Reloads all the data and views in the collection view. 常在非数据末尾的位置插入或者移除大量数据时使用.
+        /// Reloads all the data and views in the collection view. The goal is to be used when the data changes a lot.
         /// </summary>
         public void NotifyDataSetChanged()
         {
@@ -197,7 +202,7 @@ namespace MauiUICollectionView
             PreparedItems.Clear();
 
             // clear prior selection
-            this.SelectedRow.Clear();
+            this.SelectedItems.Clear();
             DragedItem = null;
 
             ReloadDataCount();//Section或者Item数目可能变化了, 重新加载
@@ -207,7 +212,7 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 切换页面返回时, 数据可能不再展示, 因此需要强制重新加载
+        /// When switching pages back, the data may no longer be displayed, so a forced reload is required.
         /// </summary>
         public void ReAppear()
         {
@@ -299,17 +304,7 @@ namespace MauiUICollectionView
             ItemsLayout?.ArrangeContents();
         }
 
-        public void LayoutChild(Element element, Rect rect)
-        {
-            (element as IView).Arrange(rect);
-        }
-
-        public List<NSIndexPath> IndexPathForSelectedRow()
-        {
-            return SelectedRow;
-        }
-
-        public NSIndexPath IndexPathForCell(MAUICollectionViewViewHolder cell)
+        public NSIndexPath IndexPathForViewHolder(MAUICollectionViewViewHolder cell)
         {
             foreach (NSIndexPath index in PreparedItems.Keys)
             {
@@ -323,49 +318,46 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 取消选择某IndexPath
+        /// Deselect item.
         /// </summary>
         /// <param name="indexPath"></param>
         /// <param name="animated"></param>
-        public void DeselectRowAtIndexPath(NSIndexPath indexPath, bool animated = false)
+        public void DeselectItem(NSIndexPath indexPath, bool animated = false)
         {
-            if (indexPath != null && SelectedRow.Contains(indexPath))
+            if (indexPath != null && SelectedItems.Contains(indexPath))
             {
-                var cell = this.CellForRowAtIndexPath(indexPath);
+                var cell = this.ViewHolderForItem(indexPath);
                 if (cell != null) cell.Selected = false;
-                SelectedRow.Remove(indexPath);
+                SelectedItems.Remove(indexPath);
             }
         }
 
         /// <summary>
-        /// 选择某IndexPath
+        /// Select item.
         /// </summary>
         /// <param name="indexPath"></param>
         /// <param name="animated"></param>
         /// <param name="scrollPosition"></param>
-        public void SelectRowAtIndexPath(NSIndexPath indexPath, bool animated, ScrollPosition scrollPosition)
+        public void SelectItem(NSIndexPath indexPath, bool animated, ScrollPosition scrollPosition)
         {
-            // unlike the other methods that I've tested, the real UIKit appears to call reload during selection if the table hasn't been reloaded
-            // yet. other methods all appear to rebuild the section cache "on-demand" but don't do a "proper" reload. for the sake of attempting
-            // to maintain a similar delegate and dataSource access pattern to the real thing, I'll do it this way here. :)
             this._reloadDataIfNeeded();
 
-            if (!SelectedRow.Contains(indexPath))
+            if (!SelectedItems.Contains(indexPath))
             {
-                SelectedRow.Add(indexPath);
-                var cell = this.CellForRowAtIndexPath(indexPath);
+                SelectedItems.Add(indexPath);
+                var cell = this.ViewHolderForItem(indexPath);
                 if (cell != null)//TODO:不知道为什么有时候为空
                     cell.Selected = true;
             }
         }
 
         /// <summary>
-        /// 滑动到NSIndexPath对应的Item.
+        /// Scroll to item.
         /// </summary>
         /// <param name="indexPath"></param>
         /// <param name="scrollPosition"></param>
         /// <param name="animated"></param>
-        public void ScrollToRowAtIndexPath(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
+        public void ScrollToItem(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
             var rect = ItemsLayout.RectForItem(indexPath);
             switch (scrollPosition)
@@ -385,6 +377,11 @@ namespace MauiUICollectionView
 
         #region 复用
         object _obj = new object();
+        /// <summary>
+        /// Get ViewHolder from <see cref="ReusableViewHolders"/>.
+        /// </summary>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
         public MAUICollectionViewViewHolder DequeueRecycledViewHolderWithIdentifier(string identifier)
         {
             lock (_obj)
@@ -403,12 +400,12 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 没有操作动画的Item直接回收
+        /// Recycle ViewHolder.
         /// </summary>
         /// <param name="viewHolder"></param>
         public void RecycleViewHolder(MAUICollectionViewViewHolder viewHolder)
         {
-            //回收时重置ViewHolder
+            //reset ViewHolder
             if (!ReusableViewHolders.Contains(viewHolder))
             {
                 viewHolder.PrepareForReuse();
@@ -417,25 +414,28 @@ namespace MauiUICollectionView
                     ReusableViewHolders.Add(viewHolder);
                 }
             }
-            //viewHolder.ContentView.RemoveFromSuperview(); 移除会触发Measure, 导致动画流程混乱
         }
 
         #endregion
 
         #region 数据
         /// <summary>
-        /// 缓存Section和Item的数据, 从Source获取的是最新的, 在数据更新时, 这里存储的是旧的
+        /// The data of the Section and Item is cached, it is obtained from <see cref="Source"/>, and the old one is stored here when the data is updated, need use <see cref="ReloadDataCount"/> to update it.
         /// </summary>
         private List<int> sections = new();
 
         /// <summary>
-        /// 当数据被从末尾插入或删除时, 可以使用该方法加载更新后的数据.
+        /// When data is inserted or deleted from the end, the updated data can be fast loaded using this method.
         /// </summary>
         public void ReloadDataCount()
         {
             this.sections = fetchDataCounts();
         }
 
+        /// <summary>
+        /// Form <see cref="Source"/> get lastest data.
+        /// </summary>
+        /// <returns></returns>
         private List<int> fetchDataCounts()
         {
             var res = new List<int>();
@@ -494,8 +494,7 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 通知CollectionView移除某Item, 需要做出改变.
-        /// 移除会让移除项后面的Item需要调节高度, 这个高度需要动画改变
+        /// Notifies the CollectionView that some items have been removed from data set and that changes need to be made.
         /// </summary>
         /// <param name="indexPath"></param>
         public void NotifyItemRangeRemoved(NSIndexPath indexPath, int count = 1)
@@ -529,7 +528,9 @@ namespace MauiUICollectionView
                 lastRemovedIndexPath = needRemovedIndexPath;
             }
 
-            //移动2*count数目的Item:第一部分 count items 填充移除的, 后面的填充移动的
+            // try Move 2*count items:
+            // first part, 1*counts items be moved to fill items that be removed.
+            // second part, 1*counts items be moved to fill items that be moved in first part. 
             NSIndexPath lastMovedIndexPath = lastNeedRemoveIndexPath;
             for (var moveCount = 1; moveCount <= 2 * count; moveCount++)
             {
@@ -584,9 +585,10 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 通知CollectionView插入了Item, 需要做出改变.
+        /// Notifies the CollectionView that some items have been inserted to data set and that changes need to be made.
         /// </summary>
-        /// <param name="indexPath">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
+        /// <param name="indexPath">if insert data in 0-1(section is 0, item index is 1) and count is 2, old data in 0-1 will be move to 0-3, the inserted data is displayed in 0-1 and 0-2</param>
+        /// <param name="count"></param>
         public void NotifyItemRangeInserted(NSIndexPath indexPath, int count = 1)
         {
             if (count < 1) return;
@@ -705,6 +707,10 @@ namespace MauiUICollectionView
             this.ReMeasure();
         }
 
+        /// <summary>
+        /// Notifies the CollectionView that data have been replaced in these items.
+        /// </summary>
+        /// <param name="indexPaths"></param>
         public void NotifyItemRangeChanged(IEnumerable<NSIndexPath> indexPaths)
         {
             var Updates = ItemsLayout.Updates;
@@ -722,9 +728,9 @@ namespace MauiUICollectionView
 
         void updatSelectedIndexPathWhenInsertOperate(NSIndexPath indexPath, int count)
         {
-            for (int i = SelectedRow.Count - 1; i >= 0; i--)
+            for (int i = SelectedItems.Count - 1; i >= 0; i--)
             {
-                var selectedItem = SelectedRow[i];
+                var selectedItem = SelectedItems[i];
                 if (selectedItem.Section == indexPath.Section)
                 {
                     if (indexPath.Row <= selectedItem.Row)//insert in front of selected
@@ -746,9 +752,9 @@ namespace MauiUICollectionView
             {
                 var isUpMove = indexPath.Row > toIndexPath.Row;
                 //先移除
-                for (int i = SelectedRow.Count - 1; i >= 0; i--)
+                for (int i = SelectedItems.Count - 1; i >= 0; i--)
                 {
-                    var selectedItem = SelectedRow[i];
+                    var selectedItem = SelectedItems[i];
                     if (selectedItem.Section == indexPath.Section)//同一section的item才变化
                     {
                         if (selectedItem.Row == indexPath.Row)
@@ -779,9 +785,9 @@ namespace MauiUICollectionView
             else
             {
                 //先移除, 移除的Item后面的Item需要向前移动
-                for (int i = SelectedRow.Count - 1; i >= 0; i--)
+                for (int i = SelectedItems.Count - 1; i >= 0; i--)
                 {
-                    var selectedItem = SelectedRow[i];
+                    var selectedItem = SelectedItems[i];
                     if (selectedItem.Section == indexPath.Section)
                     {
                         if (selectedItem.Row == indexPath.Row)
@@ -798,9 +804,9 @@ namespace MauiUICollectionView
                 }
 
                 //后插入, 后面的需要向后移动
-                for (int i = SelectedRow.Count - 1; i >= 0; i--)
+                for (int i = SelectedItems.Count - 1; i >= 0; i--)
                 {
-                    var selectedItem = SelectedRow[i];
+                    var selectedItem = SelectedItems[i];
                     if (selectedItem.Section == toIndexPath.Section)
                     {
                         if (selectedItem.Row >= toIndexPath.Row)
@@ -814,9 +820,9 @@ namespace MauiUICollectionView
 
         void updatSelectedIndexPathWhenRemoveOperate(NSIndexPath indexPath, int count)
         {
-            for (int i = SelectedRow.Count - 1; i >= 0; i--)
+            for (int i = SelectedItems.Count - 1; i >= 0; i--)
             {
-                var selectedItem = SelectedRow[i];
+                var selectedItem = SelectedItems[i];
                 if (selectedItem.Section == indexPath.Section)
                 {
                     if (indexPath.Row + count - 1 < selectedItem.Row)//remove all in front of selected
@@ -825,7 +831,7 @@ namespace MauiUICollectionView
                     }
                     else if (indexPath.Row <= selectedItem.Row && selectedItem.Row <= indexPath.Row + count - 1)//remove this selected
                     {
-                        SelectedRow.Remove(selectedItem);
+                        SelectedItems.Remove(selectedItem);
                     }
                     else//remove behind selected
                     {
