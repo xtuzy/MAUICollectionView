@@ -64,12 +64,13 @@ namespace DemoTest.Pages
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
             var modelsList = testModel.Generate(1000);
+            var itenmCountInSection = 20;
             models = new List<List<Model>>();
-            for (var index = 0; index < 10; index++)
+            for (var index = 0; index < modelsList.Count/itenmCountInSection; index++)
             {
                 var list = new List<Model>();
-                var lineStart = index * 10;
-                for (var i = 0; i < 10; i++)
+                var lineStart = index * itenmCountInSection;
+                for (var i = 0; i < itenmCountInSection; i++)
                 {
                     var itemIndex = lineStart + i;
                     list.Add(modelsList[itemIndex]);

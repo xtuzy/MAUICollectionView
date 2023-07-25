@@ -15,8 +15,8 @@
         /// 为避免当数据量很大时需要循环很多次去计算总高度, 这里按每<see cref="ItemsCountInRegion">个Item为一组缓存一个高度供下次使用.
         /// 缓存的策略是当需要MeasureSelf测量的Item出现在该区域时, 该区域内的缓存高度需要重新测量
         /// </summary>
-        public double[] ItemsHeightCache;
-        public double AllItemCount = 0;
+        public double[] ItemsRegionHeightCache;
+        double AllItemCount = 0;
         protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
         {
             var numberOfSections = CollectionView.NumberOfSections();
@@ -29,7 +29,7 @@
 
             if (AllItemCount != allItemCount)//代表数据更新了
             {
-                ItemsHeightCache = new double[allItemCount % ItemsCountInRegion > 0 ? allItemCount / ItemsCountInRegion + 1 : allItemCount / ItemsCountInRegion];
+                ItemsRegionHeightCache = new double[allItemCount % ItemsCountInRegion > 0 ? allItemCount / ItemsCountInRegion + 1 : allItemCount / ItemsCountInRegion];
                 AllItemCount = allItemCount;
             }
 
@@ -40,22 +40,22 @@
              */
             var targetRegionIndex = 0;
             double recordRegionHeight = 0;
-            for (var regionIndex = 0; regionIndex < ItemsHeightCache.Length; regionIndex++)
+            for (var regionIndex = 0; regionIndex < ItemsRegionHeightCache.Length; regionIndex++)
             {
-                if (ItemsHeightCache[0] == 0)//没有缓存时, 统计是无效的
+                if (ItemsRegionHeightCache[0] == 0)//没有缓存时, 统计是无效的
                     break;
-                if (recordRegionHeight + ItemsHeightCache[regionIndex] >= CollectionView.ScrollY)
+                if (recordRegionHeight + ItemsRegionHeightCache[regionIndex] >= CollectionView.ScrollY)
                 {
                     targetRegionIndex = regionIndex;
                     break;
                 }
                 else
                 {
-                    recordRegionHeight += ItemsHeightCache[regionIndex];
+                    recordRegionHeight += ItemsRegionHeightCache[regionIndex];
                 }
             }
 
-            for (var regionIndex = 0; regionIndex < ItemsHeightCache.Length; regionIndex++)
+            for (var regionIndex = 0; regionIndex < ItemsRegionHeightCache.Length; regionIndex++)
             {
                 if (regionIndex == targetRegionIndex)
                 {
@@ -63,30 +63,30 @@
                     if (regionIndex - 1 >= 0)
                     {
                         var beforeTargetRegionIndex = regionIndex - 1;
-                        itemsHeight -= ItemsHeightCache[beforeTargetRegionIndex];//减去旧的
+                        itemsHeight -= ItemsRegionHeightCache[beforeTargetRegionIndex];//减去旧的
                         var heightOfBeforeTargetRegion = CalculateHeightForVisiableRegion(beforeTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
-                        ItemsHeightCache[beforeTargetRegionIndex] = heightOfBeforeTargetRegion;
-                        itemsHeight += ItemsHeightCache[beforeTargetRegionIndex];
+                        ItemsRegionHeightCache[beforeTargetRegionIndex] = heightOfBeforeTargetRegion;
+                        itemsHeight += ItemsRegionHeightCache[beforeTargetRegionIndex];
                     }
                     var targetRegionHeight = CalculateHeightForVisiableRegion(regionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
-                    ItemsHeightCache[regionIndex] = targetRegionHeight;
-                    itemsHeight += ItemsHeightCache[regionIndex];
-                    if (regionIndex + 1 < ItemsHeightCache.Length)
+                    ItemsRegionHeightCache[regionIndex] = targetRegionHeight;
+                    itemsHeight += ItemsRegionHeightCache[regionIndex];
+                    if (regionIndex + 1 < ItemsRegionHeightCache.Length)
                     {
                         var afterTargetRegionIndex = regionIndex + 1;
                         var heightOfAfterTargetRegion = CalculateHeightForVisiableRegion(afterTargetRegionIndex, itemsHeight + top, inRect, visiableRect, availableCells);
-                        ItemsHeightCache[afterTargetRegionIndex] = heightOfAfterTargetRegion;
-                        itemsHeight += ItemsHeightCache[afterTargetRegionIndex];
+                        ItemsRegionHeightCache[afterTargetRegionIndex] = heightOfAfterTargetRegion;
+                        itemsHeight += ItemsRegionHeightCache[afterTargetRegionIndex];
                         regionIndex++;
                     }
                 }
                 else
                 {
-                    if (ItemsHeightCache[regionIndex] == 0)
+                    if (ItemsRegionHeightCache[regionIndex] == 0)
                     {
-                        ItemsHeightCache[regionIndex] = CalculateHeightForInvisiableRegion(regionIndex);
+                        ItemsRegionHeightCache[regionIndex] = CalculateHeightForInvisiableRegion(regionIndex);
                     }
-                    itemsHeight += ItemsHeightCache[regionIndex];
+                    itemsHeight += ItemsRegionHeightCache[regionIndex];
                 }
             }
 

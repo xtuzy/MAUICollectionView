@@ -172,13 +172,15 @@ namespace MauiUICollectionView
         public CollectionViewLayout ItemsLayout;
 
         /// <summary>
-        /// 屏幕顶部和底部多加载Cell的高度, 对于平台ScrollView实现是平移画布的(Android, Windows), 大的扩展高度可以减少滑动时显示空白, 默认设置上下各扩展一屏幕高度.
+        /// See <see cref="HeightExpansion"/>, advice set 0 on iOS, set 1 on Android, set 0.5 on Windows. You need test different value to find which one is best for your project.
         /// </summary>
-#if IOS
-        public int ExtendHeight => 0;
-#else
-        public int ExtendHeight => (int)CollectionViewConstraintSize.Height * 1;
-#endif
+        public double HeightExpansionFactor = 0.5;
+
+        /// <summary>
+        /// The height of the expansion. 
+        /// It will let CollectionView show more view than visible rect, it is related to prepared rect. Height of prepared rect is HeightExpansion + Visible Height + HeightExpansion. Why do this?, Scroll ScrollView will translate canvas on Android and Windows before relayout, if no view in lasted visible rect, will show blank, so we need layout more view to avoid blank for next scroll.
+        /// </summary>
+        internal int HeightExpansion => (int)(CollectionViewConstraintSize.Height * HeightExpansionFactor);
 
         public MAUICollectionViewViewHolder ViewHolderForItem(NSIndexPath indexPath)
         {

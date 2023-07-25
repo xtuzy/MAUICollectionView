@@ -3,7 +3,7 @@
 namespace MauiUICollectionView.Layouts
 {
     /// <summary>
-    /// 布局的逻辑放在此处
+    /// layout content.
     /// </summary>
     public abstract class CollectionViewLayout : IDisposable
     {
@@ -13,13 +13,14 @@ namespace MauiUICollectionView.Layouts
             AnimationManager = new LayoutAnimationManager(collectionView);
         }
 
+        /// <summary>
+        /// manage scroll and operate animation.
+        /// </summary>
         public ILayoutAnimationManager AnimationManager { get; set; }
 
-
-        /*
-         * 需要汇总所有操作, 因为多个操作一起时, 我们需要同时更新动画.
-         * 汇总所有操作需要把数据不变的, 只是IndexPath变了的Item找出来, 因为它显示时如果更新数据, 会有加载过程, 导致不像连续的动画.
-         */
+        /// <summary>
+        /// Store all operate
+        /// </summary>
         public List<OperateItem> Updates = new();
 
         private MAUICollectionView _collectionView;
@@ -30,7 +31,7 @@ namespace MauiUICollectionView.Layouts
         }
 
         /// <summary>
-        /// 滚动方向. 必须设置值, 默认为垂直方向.
+        /// scroll direction.
         /// </summary>
         public virtual ItemsLayoutOrientation ScrollDirection
         {
@@ -38,7 +39,7 @@ namespace MauiUICollectionView.Layouts
         } = ItemsLayoutOrientation.Vertical;
 
         /// <summary>
-        /// 标志需要remove, move的item的动画开始.
+        /// when operating, it is true.
         /// </summary>
         protected bool IsOperating = false;
 
@@ -86,23 +87,18 @@ namespace MauiUICollectionView.Layouts
             }
         }
 
-        /// <summary>
-        /// 第一次显示我们尽量少创建Cell
-        /// </summary>
-        int measureTimes = 0;
-
         public NSIndexPath[] OldPreparedItems = new NSIndexPath[2];
 
         /// <summary>
-        /// 存储同类型的已经显示的Row的行高, 用于估计未显示的行.
+        /// Cache height of item that have same Id, it be use for predict height.
         /// </summary>
         public Dictionary<string, double> MeasuredSelfHeightCacheForReuse = new Dictionary<string, double>();
 
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
         /// </summary>
-        /// <param name="tableViewWidth">当作可见宽度, 可能是根据屏幕大小的估计值</param>
-        /// <param name="tableViewHeight">当作可见宽度, 可能是根据屏幕大小的估计值</param>
+        /// <param name="tableViewWidth">visible width, it may be not accurate.</param>
+        /// <param name="tableViewHeight">visible height</param>
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
@@ -112,9 +108,6 @@ namespace MauiUICollectionView.Layouts
                 IsOperating = true;
             }
 
-            if (measureTimes <= 3)
-                measureTimes++;
-
             //tableView自身的大小
             Size tableViewBoundsSize = new Size(tableViewWidth, tableViewHeight);
             Debug.WriteLine(tableViewBoundsSize);
@@ -122,8 +115,8 @@ namespace MauiUICollectionView.Layouts
             Rect visibleBounds = new Rect(0, CollectionView.ScrollY, tableViewBoundsSize.Width, tableViewBoundsSize.Height);
             double tableHeight = 0;
             //顶部和底部扩展的高度, 头2次布局不扩展, 防止初次显示计算太多item
-            var topExtandHeight = measureTimes < 3 ? 0 : CollectionView.ExtendHeight;
-            var bottomExtandHeight = measureTimes < 3 ? 0 : measureTimes == 3 ? CollectionView.ExtendHeight * 2 : CollectionView.ExtendHeight;//第一次测量时, 可能顶部缺少空间, 不会创建那么多Extend, 我们在底部先创建好
+            var topExtandHeight = CollectionView.HeightExpansion;
+            var bottomExtandHeight = CollectionView.HeightExpansion;//第一次测量时, 可能顶部缺少空间, 不会创建那么多Extend, 我们在底部先创建好
             Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
 
             /* 

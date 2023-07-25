@@ -12,14 +12,21 @@ public partial class ManyItemsVisiableTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-            Source = new Source(viewModel),
             SelectionMode = SelectionMode.Multiple,
             CanDrag = true,
             CanContextMenu = true,
         };
-        Content = tableView;
+        content.Content = tableView;
         tableView.ItemsLayout = new CollectionViewListLayout(tableView)
         {
+        };
+        SetSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = new Source(viewModel);
+        };
+        RemoveSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = null;
         };
     }
 
