@@ -227,7 +227,7 @@ namespace DemoTest.Pages
                 case sectionCell:
                     return 40;
                 case itemCellSimple:
-                    return MAUICollectionViewViewHolder.MeasureSelf;
+                    return MAUICollectionViewViewHolder.AutoSize;
                 default:
                     return 100;
             }

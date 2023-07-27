@@ -149,7 +149,7 @@
         {
             var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
 
-            return rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
+            return rowHeightWant == MAUICollectionViewViewHolder.AutoSize ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
         }
 
         const int ItemsCountInRegion = 100;
@@ -212,7 +212,7 @@
                             cell.WidthRequest = inRect.Width;
                             cell.HeightRequest = -1;
                             var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
-                            if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//fixed value
+                            if (rowHeightWant != MAUICollectionViewViewHolder.AutoSize)//fixed value
                             {
                                 cell.HeightRequest = rowHeightWant;
                                 measureSize = cell.MeasureSelf(inRect.Width, rowHeightWant).Request;
@@ -332,7 +332,7 @@
                     {
                         var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
                         var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
-                        rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
+                        rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.AutoSize ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
                     }
                     tempBottom = totalHeight + rowMaybeHeight;
 
@@ -376,7 +376,7 @@
                     {
                         var reuseIdentifier = CollectionView.Source.ReuseIdForItem(CollectionView, indexPath);
                         var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
-                        rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
+                        rowMaybeHeight = rowHeightWant == MAUICollectionViewViewHolder.AutoSize ? MeasuredSelfHeightCacheForReuse.ContainsKey(reuseIdentifier) ? MeasuredSelfHeightCacheForReuse[reuseIdentifier] : EstimatedRowHeight : rowHeightWant;
                     }
                     tempBottom = totalHeight + rowMaybeHeight;
 
@@ -435,7 +435,7 @@
                             Size measureSize;
                             cell.WidthRequest = w;
                             cell.HeightRequest = -1;
-                            if (rowHeightWant != MAUICollectionViewViewHolder.MeasureSelf)//固定高度
+                            if (rowHeightWant != MAUICollectionViewViewHolder.AutoSize)//固定高度
                             {
                                 cell.HeightRequest = rowHeightWant;
                                 measureSize = cell.MeasureSelf(w, rowHeightWant).Request;
@@ -445,7 +445,7 @@
                                 measureSize = cell.MeasureSelf(w, double.PositiveInfinity).Request;
                             }
 
-                            var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.MeasureSelf ? (measureSize.Height != 0 ? measureSize.Height : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
+                            var finalHeight = (rowHeightWant == MAUICollectionViewViewHolder.AutoSize ? (measureSize.Height != 0 ? measureSize.Height : MeasuredSelfHeightCacheForReuse.ContainsKey(cell.ReuseIdentifier) ? MeasuredSelfHeightCacheForReuse[cell.ReuseIdentifier] : EstimatedRowHeight) : rowHeightWant);
                             rowMaybeHeight = finalHeight;
                             CollectionView.RecycleViewHolder(cell);
                         }

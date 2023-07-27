@@ -65,7 +65,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             switch (type)
             {
                 case itemCell:
-                    return MAUICollectionViewViewHolder.MeasureSelf;
+                    return MAUICollectionViewViewHolder.AutoSize;
                 default:
                     return 100;
             }

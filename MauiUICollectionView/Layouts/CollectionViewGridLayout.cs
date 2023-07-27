@@ -128,12 +128,12 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, firstItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, firstItem);
-                    firstItemHeight = wantHeight == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    firstItemHeight = wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     var firstItemRect = new Rect(0, itemsHeight + top, inRect.Width, firstItemHeight);
                     firstItemIsInPrepared = firstItemRect.IntersectsWith(inRect);
                     if (firstItemIsInPrepared)
                     {
-                        firstItemHeight = measureItem(firstItem, firstItemRect, firstItemHeight == MAUICollectionViewViewHolder.MeasureSelf);
+                        firstItemHeight = measureItem(firstItem, firstItemRect, firstItemHeight == MAUICollectionViewViewHolder.AutoSize);
                         if (MeasuredSelfHeightCacheForReuse.ContainsKey(id))
                             MeasuredSelfHeightCacheForReuse[id] = firstItemHeight;
                         else
@@ -261,7 +261,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, firstItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, firstItem);
-                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     var firstItemRect = new Rect(0, itemsHeight + top, contentWidth, firstItemHeight);
                     var firstItemIsTarget = firstItemRect.Contains(point);
                     if (firstItemIsTarget)
@@ -303,7 +303,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, lastItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, lastItem);
-                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     var lastItemRect = new Rect(0, top + itemsHeight + firstItemHeight + sectionAllDataItemsHeight, contentWidth, lastItemHeight);
                     var lastItemIsTarget = lastItemRect.Contains(point);
                     if (lastItemIsTarget)
@@ -350,7 +350,7 @@
 
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, firstItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, firstItem);
-                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     if (firstItem.Equals(indexPathTarget))
                     {
                         return new Rect(0, itemsHeight + top, contentWidth, firstItemHeight);
@@ -375,7 +375,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, lastItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, lastItem);
-                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     if (lastItem.Equals(indexPathTarget))
                     {
                         return new Rect(0, top + itemsHeight + firstItemHeight + sectionAllDataItemsHeight, contentWidth, lastItemHeight);
@@ -405,7 +405,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, item);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, item);
-                    var sectionItemHeight = CollectionView.PreparedItems.ContainsKey(item) ? CollectionView.PreparedItems[item].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.MeasureSelf ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    var sectionItemHeight = CollectionView.PreparedItems.ContainsKey(item) ? CollectionView.PreparedItems[item].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     totleHeight += sectionItemHeight;
                 }
                 else

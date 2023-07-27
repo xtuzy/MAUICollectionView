@@ -7,7 +7,11 @@ namespace MauiUICollectionView
         [AutoBindable]
         NSIndexPath _indexPath;
 
-        public const float MeasureSelf = -1;
+        /// <summary>
+        /// Used at <see cref="IMAUICollectionViewSource.HeightForItem"/>
+        /// </summary>
+        public const double AutoSize = -1;
+
         /// <summary>
         /// Store position and size of item. set it when Measure, and use it as the final parameter when Arrange
         /// </summary>
