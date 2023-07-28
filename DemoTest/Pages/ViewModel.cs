@@ -238,7 +238,6 @@ namespace DemoTest.Pages
             return ViewModel.models[indexPath.Section][indexPath.Row - 1];
         }
 
-        int newCellCount = 0;
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
         const string itemCellSimple = "itemCellSimple";
@@ -281,8 +280,6 @@ namespace DemoTest.Pages
                     {
                         //没有,创建一个
                         simpleCell = new ItemViewHolderSimple(new ModelViewSimple() { }, type) { };
-                        simpleCell.NewCellIndex = ++newCellCount;
-                        simpleCell.ModelView.CommentCountLabel.Text = simpleCell.NewCellIndex.ToString();
                         var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
                             var count = 3;
@@ -385,8 +382,6 @@ namespace DemoTest.Pages
 
     internal class ItemViewHolderSimple : MAUICollectionViewViewHolder
     {
-        public int NewCellIndex;
-
         public ItemViewHolderSimple(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
             ModelView = itemView as ModelViewSimple;
@@ -495,6 +490,10 @@ namespace DemoTest.Pages
 
     class ModelViewSimple : ContainerLayout
     {
+        static int newCellCount = 0;
+
+        public int NewCellIndex;
+
         public Image PersonIcon;
         public Label PersonName;
         public Label PersonGender;
@@ -594,6 +593,9 @@ namespace DemoTest.Pages
 
             layout.Add(bottomIconBar);
             Grid.SetRow(bottomIconBar, 4);
+
+            NewCellIndex = ++newCellCount;
+            CommentCountLabel.Text = NewCellIndex.ToString();
         }
 
         private void LikeIcon_Clicked(object sender, EventArgs e)
