@@ -66,7 +66,7 @@ namespace DemoTest.Pages
             var modelsList = testModel.Generate(1000);
             var itenmCountInSection = 20;
             models = new List<List<Model>>();
-            for (var index = 0; index < modelsList.Count/itenmCountInSection; index++)
+            for (var index = 0; index < modelsList.Count / itenmCountInSection; index++)
             {
                 var list = new List<Model>();
                 var lineStart = index * itenmCountInSection;
@@ -77,8 +77,10 @@ namespace DemoTest.Pages
                 }
                 models.Add(list);
             }
-            foreach (var m in modelsList)
+            for (var index=0;index<modelsList.Count;index++)
             {
+                var m = modelsList[index];
+                m.Index = index;
                 ObservableModels.Add(m);
             }
         }
@@ -252,7 +254,7 @@ namespace DemoTest.Pages
                 if (cell is ItemViewHolderSimple itemcellsimple)
                 {
                     if (itemcellsimple != null)
-                        itemcellsimple.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+                        itemcellsimple.ModelView.TestButton.Text = $"B Item Id={indexPath.Section}-{indexPath.Row}";
                 }
             }
             else
@@ -315,8 +317,8 @@ namespace DemoTest.Pages
                     simpleCell.ModelView.PersonTextBlogTitle.Text = data.PersonTextBlogTitle;
                     simpleCell.ModelView.PersonImageBlog.Source = data.PersonImageBlogUrl;
                     simpleCell.ModelView.PersonTextBlog.Text = data.PersonTextBlog;
-                    simpleCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
-
+                    simpleCell.ModelView.TestButton.Text = $"AId={indexPath.ToString()}";
+                    
                     cell = simpleCell;
                 }
             }
@@ -339,6 +341,7 @@ namespace DemoTest.Pages
         public string LikeIconUrl { get; set; }
         public string CommentIconUrl { get; set; }
         public string ShareIconUrl { get; set; }
+        public int Index { get; set; }
     }
 
     internal class SectionViewHolder : MAUICollectionViewViewHolder
@@ -543,9 +546,9 @@ namespace DemoTest.Pages
             personInfoContainer.Add(personTextInfoContainer);
             PersonTextBlogTitle = new Label() { FontSize = 20, LineBreakMode = LineBreakMode.WordWrap, MaxLines = 2, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
             PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap, MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
-            var imageInfoContainer = new Grid();
+            var imageInfoContainer = new HorizontalStackLayout();
             PersonImageBlog = new Image() { WidthRequest = 100, HeightRequest = 100, BackgroundColor = Colors.AliceBlue, HorizontalOptions = LayoutOptions.Start };
-            TestButton = new Button() { Text = "Hello", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.End };
+            TestButton = new Button() { Text = "Hello", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
             imageInfoContainer.Add(PersonImageBlog);
             imageInfoContainer.Add(TestButton);
             layout.Add(personInfoContainer);
@@ -616,6 +619,7 @@ namespace DemoTest.Pages
             PersonTextBlogTitle.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlogTitle));
             PersonTextBlog.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlog));
             PersonImageBlog.SetBinding(Image.SourceProperty, nameof(Model.PersonImageBlogUrl));
+            TestButton.SetBinding(Button.TextProperty, nameof(Model.Index));
         }
     }
 

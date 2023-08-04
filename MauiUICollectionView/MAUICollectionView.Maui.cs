@@ -367,7 +367,7 @@ namespace MauiUICollectionView
             }
             else
             {
-                Debug.WriteLine("Scrolled");
+                //Debug.WriteLine($"Scrolled {e.ScrollY - lastScrollY}");
                 scrollOffset = e.ScrollY - lastScrollY;
                 //如果DragItem能执行到这里, 说明非触摸, 使用鼠标可以滑动, 因此更新DragItem的滑动距离
                 if (DragedItem != null)
@@ -378,6 +378,7 @@ namespace MauiUICollectionView
                 //Console.WriteLine($"Scrolled {e.ScrollY}");
                 ItemsLayout.AnimationManager.StopOperateAnim();
             }
+            //MeasureNowAfterScroll();
             ReMeasure();
         }
 

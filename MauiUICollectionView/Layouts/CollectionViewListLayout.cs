@@ -1,5 +1,8 @@
-﻿namespace MauiUICollectionView.Layouts
+﻿using Windows.Foundation.Metadata;
+
+namespace MauiUICollectionView.Layouts
 {
+    [Obsolete("There are some bugs, no longer used")]
     public partial class CollectionViewListLayout : CollectionViewLayout
     {
         public CollectionViewListLayout(MAUICollectionView collectionView) : base(collectionView)
@@ -258,12 +261,6 @@
 
                             cell.IndexPath = indexPath;
 
-                            //record visible item
-                            if (cell.BoundsInLayout.IntersectsWith(visiableRect))
-                            {
-                                VisibleIndexPath.Add(indexPath);
-                            }
-
                             itemsHeight += cell.BoundsInLayout.Height;
                         }
                         else
@@ -299,6 +296,10 @@
 
         public override NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
         {
+            var visibleIndexPath = base.ItemAtPoint(point, baseOnContent);
+            if (visibleIndexPath != null)
+                return visibleIndexPath;
+
             if (!baseOnContent)
             {
                 var contentOffset = CollectionView.ScrollY;
@@ -393,7 +394,7 @@
             return Rect.Zero;
         }
 
-        public override double HeightForItems(NSIndexPath indexPath, int count)
+        public override double EstimateHeightForItems(NSIndexPath indexPath, int count)
         {
             var isBeforePreparedItems = false;
             if (indexPath.Compare(CollectionView.PreparedItems.ToList().FirstOrDefault().Key) < 0)

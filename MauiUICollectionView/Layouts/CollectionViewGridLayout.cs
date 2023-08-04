@@ -68,11 +68,6 @@
                         CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, cell);
 
                         cell.IndexPath = indexPath;
-                        //存储可见的
-                        if (bounds.IntersectsWith(visiableRect))
-                        {
-                            VisibleIndexPath.Add(indexPath);
-                        }
 
                         return cell.BoundsInLayout.Height;
                     }
@@ -225,6 +220,10 @@
 
         public override NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
         {
+            var visibleIndexPath = base.ItemAtPoint(point, baseOnContent);
+            if (visibleIndexPath != null)
+                return visibleIndexPath;
+
             if (!baseOnContent)
             {
                 var contentOffset = CollectionView.ScrollY;
@@ -387,7 +386,7 @@
             return Rect.Zero;
         }
 
-        public override double HeightForItems(NSIndexPath indexPath, int count)
+        public override double EstimateHeightForItems(NSIndexPath indexPath, int count)
         {
             var contentWidth = CollectionView.ContentSize.Width;
             var itemWidth = contentWidth / ColumnCount;

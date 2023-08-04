@@ -96,7 +96,7 @@ namespace MauiUICollectionView
         /// Items in the layout area. Layout area unlike the visible area, the layout area may be larger than the visible area, because there may be white space up and down when sliding quickly, and it is necessary to draw larger than the visible area to avoid blanks.
         /// </summary>
         public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> PreparedItems;
-        
+
         /// <summary>
         /// Recycled ViewHolders waiting to be reused
         /// </summary>
@@ -245,6 +245,13 @@ namespace MauiUICollectionView
             this.ReMeasure();
         }
 
+        Size MeasuredContentSize = Size.Zero;
+        /// <summary>
+        /// It will be call when framework measure view tree. It has a delay after <see cref="ReMeasure"/>.
+        /// </summary>
+        /// <param name="widthConstraint"></param>
+        /// <param name="heightConstraint"></param>
+        /// <returns></returns>
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
         {
             this._reloadDataIfNeeded();
@@ -262,7 +269,10 @@ namespace MauiUICollectionView
                     if (CollectionViewConstraintSize.Width == 0)//首次显示可能没有值, 取屏幕大小
                         CollectionViewConstraintSize.Width = DeviceDisplay.Current.MainDisplayInfo.Width;
                 }
-                size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
+                if (MeasuredContentSize != Size.Zero && IsScrolling)
+                    size = MeasuredContentSize;
+                else
+                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
             }
 
             // set empty view
@@ -293,6 +303,19 @@ namespace MauiUICollectionView
             return size;
         }
 
+        /// <summary>
+        /// Measure immediately. It will be call after scroll. 
+        /// When scroll, will call measure many times, <see cref="ReMeasure"/> have a delay, so we need this method fast update view's position, avoid view's status conflict.
+        /// </summary>
+        void MeasureNowAfterScroll()
+        {
+            if (ItemsLayout != null && Source != null)
+                MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
+        }
+
+        /// <summary>
+        /// It will be call when framework layout view tree.
+        /// </summary>
         public partial void OnContentViewLayout()
         {
             if ((ItemsLayout == null || Source == null) && _emptyView != null)
@@ -304,6 +327,8 @@ namespace MauiUICollectionView
                 _backgroundView.ArrangeSelf(ContentView.Bounds);
 
             ItemsLayout?.ArrangeContents();
+
+            MeasuredContentSize = Size.Zero;
         }
 
         public NSIndexPath IndexPathForViewHolder(MAUICollectionViewViewHolder cell)
@@ -361,20 +386,7 @@ namespace MauiUICollectionView
         /// <param name="animated"></param>
         public void ScrollToItem(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
-            var rect = ItemsLayout.RectForItem(indexPath);
-            switch (scrollPosition)
-            {
-                case ScrollPosition.None:
-                case ScrollPosition.Top:
-                    ScrollToAsync(0, rect.Top, animated);
-                    break;
-                case ScrollPosition.Middle:
-                    ScrollToAsync(0, rect.Y + rect.Height / 2, animated);
-                    break;
-                case ScrollPosition.Bottom:
-                    ScrollToAsync(0, rect.Bottom, animated);
-                    break;
-            }
+            ItemsLayout.ScrollTo(indexPath, scrollPosition, animated);
         }
 
         #region 复用
@@ -576,7 +588,7 @@ namespace MauiUICollectionView
                     this.ReMeasure();
                 else
                 {
-                    var removeAllHight = ItemsLayout.HeightForItems(indexPath, count);
+                    var removeAllHight = ItemsLayout.EstimateHeightForItems(indexPath, count);
                     ScrollToAsync(ScrollX, ScrollY - removeAllHight, false);
                 }
             }
@@ -635,7 +647,7 @@ namespace MauiUICollectionView
 
             if (isInsertBeforeVisiable)//if insert before VisibleItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
             {
-                var insertAllHight = ItemsLayout.HeightForItems(indexPath, count);
+                var insertAllHight = ItemsLayout.EstimateHeightForItems(indexPath, count);
                 ScrollToAsync(ScrollX, ScrollY + insertAllHight, false);
             }
             else

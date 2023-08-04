@@ -133,7 +133,7 @@
                     var item = CollectionView.PreparedItems[indexPath];
 
                     if (ItemAppearAnimAction != null &&
-                        !indexPath.IsInRange(CollectionView.ItemsLayout.OldPreparedItems[0], CollectionView.ItemsLayout.OldPreparedItems[1]) &&
+                        !indexPath.IsInRange(CollectionView.ItemsLayout.OldPreparedItems.StartItem, CollectionView.ItemsLayout.OldPreparedItems.EndItem) &&
                         item != CollectionView.DragedItem)//show new item
                     {
                         if (item.Operation == -1)//Operate item have seft anim

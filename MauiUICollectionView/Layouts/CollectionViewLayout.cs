@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Maui.Controls;
+using System.Diagnostics;
 
 namespace MauiUICollectionView.Layouts
 {
@@ -78,7 +79,7 @@ namespace MauiUICollectionView.Layouts
             {
                 //if (item.Opacity != 0)
                 //    item.Opacity = 0;
-                item.ArrangeSelf(new Rect(0, 0 - item.Bounds.Height, item.Width, item.Height));
+                item.ArrangeSelf(new Rect(0, -1000, item.Width, item.Height));
             }
 
             if (CollectionView.FooterView != null)
@@ -87,7 +88,15 @@ namespace MauiUICollectionView.Layouts
             }
         }
 
-        public NSIndexPath[] OldPreparedItems = new NSIndexPath[2];
+        public LayoutInfor OldPreparedItems;
+
+        public class LayoutInfor
+        {
+            public NSIndexPath StartItem;
+            public NSIndexPath EndItem;
+            public Rect StartBounds; 
+            public Rect EndBounds; 
+        }
 
         /// <summary>
         /// Cache height of item that have same Id, it be use for predict height.
@@ -102,7 +111,7 @@ namespace MauiUICollectionView.Layouts
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            Debug.WriteLine("Measure");
+            Debug.WriteLine($"Measure ScrollY={CollectionView.ScrollY}");
             if (Updates.Count > 0)
             {
                 IsOperating = true;
@@ -110,7 +119,7 @@ namespace MauiUICollectionView.Layouts
 
             //tableView自身的大小
             Size tableViewBoundsSize = new Size(tableViewWidth, tableViewHeight);
-            Debug.WriteLine(tableViewBoundsSize);
+            //Debug.WriteLine(tableViewBoundsSize);
             //当前可见区域在ContentView中的位置
             Rect visibleBounds = new Rect(0, CollectionView.ScrollY, tableViewBoundsSize.Width, tableViewBoundsSize.Height);
             double tableHeight = 0;
@@ -132,14 +141,24 @@ namespace MauiUICollectionView.Layouts
 
             // ToList wil be sortable, we can get first or end item
             var tempOrderedCells = availableViewHolders.ToList();
-
+            tempOrderedCells.Sort((x, y) =>
+            {
+                return x.Key.Compare(y.Key);
+            });
             /*
              * Store old indexpath of prepareditem, maybe we need use it
              */
+            OldPreparedItems = new LayoutInfor();
             if (tempOrderedCells.Count > 0)
             {
-                OldPreparedItems[0] = tempOrderedCells[0].Key;
-                OldPreparedItems[1] = tempOrderedCells[tempOrderedCells.Count - 1].Key;
+                
+                var start = tempOrderedCells[0];
+                OldPreparedItems.StartItem= start.Key;
+                OldPreparedItems.StartBounds= start.Value.BoundsInLayout;
+                var end = tempOrderedCells[tempOrderedCells.Count - 1];
+                OldPreparedItems.EndItem = end.Key;
+                OldPreparedItems.EndBounds = end.Value.BoundsInLayout;
+                //Debug.WriteLine($"last start={start.Key} end={end.Key}");
             }
 
             /*
@@ -241,7 +260,7 @@ namespace MauiUICollectionView.Layouts
             if (IsOperating)
             {
                 var oldVisibleIndexPath = new List<NSIndexPath>();
-                var oldpreparedIndexPath = new NSIndexPath[2] { OldPreparedItems[0], OldPreparedItems[1] };
+                var oldpreparedIndexPath = new NSIndexPath[2] { OldPreparedItems.StartItem, OldPreparedItems.EndItem };
                 for (int index = Updates.Count - 1; index >= 0; index--)
                 {
                     var update = Updates[index];
@@ -256,12 +275,12 @@ namespace MauiUICollectionView.Layouts
                         if (update.source.Equals(oldpreparedIndexPath[0]))
                         {
                             oldpreparedIndexPath[0] = null;
-                            OldPreparedItems[0] = update.target;
+                            OldPreparedItems.StartItem = update.target;
                         }
                         if (update.source.Equals(oldpreparedIndexPath[1]))
                         {
                             oldpreparedIndexPath[1] = null;
-                            OldPreparedItems[1] = update.target;
+                            OldPreparedItems.EndItem = update.target;
                         }
                     }
                 }
@@ -315,6 +334,15 @@ namespace MauiUICollectionView.Layouts
              * Measure Items
              */
             tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableViewHolders);
+
+            //record visible item
+            foreach (var item in CollectionView.PreparedItems)
+            {
+                if (item.Value.BoundsInLayout.IntersectsWith(visibleBounds))
+                {
+                    VisibleIndexPath.Add(item.Key);
+                }
+            }
 
             /*
              * Select
@@ -407,7 +435,7 @@ namespace MauiUICollectionView.Layouts
              */
             tableHeight += MeasureFooter(tableHeight, layoutItemsInRect.Width);
 
-            Debug.WriteLine($"ChildCount={CollectionView.ContentView.Children.Count} PreparedItem={CollectionView.PreparedItems.Count} RecycleCount={CollectionView.ReusableViewHolders.Count}");
+            //Debug.WriteLine($"ChildCount={CollectionView.ContentView.Children.Count} PreparedItem={CollectionView.PreparedItems.Count} RecycleCount={CollectionView.ReusableViewHolders.Count}");
             //Debug.WriteLine("TableView Content Height:" + tableHeight);
             return new Size(tableViewBoundsSize.Width, tableHeight);
         }
@@ -458,13 +486,54 @@ namespace MauiUICollectionView.Layouts
         /// <param name="point">the point in Content or CollectionView</param>
         /// <param name="baseOnContent"> specify point is base on Content or CollectionView</param>
         /// <returns></returns>
-        public abstract NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true);
+        public virtual NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
+        {
+            if (!baseOnContent)
+            {
+                var contentOffset = CollectionView.ScrollY;
+                point.Y = point.Y + contentOffset;//convert to base on content
+            }
+
+            foreach (var item in CollectionView.PreparedItems)
+            {
+                if(item.Value.BoundsInLayout.Contains(point))
+                {
+                    return item.Key;
+                }
+            }
+            return null;
+        }
 
         /// <summary>
         /// Get rect of item. this method maybe be slow.
         /// </summary>
         /// <returns></returns>
-        public abstract Rect RectForItem(NSIndexPath indexPath);
+        public virtual Rect RectForItem(NSIndexPath indexPath) 
+        {
+            if (CollectionView.PreparedItems.ContainsKey(indexPath))
+            {
+                return CollectionView.PreparedItems[indexPath].BoundsInLayout;
+            }
+            return Rect.Zero;
+        }
+
+        public virtual void ScrollTo(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
+        {
+            var rect = RectForItem(indexPath);
+            switch (scrollPosition)
+            {
+                case ScrollPosition.None:
+                case ScrollPosition.Top:
+                    CollectionView.ScrollToAsync(0, rect.Top, animated);
+                    break;
+                case ScrollPosition.Middle:
+                    CollectionView.ScrollToAsync(0, rect.Y + rect.Height / 2, animated);
+                    break;
+                case ScrollPosition.Bottom:
+                    CollectionView.ScrollToAsync(0, rect.Bottom, animated);
+                    break;
+            }
+        }
 
         /// <summary>
         /// Get total height of items. we also measure invisible items after visible item, because it be used to adjust ScrollY for stay don't move visible items when Remove or Insert.
@@ -473,7 +542,7 @@ namespace MauiUICollectionView.Layouts
         /// <param name="indexPath"></param>
         /// <param name="count"></param>
         /// <returns></returns>
-        public abstract double HeightForItems(NSIndexPath indexPath, int count);
+        public abstract double EstimateHeightForItems(NSIndexPath indexPath, int count);
 
         public void Dispose()
         {

@@ -37,12 +37,12 @@ public partial class DefaultTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-           
+            HeightExpansionFactor = 0,
             SelectionMode = SelectionMode.Multiple,
             //CanDrag = true,
             CanContextMenu = true,
         };
-        tableView.ItemsLayout = new CollectionViewListLayout(tableView)
+        tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
         };
         content.Content = tableView;
@@ -71,10 +71,10 @@ public partial class DefaultTestPage : ContentPage
         //tableView.Content.GestureRecognizers.Add(click);
 
         //Header
-        var headerButton = new Button() { Text = "Header GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var headerButton = new Button() { Text = "Header GoTo 49-10", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToItem(NSIndexPath.FromRowSection(9, 1), ScrollPosition.Top, true);
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, 49), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Header");
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
@@ -82,7 +82,7 @@ public partial class DefaultTestPage : ContentPage
 
         //Footer
         var footer = new VerticalStackLayout();
-        var footerButton = new Button() { Text = "Footer GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var footerButton = new Button() { Text = "Footer GoTo 1-9", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
             tableView.ScrollToItem(NSIndexPath.FromRowSection(9, 1), ScrollPosition.Top, true);

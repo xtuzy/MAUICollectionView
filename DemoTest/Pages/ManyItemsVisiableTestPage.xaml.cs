@@ -17,7 +17,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             CanContextMenu = true,
         };
         content.Content = tableView;
-        tableView.ItemsLayout = new CollectionViewListLayout(tableView)
+        tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
         };
         SetSource.Clicked += (sender, e) =>
@@ -105,6 +105,8 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             }
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+            if (cell is ItemViewHolder)
+                (cell as ItemViewHolder).Id.Text = indexPath.ToString();
             return cell;
         }
 
