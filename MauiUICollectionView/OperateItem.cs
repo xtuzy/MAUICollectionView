@@ -7,29 +7,55 @@
         public enum OperateType
         {
             /// <summary>
-            /// 移除de
+            /// remove old item
             /// </summary>
-            remove,
+            Remove,
             /// <summary>
-            /// 新增的
+            /// insert new item 
             /// </summary>
-            insert,
+            Insert,
             /// <summary>
-            /// 移动的, 代表IndexPath改变的
+            /// move item, will change position
             /// </summary>
-            move,
+            Move,
             /// <summary>
-            /// 内容更新的
+            /// replace
             /// </summary>
-            update
+            Update,
+            /// <summary>
+            /// don't change position, but change IndexPath. it be designed for AnimationManager, AnimationManager don't have animation for it.
+            /// </summary>
+            MoveNow,
+            /// <summary>
+            /// it be designed for AnimationManager, AnimationManager don't have animation for it.
+            /// </summary>
+            RemoveNow
         }
-        //旧Index
+
+        /// <summary>
+        /// old index
+        /// </summary>
         public NSIndexPath source;
-        //新的Index
+
+        /// <summary>
+        /// new index
+        /// </summary>
         public NSIndexPath target;
+
+        /// <summary>
+        /// operate type
+        /// </summary>
         public OperateType operateType;
 
-        public bool animate = true;
+        /// <summary>
+        /// when operate, some item don't need animation. it is related to <see cref="OperateType.MoveNow"/>,<see cref="OperateType.RemoveNow"/> 
+        /// </summary>
+        public bool operateAnimate = true;
+
+        /// <summary>
+        /// move count, if target < source, it is negative number.
+        /// </summary>
+        public int moveCount = 0;
     }
     #endregion
 }

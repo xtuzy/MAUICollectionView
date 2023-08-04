@@ -130,37 +130,37 @@ namespace MauiUICollectionView
             {
                 if (args.status == SelectStatus.Selected)
                 {
-                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
 
                     if (SelectionMode == SelectionMode.Single)
                     {
-                        for (int index = SelectedRow.Count - 1; index >= 0; index--)
+                        for (int index = SelectedItems.Count - 1; index >= 0; index--)
                         {
-                            var old = SelectedRow[index];
+                            var old = SelectedItems[index];
                             if (old.Equals(indexPath))//单选时, 如果点击了已选的, 不取消选择
                                 continue;
-                            DeselectRowAtIndexPath(old);
-                            Source?.didDeselectRowAtIndexPath?.Invoke(this, indexPath);
+                            DeselectItem(old);
+                            Source?.DidDeselectItem?.Invoke(this, indexPath);
                         }
                         if (indexPath != null)
                         {
-                            this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
-                            Source?.didSelectRowAtIndexPath?.Invoke(this, indexPath);
+                            this.SelectItem(indexPath, false, ScrollPosition.None);
+                            Source?.DidSelectItem?.Invoke(this, indexPath);
                         }
                     }
                     else if (SelectionMode == SelectionMode.Multiple)
                     {
-                        if (SelectedRow.Contains(indexPath))//多选模式下, 点击已经选择了的会取消选择
+                        if (SelectedItems.Contains(indexPath))//多选模式下, 点击已经选择了的会取消选择
                         {
-                            DeselectRowAtIndexPath(indexPath);
-                            Source?.didDeselectRowAtIndexPath?.Invoke(this, indexPath);
+                            DeselectItem(indexPath);
+                            Source?.DidDeselectItem?.Invoke(this, indexPath);
                         }
                         else
                         {
                             if (indexPath != null)
                             {
-                                this.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
-                                Source?.didSelectRowAtIndexPath?.Invoke(this, indexPath);
+                                this.SelectItem(indexPath, false, ScrollPosition.None);
+                                Source?.DidSelectItem?.Invoke(this, indexPath);
                             }
                         }
                     }
@@ -177,7 +177,7 @@ namespace MauiUICollectionView
             if (CanContextMenu)
             {
                 var args = (Point)t;
-                var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args);
+                var indexPath = this.ItemsLayout.ItemAtPoint(args, false);
                 if (PreparedItems.ContainsKey(indexPath))
                 {
                     var item = PreparedItems[indexPath];
@@ -206,7 +206,7 @@ namespace MauiUICollectionView
                 {
                     StopRefresh(true);
 
-                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
 
                     if (PreparedItems.ContainsKey(indexPath))
                     {
@@ -223,7 +223,7 @@ namespace MauiUICollectionView
                 {
                     if (DragedItem == null)
                         return;
-                    var indexPath = this.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(args.point);
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
 
                     if (args.Device == GestureDevice.Touch)
                     {
@@ -274,7 +274,7 @@ namespace MauiUICollectionView
                         if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
-                            Source.willDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                            Source?.WantDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
                         }
                     }
 
@@ -286,9 +286,16 @@ namespace MauiUICollectionView
                     if (DragedItem == null)
                         return;
 
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
+                    Source?.WantDropTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                    
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
                     DragedItem.Scale = 1;
+                    if (!DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath[0], ItemsLayout.VisibleIndexPath.LastOrDefault()))
+                    {
+                        RecycleViewHolder(DragedItem);
+                    }
                     DragedItem = null;
                     lastDragPosition = args.point;
                     stopScroll = false;
@@ -340,8 +347,10 @@ namespace MauiUICollectionView
         /// 与上次滑动的差值
         /// </summary>
         public double scrollOffset { get; private set; } = 0;
+        public bool  IsScrolling { get; internal set; }
         private void TableView_Scrolled(object sender, ScrolledEventArgs e)
         {
+            IsScrolling = true;
             if (enableAutoScroll)
             {
                 scrollOffset = e.ScrollY - lastScrollY;
@@ -358,7 +367,7 @@ namespace MauiUICollectionView
             }
             else
             {
-                Debug.WriteLine("Scrolled");
+                //Debug.WriteLine($"Scrolled {e.ScrollY - lastScrollY}");
                 scrollOffset = e.ScrollY - lastScrollY;
                 //如果DragItem能执行到这里, 说明非触摸, 使用鼠标可以滑动, 因此更新DragItem的滑动距离
                 if (DragedItem != null)
@@ -367,12 +376,16 @@ namespace MauiUICollectionView
                 }
                 lastScrollY = e.ScrollY;
                 //Console.WriteLine($"Scrolled {e.ScrollY}");
-                ItemsLayout.AnimationManager.Stop();
+                ItemsLayout.AnimationManager.StopOperateAnim();
             }
+            //MeasureNowAfterScroll();
             ReMeasure();
         }
 
         SelectionMode selectionMode = SelectionMode.None;
+        /// <summary>
+        /// Specify selection mode.
+        /// </summary>
         public SelectionMode SelectionMode
         {
             get => selectionMode;
@@ -381,7 +394,7 @@ namespace MauiUICollectionView
                 if (value == SelectionMode.None)
                 {
                     //设置成None时清除之前选择的
-                    SelectedRow?.Clear();
+                    SelectedItems?.Clear();
                 }
                 selectionMode = value;
             }
@@ -403,6 +416,9 @@ namespace MauiUICollectionView
         }
 
         bool canDrag = false;
+        /// <summary>
+        /// Set whether item can be dragged or dropped after long press. 
+        /// </summary>
         public bool CanDrag
         {
             set
@@ -415,6 +431,9 @@ namespace MauiUICollectionView
         }
 
         bool canContextMenu = false;
+        /// <summary>
+        /// Set whether show ContextMenu after long press. 
+        /// </summary>
         public bool CanContextMenu
         {
             set
@@ -428,7 +447,9 @@ namespace MauiUICollectionView
         }
 
         #endregion
-
+        /// <summary>
+        /// custom a layout as content of ScrollView
+        /// </summary>
         public class ContentViewForScrollView : Layout
         {
             MAUICollectionView container;

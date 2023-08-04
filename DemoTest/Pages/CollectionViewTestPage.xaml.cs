@@ -40,7 +40,8 @@ public partial class CollectionViewTestPage : ContentPage
         Add.Clicked += (sender, e) =>
         {
             var index = 2;
-            viewModel.ObservableModels.Insert(index, viewModel.Generate(1)[0]);
+            foreach(var v in viewModel.Generate(3))
+             viewModel.ObservableModels.Insert(index, v);
         };
 
         Remove.Clicked += (sender, e) =>
@@ -60,6 +61,18 @@ public partial class CollectionViewTestPage : ContentPage
         {
             var index = 2;
             viewModel.ObservableModels[index] = viewModel.Generate(1)[0];
+        };
+
+        ReLayout.Clicked += (sender, e) =>
+        {
+            if(collectionView.ItemsLayout is GridItemsLayout)
+            {
+                collectionView.ItemsLayout = LinearItemsLayout.Vertical;
+            }
+            else
+            {
+                collectionView.ItemsLayout = new GridItemsLayout(2, ItemsLayoutOrientation.Vertical);
+            }
         };
     }
 }

@@ -24,6 +24,7 @@
             <Button x:Name="Remove" Text="Remove" />
             <Button x:Name="Change" Text="Change" />
             <Button x:Name="Move" Text="Move" />
+            <Button x:Name="ReLayout" Text="ReLayout" />
         </HorizontalStackLayout>
         <CollectionView
             x:Name="collectionView"

@@ -2,25 +2,32 @@
 {
     public class MAUICollectionViewSource : IMAUICollectionViewSource
     {
-        public numberOfRowsInSectionDelegate numberOfItemsInSection { get; set; }
+        public Func<MAUICollectionView, int, int> NumberOfItems { get; set; }
 
-        public cellForRowAtIndexPathDelegate cellForRowAtIndexPath { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder, double, MAUICollectionViewViewHolder> ViewHolderForItem { get; set; }
 
-        public numberOfSectionsInTableViewDelegate numberOfSectionsInCollectionView { get; set; }
+        public Func<MAUICollectionView, int> NumberOfSections { get; set; }
 
-        public willXRowAtIndexPathDelegate willSelectRowAtIndexPath { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillSelectItem { get; set; }
 
-        public willXRowAtIndexPathDelegate willDeselectRowAtIndexPath { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillDeselectItem { get; set; }
 
-        public didXRowAtIndexPathDelegate didSelectRowAtIndexPath { get; set; }
+        public Action<MAUICollectionView, NSIndexPath> DidSelectItem { get; set; }
 
-        public didXRowAtIndexPathDelegate didDeselectRowAtIndexPath { get; set; }
+        public Action<MAUICollectionView, NSIndexPath> DidDeselectItem { get; set; }
 
-        public heightForRowAtIndexPathDelegate heightForRowAtIndexPath { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, double> HeightForItem { get; set; }
 
-        public reuseIdentifierForRowAtIndexPathDelegate reuseIdentifierForRowAtIndexPath { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, string> ReuseIdForItem { get; set; }
 
-        public Action<MAUICollectionView, NSIndexPath> lastItemWillShow { get; set; }
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> willDragTo { get; set; }
+        public Func<MAUICollectionView, NSIndexPath, bool> IsSectionItem { get; set; }
+        
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; set; }
+
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDropTo { get; set; }
+
+        public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder> DidPrepareItem { get; set; }
+
+        public Action<MAUICollectionView> WillArrange { get; set; }
     }
 }

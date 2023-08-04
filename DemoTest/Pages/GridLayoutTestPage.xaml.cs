@@ -25,12 +25,12 @@ public partial class GridLayoutTestPage : ContentPage
         {
             var p = e.GetPosition(tableView);
 #if IOS
-            var indexPath = tableView.ItemsLayout.IndexPathForRowAtPointOfContentView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value);
 #else
-            var indexPath = tableView.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value, false);
 #endif
             if (indexPath != null)
-                tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                tableView.SelectItem(indexPath, false, ScrollPosition.None);
         };
         tableView.Content.GestureRecognizers.Add(click);
         var headerButton = new Button() { Text = "Header", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
@@ -47,7 +47,7 @@ public partial class GridLayoutTestPage : ContentPage
         var footerButton = new Button() { Text = "Footer GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
             Console.WriteLine("Clicked Footer");
         };
         tableView.FooterView = new MAUICollectionViewViewHolder(footerButton, "Footer");
@@ -64,18 +64,18 @@ public partial class GridLayoutTestPage : ContentPage
         //Add
         Add.Clicked += (sender, e) =>
         {
-            var index = 2;
-            (tableView.Source as Source).InsertData(index);
-            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0));
-            tableView.ReMeasure();
+            var index = 3;
+            var count = 3;
+            (tableView.Source as Source).InsertData(0, index, count);
+            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0), count);
         };
 
         Remove.Clicked += (sender, e) =>
         {
-            var index = 2;
-            (tableView.Source as Source).RemoveData(index);
-            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0));
-            tableView.ReMeasure();
+            var index = 3;
+            var count = 3;
+            (tableView.Source as Source).RemoveData(0, index, count);
+            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0), count);
         };
 
         Move.Clicked += (sender, e) =>

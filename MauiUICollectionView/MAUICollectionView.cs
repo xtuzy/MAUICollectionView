@@ -1,5 +1,4 @@
 ﻿using MauiUICollectionView.Layouts;
-using System;
 
 namespace MauiUICollectionView
 {
@@ -58,28 +57,51 @@ namespace MauiUICollectionView
                 }
             }
         }
+
+        View _emptyView;
+        public View EmptyView
+        {
+            set
+            {
+                //如果已经存在, 先移除
+                if (_emptyView != null && _emptyView != value)
+                {
+                    if (ContentView.Contains(_emptyView))
+                    {
+                        ContentView.Remove(_emptyView);
+                    }
+                }
+
+                if (value != null && _emptyView != value)
+                {
+                    _emptyView = value;
+                    ContentView.Insert(1, _emptyView);//插入到底部
+                }
+            }
+        }
         #endregion
 
         bool _needsReload;
         /// <summary>
-        /// 被选择的Item
+        /// The selected Items
         /// </summary>
-        public List<NSIndexPath> SelectedRow = new();
+        public List<NSIndexPath> SelectedItems = new();
 
         /// <summary>
-        /// 被拖拽用来排序的Item, 其IndexPath会在拖动时更新
+        /// Item that are dragged and dropped to sort. Its IndexPath updates when you drag.
         /// </summary>
         public MAUICollectionViewViewHolder DragedItem;
 
         /// <summary>
-        /// 当前正在布局区域中的Items, 与可见区域不同, 布局区域可能大于可见区域, 因为快速滑动时上下可能出现空白, 为了避免空白需要绘制大于可见区域的
+        /// Items in the layout area. Layout area unlike the visible area, the layout area may be larger than the visible area, because there may be white space up and down when sliding quickly, and it is necessary to draw larger than the visible area to avoid blanks.
         /// </summary>
         public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> PreparedItems;
+
         /// <summary>
-        /// 回收的等待重复利用的ViewHolder
+        /// Recycled ViewHolders waiting to be reused
         /// </summary>
         public List<MAUICollectionViewViewHolder> ReusableViewHolders;
-        public int MaxReusableViewHolderCount = 5;
+        int MaxReusableViewHolderCount = 5;
 
         SourceHas _sourceHas;
         struct SourceHas
@@ -117,30 +139,50 @@ namespace MauiUICollectionView
             {
                 _source = value;
 
-                _sourceHas.numberOfSectionsInCollectionView = _source.numberOfSectionsInCollectionView != null;
-                _sourceHas.numberOfItemsInSection = _source.numberOfItemsInSection != null;
+                if (_source != null)
+                {
+                    _sourceHas.numberOfSectionsInCollectionView = _source.NumberOfSections != null;
+                    _sourceHas.numberOfItemsInSection = _source.NumberOfItems != null;
 
-                _sourceHas.heightForRowAtIndexPath = _source.heightForRowAtIndexPath != null;
-                _sourceHas.willSelectRowAtIndexPath = _source.willSelectRowAtIndexPath != null;
-                _sourceHas.didSelectRowAtIndexPath = _source.didSelectRowAtIndexPath != null;
-                _sourceHas.willDeselectRowAtIndexPath = _source.willDeselectRowAtIndexPath != null;
-                _sourceHas.didDeselectRowAtIndexPath = _source.didDeselectRowAtIndexPath != null;
+                    _sourceHas.heightForRowAtIndexPath = _source.HeightForItem != null;
+                    _sourceHas.willSelectRowAtIndexPath = _source.WillSelectItem != null;
+                    _sourceHas.didSelectRowAtIndexPath = _source.DidSelectItem != null;
+                    _sourceHas.willDeselectRowAtIndexPath = _source.WillDeselectItem != null;
+                    _sourceHas.didDeselectRowAtIndexPath = _source.DidDeselectItem != null;
+                }
+                else
+                {
+                    _sourceHas.numberOfSectionsInCollectionView = false;
+                    _sourceHas.numberOfItemsInSection = false;
+
+                    _sourceHas.heightForRowAtIndexPath = false;
+                    _sourceHas.willSelectRowAtIndexPath = false;
+                    _sourceHas.didSelectRowAtIndexPath = false;
+                    _sourceHas.willDeselectRowAtIndexPath = false;
+                    _sourceHas.didDeselectRowAtIndexPath = false;
+                }
 
                 this._setNeedsReload();
             }
         }
 
+        /// <summary>
+        /// Specify layout for CollectionView
+        /// </summary>
         public CollectionViewLayout ItemsLayout;
 
         /// <summary>
-        /// 屏幕顶部和底部多加载Cell的高度, 对于平台ScrollView实现是平移画布的(Android, Windows), 大的扩展高度可以减少滑动时显示空白, 默认设置上下各扩展一屏幕高度.
+        /// See <see cref="HeightExpansion"/>, advice set 0 on iOS, set 1 on Android, set 0.5 on Windows. You need test different value to find which one is best for your project.
         /// </summary>
-#if IOS
-        public int ExtendHeight => 0;
-#else
-        public int ExtendHeight => (int)CollectionViewConstraintSize.Height;
-#endif
-        public MAUICollectionViewViewHolder CellForRowAtIndexPath(NSIndexPath indexPath)
+        public double HeightExpansionFactor = 0.5;
+
+        /// <summary>
+        /// The height of the expansion. 
+        /// It will let CollectionView show more view than visible rect, it is related to prepared rect. Height of prepared rect is HeightExpansion + Visible Height + HeightExpansion. Why do this?, Scroll ScrollView will translate canvas on Android and Windows before relayout, if no view in lasted visible rect, will show blank, so we need layout more view to avoid blank for next scroll.
+        /// </summary>
+        internal int HeightExpansion => (int)(CollectionViewConstraintSize.Height * HeightExpansionFactor);
+
+        public MAUICollectionViewViewHolder ViewHolderForItem(NSIndexPath indexPath)
         {
             // this is allowed to return nil if the cell isn't visible and is not restricted to only returning visible cells
             // so this simple call should be good enough.
@@ -149,7 +191,7 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// Reloads all the data and views in the collection view. 常在非数据末尾的位置插入或者移除大量数据时使用.
+        /// Reloads all the data and views in the collection view. The goal is to be used when the data changes a lot.
         /// </summary>
         public void NotifyDataSetChanged()
         {
@@ -162,7 +204,7 @@ namespace MauiUICollectionView
             PreparedItems.Clear();
 
             // clear prior selection
-            this.SelectedRow.Clear();
+            this.SelectedItems.Clear();
             DragedItem = null;
 
             ReloadDataCount();//Section或者Item数目可能变化了, 重新加载
@@ -172,7 +214,7 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 切换页面返回时, 数据可能不再展示, 因此需要强制重新加载
+        /// When switching pages back, the data may no longer be displayed, so a forced reload is required.
         /// </summary>
         public void ReAppear()
         {
@@ -203,12 +245,19 @@ namespace MauiUICollectionView
             this.ReMeasure();
         }
 
+        Size MeasuredContentSize = Size.Zero;
+        /// <summary>
+        /// It will be call when framework measure view tree. It has a delay after <see cref="ReMeasure"/>.
+        /// </summary>
+        /// <param name="widthConstraint"></param>
+        /// <param name="heightConstraint"></param>
+        /// <returns></returns>
         public partial Size OnContentViewMeasure(double widthConstraint, double heightConstraint)
         {
             this._reloadDataIfNeeded();
             Size size = Size.Zero;
 
-            if (ItemsLayout != null)
+            if (ItemsLayout != null && Source != null)
             {
                 if (ItemsLayout.ScrollDirection == ItemsLayoutOrientation.Vertical)
                 {
@@ -220,45 +269,69 @@ namespace MauiUICollectionView
                     if (CollectionViewConstraintSize.Width == 0)//首次显示可能没有值, 取屏幕大小
                         CollectionViewConstraintSize.Width = DeviceDisplay.Current.MainDisplayInfo.Width;
                 }
-                size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
+                if (MeasuredContentSize != Size.Zero && IsScrolling)
+                    size = MeasuredContentSize;
+                else
+                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
             }
 
+            // set empty view
+            if (ItemsLayout != null && Source != null)
+            {
+                if (_emptyView != null && _emptyView.IsVisible == true)
+                    _emptyView.IsVisible = false;
+            }
+            else
+            {
+                if (_emptyView != null)
+                {
+                    if (_emptyView.IsVisible == false)
+                        _emptyView.IsVisible = true;
+                    _emptyView.MeasureSelf(this.Width, this.Height);
+                }
+            }
+
+            // measure background view
             if (_backgroundView != null)
             {
                 if (size != Size.Zero)
-                    MeasureChild(_backgroundView, size.Width, size.Height);
+                    _backgroundView.MeasureSelf(size.Width, size.Height);
                 else
-                    MeasureChild(_backgroundView, widthConstraint, heightConstraint);
+                    _backgroundView.MeasureSelf(widthConstraint, heightConstraint);
             }
 
             return size;
         }
 
-        public SizeRequest MeasureChild(Element element, double widthConstraint, double heightConstraint)
+        /// <summary>
+        /// Measure immediately. It will be call after scroll. 
+        /// When scroll, will call measure many times, <see cref="ReMeasure"/> have a delay, so we need this method fast update view's position, avoid view's status conflict.
+        /// </summary>
+        void MeasureNowAfterScroll()
         {
-            return (element as IView).Measure(widthConstraint, heightConstraint);
+            if (ItemsLayout != null && Source != null)
+                MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
         }
 
-        bool animating = false;
+        /// <summary>
+        /// It will be call when framework layout view tree.
+        /// </summary>
         public partial void OnContentViewLayout()
         {
+            if ((ItemsLayout == null || Source == null) && _emptyView != null)
+            {
+                _emptyView.ArrangeSelf(new Rect(0, 0, this.Width, this.Height));
+            }
+
             if (_backgroundView != null)
-                LayoutChild(_backgroundView, ContentView.Bounds);
+                _backgroundView.ArrangeSelf(ContentView.Bounds);
 
             ItemsLayout?.ArrangeContents();
+
+            MeasuredContentSize = Size.Zero;
         }
 
-        public void LayoutChild(Element element, Rect rect)
-        {
-            (element as IView).Arrange(rect);
-        }
-
-        public List<NSIndexPath> IndexPathForSelectedRow()
-        {
-            return SelectedRow;
-        }
-
-        public NSIndexPath IndexPathForCell(MAUICollectionViewViewHolder cell)
+        public NSIndexPath IndexPathForViewHolder(MAUICollectionViewViewHolder cell)
         {
             foreach (NSIndexPath index in PreparedItems.Keys)
             {
@@ -272,68 +345,57 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 取消选择某IndexPath
+        /// Deselect item.
         /// </summary>
         /// <param name="indexPath"></param>
         /// <param name="animated"></param>
-        public void DeselectRowAtIndexPath(NSIndexPath indexPath, bool animated = false)
+        public void DeselectItem(NSIndexPath indexPath, bool animated = false)
         {
-            if (indexPath != null && SelectedRow.Contains(indexPath))
+            if (indexPath != null && SelectedItems.Contains(indexPath))
             {
-                var cell = this.CellForRowAtIndexPath(indexPath);
+                var cell = this.ViewHolderForItem(indexPath);
                 if (cell != null) cell.Selected = false;
-                SelectedRow.Remove(indexPath);
+                SelectedItems.Remove(indexPath);
             }
         }
 
         /// <summary>
-        /// 选择某IndexPath
+        /// Select item.
         /// </summary>
         /// <param name="indexPath"></param>
         /// <param name="animated"></param>
         /// <param name="scrollPosition"></param>
-        public void SelectRowAtIndexPath(NSIndexPath indexPath, bool animated, ScrollPosition scrollPosition)
+        public void SelectItem(NSIndexPath indexPath, bool animated, ScrollPosition scrollPosition)
         {
-            // unlike the other methods that I've tested, the real UIKit appears to call reload during selection if the table hasn't been reloaded
-            // yet. other methods all appear to rebuild the section cache "on-demand" but don't do a "proper" reload. for the sake of attempting
-            // to maintain a similar delegate and dataSource access pattern to the real thing, I'll do it this way here. :)
             this._reloadDataIfNeeded();
 
-            if (!SelectedRow.Contains(indexPath))
+            if (!SelectedItems.Contains(indexPath))
             {
-                SelectedRow.Add(indexPath);
-                var cell = this.CellForRowAtIndexPath(indexPath);
+                SelectedItems.Add(indexPath);
+                var cell = this.ViewHolderForItem(indexPath);
                 if (cell != null)//TODO:不知道为什么有时候为空
                     cell.Selected = true;
             }
         }
 
         /// <summary>
-        /// 滑动到NSIndexPath对应的Item.
+        /// Scroll to item.
         /// </summary>
         /// <param name="indexPath"></param>
         /// <param name="scrollPosition"></param>
         /// <param name="animated"></param>
-        public void ScrollToRowAtIndexPath(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
+        public void ScrollToItem(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
-            var rect = ItemsLayout.RectForRowOfIndexPathInContentView(indexPath);
-            switch (scrollPosition)
-            {
-                case ScrollPosition.None:
-                case ScrollPosition.Top:
-                    ScrollToAsync(0, rect.Top, animated);
-                    break;
-                case ScrollPosition.Middle:
-                    ScrollToAsync(0, rect.Y + rect.Height / 2, animated);
-                    break;
-                case ScrollPosition.Bottom:
-                    ScrollToAsync(0, rect.Bottom, animated);
-                    break;
-            }
+            ItemsLayout.ScrollTo(indexPath, scrollPosition, animated);
         }
 
         #region 复用
         object _obj = new object();
+        /// <summary>
+        /// Get ViewHolder from <see cref="ReusableViewHolders"/>.
+        /// </summary>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
         public MAUICollectionViewViewHolder DequeueRecycledViewHolderWithIdentifier(string identifier)
         {
             lock (_obj)
@@ -352,12 +414,12 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 没有操作动画的Item直接回收
+        /// Recycle ViewHolder.
         /// </summary>
         /// <param name="viewHolder"></param>
         public void RecycleViewHolder(MAUICollectionViewViewHolder viewHolder)
         {
-            //回收时重置ViewHolder
+            //reset ViewHolder
             if (!ReusableViewHolders.Contains(viewHolder))
             {
                 viewHolder.PrepareForReuse();
@@ -366,35 +428,38 @@ namespace MauiUICollectionView
                     ReusableViewHolders.Add(viewHolder);
                 }
             }
-            //viewHolder.ContentView.RemoveFromSuperview(); 移除会触发Measure, 导致动画流程混乱
         }
 
         #endregion
 
         #region 数据
         /// <summary>
-        /// 缓存Section和Item的数据, 从Source获取的是最新的, 在数据更新时, 这里存储的是旧的
+        /// The data of the Section and Item is cached, it is obtained from <see cref="Source"/>, and the old one is stored here when the data is updated, need use <see cref="ReloadDataCount"/> to update it.
         /// </summary>
         private List<int> sections = new();
 
         /// <summary>
-        /// 当数据被从末尾插入或删除时, 可以使用该方法加载更新后的数据.
+        /// When data is inserted or deleted from the end, the updated data can be fast loaded using this method.
         /// </summary>
         public void ReloadDataCount()
         {
             this.sections = fetchDataCounts();
         }
 
+        /// <summary>
+        /// Form <see cref="Source"/> get lastest data.
+        /// </summary>
+        /// <returns></returns>
         private List<int> fetchDataCounts()
         {
             var res = new List<int>();
             if (_sourceHas.numberOfSectionsInCollectionView && _sourceHas.numberOfItemsInSection)
             {
-                var sCount = Source.numberOfSectionsInCollectionView(this);
+                var sCount = Source.NumberOfSections(this);
 
                 for (var sIndex = 0; sIndex < sCount; sIndex++)
                 {
-                    res.Add(Source.numberOfItemsInSection(this, sIndex));
+                    res.Add(Source.NumberOfItems(this, sIndex));
                 }
             }
             return res;
@@ -423,49 +488,107 @@ namespace MauiUICollectionView
 
         #region 操作
 
+        NSIndexPath GetNextItem(NSIndexPath indexPath)
+        {
+            if (indexPath.Row < NumberOfItemsInSection(indexPath.Section) - 1) // have next item in same section
+            {
+                return NSIndexPath.FromRowSection(indexPath.Row + 1, indexPath.Section);
+            }
+            else // find next item from next section
+            {
+                if (indexPath.Section < NumberOfSections() - 1)
+                {
+                    return NSIndexPath.FromRowSection(0, indexPath.Section + 1);
+                }
+                else //don't have next section
+                {
+                    return null;
+                }
+            }
+        }
+
         /// <summary>
-        /// 通知CollectionView移除某Item, 需要做出改变.
-        /// 移除会让移除项后面的Item需要调节高度, 这个高度需要动画改变
+        /// Notifies the CollectionView that some items have been removed from data set and that changes need to be made.
         /// </summary>
         /// <param name="indexPath"></param>
         public void NotifyItemRangeRemoved(NSIndexPath indexPath, int count = 1)
         {
+            if (count < 1) return;
+            if (indexPath.Row + count > NumberOfItemsInSection(indexPath.Section))
+            {
+                throw new IndexOutOfRangeException("Removed item beyond data");
+            }
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.Stop();
+                ItemsLayout.AnimationManager.StopOperateAnim();
 
-            var isRemoveBeforeVisiable = false;//remove before visible item, don't show visible position animation
+            /*
+             * Animation Analysis:
+             * If remove item in front of first visible item, and don't remove visible item, visible item don't need move.
+             * If remove visible item, need move, all items after last removed item need move, but we only move visible items and 'items equal to count'
+             */
+            var isRemovedBeforeVisible = false;//remove before visible item, don't show visible position animation
             var lastNeedRemoveIndexPath = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);//use last item, avoid remove visible item
-            if (lastNeedRemoveIndexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
-                isRemoveBeforeVisiable = true;
+            if (lastNeedRemoveIndexPath.Compare(ItemsLayout.VisibleIndexPath.FirstOrDefault()) < 0)
+                isRemovedBeforeVisible = true;
 
+            NSIndexPath lastRemovedIndexPath = NSIndexPath.FromRowSection(indexPath.Row - 1, indexPath.Section);
             for (var index = 0; index < count; index++)
             {
-                var needRemovedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
-                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.remove, source = needRemovedIndexPath });
+                var needRemovedIndexPath = GetNextItem(lastRemovedIndexPath);
+                if (needRemovedIndexPath.Section != indexPath.Section)
+                    break;
+                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Remove, source = needRemovedIndexPath, operateAnimate = !(ItemsLayout.VisibleIndexPath.FirstOrDefault().Row - indexPath.Row >= count) });
+                lastRemovedIndexPath = needRemovedIndexPath;
             }
-            //找到已经可见的Item和它们的IndexPath,和目标IndexPath
-            foreach (var visiableItem in PreparedItems)
+
+            // try Move 2*count items:
+            // first part, 1*counts items be moved to fill items that be removed.
+            // second part, 1*counts items be moved to fill items that be moved in first part. 
+            NSIndexPath lastMovedIndexPath = lastNeedRemoveIndexPath;
+            for (var moveCount = 1; moveCount <= 2 * count; moveCount++)
             {
-                if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
+                var needMovedIndexPath = GetNextItem(lastMovedIndexPath);
+                if (needMovedIndexPath == null) continue;
+                Updates.Add(new OperateItem()
                 {
-                    if (visiableItem.Key.Row > (indexPath.Row + count - 1))//大于移除item的row的需要更新IndexPath
+                    operateType = OperateItem.OperateType.Move,
+                    source = needMovedIndexPath,
+                    target = needMovedIndexPath.Section == indexPath.Section ? NSIndexPath.FromRowSection(needMovedIndexPath.Row - count, needMovedIndexPath.Section) : needMovedIndexPath, //if not same section, don't change IndexPath
+                    operateAnimate = !isRemovedBeforeVisible,
+                    moveCount = -count
+                });
+                lastMovedIndexPath = needMovedIndexPath;
+            }
+
+            lastMovedIndexPath = NSIndexPath.FromRowSection(lastNeedRemoveIndexPath.Row + 2 * count, lastNeedRemoveIndexPath.Section);
+            //if visible items is too more(> 2 * count), maybe need more more.
+            foreach (var visibleItem in PreparedItems)
+            {
+                if (visibleItem.Key > lastMovedIndexPath)
+                {
+                    Updates.Add(new OperateItem()
                     {
-                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - count, visiableItem.Key.Section), animate = !isRemoveBeforeVisiable });
-                    }
+                        operateType = OperateItem.OperateType.Move,
+                        source = visibleItem.Key,
+                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row - count, visibleItem.Key.Section) : visibleItem.Key,
+                        operateAnimate = !isRemovedBeforeVisible
+                    });
                 }
             }
 
             ReloadDataCount();
 
-            if (isRemoveBeforeVisiable)//if remove before visible, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            updatSelectedIndexPathWhenRemoveOperate(indexPath, count);
+
+            if (isRemovedBeforeVisible)//if remove before visible, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
             {
-                var visibleFirst = ItemsLayout.VisiableIndexPath.FirstOrDefault();
-                if (visibleFirst.Section == indexPath.Section && visibleFirst.Row - indexPath.Row  < count)//if remove first visible, we remeasure, not scroll
+                var visibleFirst = ItemsLayout.VisibleIndexPath.FirstOrDefault();
+                if (visibleFirst.Section == indexPath.Section && visibleFirst.Row - indexPath.Row < count)//if remove first visible, we remeasure, not scroll
                     this.ReMeasure();
                 else
                 {
-                    var removeAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                    var removeAllHight = ItemsLayout.EstimateHeightForItems(indexPath, count);
                     ScrollToAsync(ScrollX, ScrollY - removeAllHight, false);
                 }
             }
@@ -476,28 +599,34 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 通知CollectionView插入了Item, 需要做出改变.
+        /// Notifies the CollectionView that some items have been inserted to data set and that changes need to be made.
         /// </summary>
-        /// <param name="indexPath">插入应该是在某个位置插入, 比如0, 即插入在0位置</param>
+        /// <param name="indexPath">if insert data in 0-1(section is 0, item index is 1) and count is 2, old data in 0-1 will be move to 0-3, the inserted data is displayed in 0-1 and 0-2</param>
+        /// <param name="count"></param>
         public void NotifyItemRangeInserted(NSIndexPath indexPath, int count = 1)
         {
+            if (count < 1) return;
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.Stop();
+                ItemsLayout.AnimationManager.StopOperateAnim();
 
             var isInsertBeforeVisiable = false;//insert before visible item, don't show visible position animation
-            if (indexPath.Compare(ItemsLayout.VisiableIndexPath.FirstOrDefault()) < 0)
+            if (indexPath.Compare(ItemsLayout.VisibleIndexPath.FirstOrDefault()) < 0)
                 isInsertBeforeVisiable = true;
 
-            //visible item maybe need move position when insert items
-            foreach (var visiableItem in PreparedItems)
+            //visible item maybe need move position after insert items
+            foreach (var visibleItem in PreparedItems)
             {
-                if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
+                if (!(visibleItem.Key < indexPath))
                 {
-                    if (visiableItem.Key.Row >= indexPath.Row)//大于等于item的row的需要更新IndexPath
+                    Updates.Add(new OperateItem()
                     {
-                        Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + count, visiableItem.Key.Section), animate = !isInsertBeforeVisiable });
-                    }
+                        moveCount = count,
+                        operateType = OperateItem.OperateType.Move,
+                        source = visibleItem.Key,
+                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row + count, visibleItem.Key.Section) : visibleItem.Key,
+                        operateAnimate = !isInsertBeforeVisiable
+                    });
                 }
             }
 
@@ -505,14 +634,20 @@ namespace MauiUICollectionView
             for (var index = 0; index < count; index++)
             {
                 var needInsertedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
-                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.insert, source = needInsertedIndexPath });
+                Updates.Add(new OperateItem()
+                {
+                    operateType = OperateItem.OperateType.Insert,
+                    source = needInsertedIndexPath
+                });
             }
 
             ReloadDataCount();
 
+            updatSelectedIndexPathWhenInsertOperate(indexPath, count);
+
             if (isInsertBeforeVisiable)//if insert before VisibleItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
             {
-                var insertAllHight = ItemsLayout.GetItemsCurrentHeight(indexPath, count);
+                var insertAllHight = ItemsLayout.EstimateHeightForItems(indexPath, count);
                 ScrollToAsync(ScrollX, ScrollY + insertAllHight, false);
             }
             else
@@ -525,8 +660,8 @@ namespace MauiUICollectionView
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.Stop();
-            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = indexPath, target = toIndexPath });
+                ItemsLayout.AnimationManager.StopOperateAnim();
+            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = indexPath, target = toIndexPath });
 
             //如果同Section, Move影响的只是之间的
             if (indexPath.Section == toIndexPath.Section)
@@ -541,14 +676,14 @@ namespace MauiUICollectionView
                         {
                             if (visiableItem.Key.Row >= toIndexPath.Row && visiableItem.Key.Row < indexPath.Row)
                             {
-                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
                             }
                         }
                         else
                         {
                             if (visiableItem.Key.Row > indexPath.Row && visiableItem.Key.Row <= toIndexPath.Row)
                             {
-                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
                             }
                         }
 
@@ -565,7 +700,7 @@ namespace MauiUICollectionView
                     {
                         if (visiableItem.Key.Row > indexPath.Row)
                         {
-                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
                         }
                     }
                 }
@@ -576,28 +711,148 @@ namespace MauiUICollectionView
                     {
                         if (visiableItem.Key.Row >= toIndexPath.Row)
                         {
-                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
+                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
                         }
                     }
                 }
             }
             ReloadDataCount();
+            updatSelectedIndexPathWhenMoveOperate(indexPath, toIndexPath);
             this.ReMeasure();
         }
 
+        /// <summary>
+        /// Notifies the CollectionView that data have been replaced in these items.
+        /// </summary>
+        /// <param name="indexPaths"></param>
         public void NotifyItemRangeChanged(IEnumerable<NSIndexPath> indexPaths)
         {
             var Updates = ItemsLayout.Updates;
             if (Updates.Count > 0)
-                ItemsLayout.AnimationManager.Stop();
+                ItemsLayout.AnimationManager.StopOperateAnim();
             foreach (var visiableItem in PreparedItems)
             {
                 if (indexPaths.Contains(visiableItem.Key))//如果可见的Items包含需要更新的Item
                 {
-                    Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.update, source = visiableItem.Key });
+                    Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Update, source = visiableItem.Key });
                 }
             }
             this.ReMeasure();
+        }
+
+        void updatSelectedIndexPathWhenInsertOperate(NSIndexPath indexPath, int count)
+        {
+            for (int i = SelectedItems.Count - 1; i >= 0; i--)
+            {
+                var selectedItem = SelectedItems[i];
+                if (selectedItem.Section == indexPath.Section)
+                {
+                    if (indexPath.Row <= selectedItem.Row)//insert in front of selected
+                    {
+                        selectedItem.UpdateRow(selectedItem.Row + count);
+                    }
+                    else//insert behind selected
+                    {
+
+                    }
+                }
+            }
+        }
+
+        void updatSelectedIndexPathWhenMoveOperate(NSIndexPath indexPath, NSIndexPath toIndexPath)
+        {
+            //如果同Section, Move影响的只是之间的
+            if (indexPath.Section == toIndexPath.Section)
+            {
+                var isUpMove = indexPath.Row > toIndexPath.Row;
+                //先移除
+                for (int i = SelectedItems.Count - 1; i >= 0; i--)
+                {
+                    var selectedItem = SelectedItems[i];
+                    if (selectedItem.Section == indexPath.Section)//同一section的item才变化
+                    {
+                        if (selectedItem.Row == indexPath.Row)
+                        {
+                            selectedItem.UpdateRow(toIndexPath.Row);
+                            continue;
+                        }
+
+                        if (isUpMove)//从底部向上移动, 目标位置下面的都需要向下移动
+                        {
+                            if (selectedItem.Row >= toIndexPath.Row && selectedItem.Row < indexPath.Row)
+                            {
+                                selectedItem.UpdateRow(selectedItem.Row + 1);
+                            }
+                        }
+                        else
+                        {
+                            if (selectedItem.Row > indexPath.Row && selectedItem.Row <= toIndexPath.Row)
+                            {
+                                selectedItem.UpdateRow(selectedItem.Row - 1);
+                            }
+                        }
+
+                    }
+                }
+            }
+            //如果不同Section, 则影响不同的section后面的
+            else
+            {
+                //先移除, 移除的Item后面的Item需要向前移动
+                for (int i = SelectedItems.Count - 1; i >= 0; i--)
+                {
+                    var selectedItem = SelectedItems[i];
+                    if (selectedItem.Section == indexPath.Section)
+                    {
+                        if (selectedItem.Row == indexPath.Row)
+                        {
+                            selectedItem.UpdateRow(toIndexPath.Row);
+                            continue;
+                        }
+
+                        if (selectedItem.Row > indexPath.Row)
+                        {
+                            selectedItem.UpdateRow(selectedItem.Row - 1);
+                        }
+                    }
+                }
+
+                //后插入, 后面的需要向后移动
+                for (int i = SelectedItems.Count - 1; i >= 0; i--)
+                {
+                    var selectedItem = SelectedItems[i];
+                    if (selectedItem.Section == toIndexPath.Section)
+                    {
+                        if (selectedItem.Row >= toIndexPath.Row)
+                        {
+                            selectedItem.UpdateRow(selectedItem.Row + 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        void updatSelectedIndexPathWhenRemoveOperate(NSIndexPath indexPath, int count)
+        {
+            for (int i = SelectedItems.Count - 1; i >= 0; i--)
+            {
+                var selectedItem = SelectedItems[i];
+                if (selectedItem.Section == indexPath.Section)
+                {
+                    if (indexPath.Row + count - 1 < selectedItem.Row)//remove all in front of selected
+                    {
+                        selectedItem.UpdateRow(selectedItem.Row - count);
+                    }
+                    else if (indexPath.Row <= selectedItem.Row && selectedItem.Row <= indexPath.Row + count - 1)//remove this selected
+                    {
+                        SelectedItems.Remove(selectedItem);
+                    }
+                    else//remove behind selected
+                    {
+
+                    }
+                }
+            }
         }
         #endregion
     }

@@ -9,7 +9,7 @@
         /// https://developer.apple.com/documentation/foundation/nsindexpath/1407552-compare
         /// </summary>
         /// <param name="other"></param>
-        /// <returns></returns>
+        /// <returns>if other is greater, return -1; if equal, return 0; if other is less, return 1</returns>
         public virtual int Compare(NSIndexPath other)
         {
             //相等
@@ -30,8 +30,15 @@
             return new NSIndexPath() { Row = row, Section = section };
         }
 
+        public void UpdateRow(int row)
+        {
+            Row = row;
+        }
+
         public bool IsEqual(NSIndexPath other)
         {
+            if (other == null)
+                return false;
             return Section == other.Section && Row == other.Row;
         }
 
@@ -42,7 +49,7 @@
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            if(obj == null) return false;
+            if (obj == null) return false;
             var other = obj as NSIndexPath;
             return Section == other.Section && Row == other.Row;
         }
@@ -54,6 +61,23 @@
         public override int GetHashCode()
         {
             return Section.GetHashCode() + Row.GetHashCode();
+        }
+
+        public bool IsInRange(NSIndexPath start, NSIndexPath end)
+        {
+            if(start == null || end == null)
+                return false;
+            if(start.Compare(end) > 1)// if start > end
+            {
+                var temp = end;
+                end = start;
+                start = temp;
+            }
+            if(this.Compare(start) >= 0 && this.Compare(end) <= 0)
+            {
+                return true;
+            }
+            return false;
         }
 
         public static List<NSIndexPath> InRange((int start, int end) range, int section)
@@ -70,7 +94,7 @@
         {
             return lhs.Compare(rhs) == -1;
         }
-        
+
         public static bool operator >(NSIndexPath lhs, NSIndexPath rhs)
         {
             return lhs.Compare(rhs) == 1;

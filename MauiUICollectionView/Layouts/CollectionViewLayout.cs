@@ -1,7 +1,10 @@
-﻿namespace MauiUICollectionView.Layouts
+﻿using Microsoft.Maui.Controls;
+using System.Diagnostics;
+
+namespace MauiUICollectionView.Layouts
 {
     /// <summary>
-    /// 布局的逻辑放在此处
+    /// layout content.
     /// </summary>
     public abstract class CollectionViewLayout : IDisposable
     {
@@ -11,13 +14,14 @@
             AnimationManager = new LayoutAnimationManager(collectionView);
         }
 
-        public LayoutAnimationManager AnimationManager;
+        /// <summary>
+        /// manage scroll and operate animation.
+        /// </summary>
+        public ILayoutAnimationManager AnimationManager { get; set; }
 
-
-        /*
-         * 需要汇总所有操作, 因为多个操作一起时, 我们需要同时更新动画.
-         * 汇总所有操作需要把数据不变的, 只是IndexPath变了的Item找出来, 因为它显示时如果更新数据, 会有加载过程, 导致不像连续的动画.
-         */
+        /// <summary>
+        /// Store all operate
+        /// </summary>
         public List<OperateItem> Updates = new();
 
         private MAUICollectionView _collectionView;
@@ -28,7 +32,7 @@
         }
 
         /// <summary>
-        /// 滚动方向. 必须设置值, 默认为垂直方向.
+        /// scroll direction.
         /// </summary>
         public virtual ItemsLayoutOrientation ScrollDirection
         {
@@ -36,48 +40,33 @@
         } = ItemsLayoutOrientation.Vertical;
 
         /// <summary>
-        /// 标志需要remove, move的item的动画开始.
+        /// when operating, it is true.
         /// </summary>
-        protected bool isStartAnimate = false;
+        protected bool IsOperating = false;
 
         /// <summary>
         /// Arrange Header, Items and Footer. They will be arranged according to <see cref="MAUICollectionViewViewHolder.BoundsInLayout"/>
         /// </summary>
         public virtual void ArrangeContents()
         {
-            if (isStartAnimate)
-            {
-                //Debug.WriteLine("Anim ArrangeContents");
-
-                AnimationManager.Run();
-
-                isStartAnimate = false;//disappear动画结束
-            }
-
-            //Debug.WriteLine("ArrangeContents");
+            CollectionView.Source?.WillArrange?.Invoke(CollectionView);
+            AnimationManager.Run(CollectionView.IsScrolling, IsOperating);
+            
+            IsOperating = false;//disappear动画结束
+            CollectionView.IsScrolling = false;
 
             if (CollectionView.HeaderView != null)
             {
-                CollectionView.LayoutChild(CollectionView.HeaderView, CollectionView.HeaderView.BoundsInLayout);
+                CollectionView.HeaderView.ArrangeSelf(CollectionView.HeaderView.BoundsInLayout);
             }
 
             // layout sections and rows
             foreach (var cell in CollectionView.PreparedItems)
             {
                 if (cell.Value == CollectionView.DragedItem)
-                    CollectionView.LayoutChild(cell.Value, cell.Value.DragBoundsInLayout);
+                    cell.Value.ArrangeSelf(cell.Value.DragBoundsInLayout);
                 else
-                    CollectionView.LayoutChild(cell.Value, cell.Value.BoundsInLayout);
-                //回收时把不透明度都设置为了0, 显示时需要设置回来
-                if (cell.Value.Operation == -1)//默认的状态, 这一步骤也对应于动画结束状态
-                {
-                    cell.Value.TranslationX = 0;
-                    cell.Value.TranslationY = 0;
-                    if (cell.Value.Opacity != 1)
-                    {
-                        cell.Value.Opacity = 1;
-                    }
-                }
+                    cell.Value.ArrangeSelf(cell.Value.BoundsInLayout);
 
                 //避免Measure时处理错误回收了可见的Item
                 if (CollectionView.ReusableViewHolders.Contains(cell.Value))
@@ -88,75 +77,102 @@
 
             foreach (var item in CollectionView.ReusableViewHolders)
             {
-                if (item.Opacity != 0)
-                    item.Opacity = 0;
+                //if (item.Opacity != 0)
+                //    item.Opacity = 0;
+                item.ArrangeSelf(new Rect(0, -1000, item.Width, item.Height));
             }
 
             if (CollectionView.FooterView != null)
             {
-                CollectionView.LayoutChild(CollectionView.FooterView, CollectionView.FooterView.BoundsInLayout);
+                CollectionView.FooterView.ArrangeSelf(CollectionView.FooterView.BoundsInLayout);
             }
         }
 
+        public LayoutInfor OldPreparedItems;
+
+        public class LayoutInfor
+        {
+            public NSIndexPath StartItem;
+            public NSIndexPath EndItem;
+            public Rect StartBounds; 
+            public Rect EndBounds; 
+        }
+
         /// <summary>
-        /// 第一次显示我们尽量少创建Cell
+        /// Cache height of item that have same Id, it be use for predict height.
         /// </summary>
-        int measureTimes = 0;
-
-
+        public Dictionary<string, double> MeasuredSelfHeightCacheForReuse = new Dictionary<string, double>();
 
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
         /// </summary>
-        /// <param name="tableViewWidth">当作可见宽度, 可能是根据屏幕大小的估计值</param>
-        /// <param name="tableViewHeight">当作可见宽度, 可能是根据屏幕大小的估计值</param>
+        /// <param name="tableViewWidth">visible width, it may be not accurate.</param>
+        /// <param name="tableViewHeight">visible height</param>
         /// <returns></returns>
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
-            //Debug.WriteLine("Measure");
+            Debug.WriteLine($"Measure ScrollY={CollectionView.ScrollY}");
             if (Updates.Count > 0)
             {
-                isStartAnimate = true;
+                IsOperating = true;
             }
-
-            if (measureTimes <= 3)
-                measureTimes++;
 
             //tableView自身的大小
             Size tableViewBoundsSize = new Size(tableViewWidth, tableViewHeight);
+            //Debug.WriteLine(tableViewBoundsSize);
             //当前可见区域在ContentView中的位置
             Rect visibleBounds = new Rect(0, CollectionView.ScrollY, tableViewBoundsSize.Width, tableViewBoundsSize.Height);
             double tableHeight = 0;
             //顶部和底部扩展的高度, 头2次布局不扩展, 防止初次显示计算太多item
-            var topExtandHeight = measureTimes < 3 ? 0 : CollectionView.ExtendHeight;
-            var bottomExtandHeight = measureTimes < 3 ? 0 : measureTimes == 3 ? CollectionView.ExtendHeight * 2 : CollectionView.ExtendHeight;//第一次测量时, 可能顶部缺少空间, 不会创建那么多Extend, 我们在底部先创建好
+            var topExtandHeight = CollectionView.HeightExpansion;
+            var bottomExtandHeight = CollectionView.HeightExpansion;//第一次测量时, 可能顶部缺少空间, 不会创建那么多Extend, 我们在底部先创建好
+            Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
 
             /* 
              * Header
              */
             tableHeight += MeasureHeader(0, visibleBounds.Width);
 
-            /*
-             * Recycle
-             */
-            // 需要重新布局后, cell会变动, 先将之前显示的cell放入可供使用的cell字典, 如果数据源更新, 这里的IndexPath都还是对应旧的
-            Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells = new();
+            // PreparedItems will be update, so use a local variable to store old prepareditems, IndexPath still is old.
+            Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableViewHolders = new();
             foreach (var cell in CollectionView.PreparedItems)
-                availableCells.Add(cell.Key, cell.Value);
+                availableViewHolders.Add(cell.Key, cell.Value);
             CollectionView.PreparedItems.Clear();
 
-            //复用是从_reusableCells获取的, 需要让不可见的先回收
-            var tempOrderedCells = availableCells.ToList();//创建一个临时的有序列表, 有序可以知道上下显示的item
+            // ToList wil be sortable, we can get first or end item
+            var tempOrderedCells = availableViewHolders.ToList();
+            tempOrderedCells.Sort((x, y) =>
+            {
+                return x.Key.Compare(y.Key);
+            });
+            /*
+             * Store old indexpath of prepareditem, maybe we need use it
+             */
+            OldPreparedItems = new LayoutInfor();
+            if (tempOrderedCells.Count > 0)
+            {
+                
+                var start = tempOrderedCells[0];
+                OldPreparedItems.StartItem= start.Key;
+                OldPreparedItems.StartBounds= start.Value.BoundsInLayout;
+                var end = tempOrderedCells[tempOrderedCells.Count - 1];
+                OldPreparedItems.EndItem = end.Key;
+                OldPreparedItems.EndBounds = end.Value.BoundsInLayout;
+                //Debug.WriteLine($"last start={start.Key} end={end.Key}");
+            }
+
+            /*
+             * Recycle: according offset to recycle invisible items
+             */
             var needRecycleCell = new List<NSIndexPath>();
             var scrollOffset = CollectionView.scrollOffset;
-            if (scrollOffset > 0)//往上滑, 上面的需要回收
+            if (scrollOffset > 0)//when swipe up, recycle top
             {
                 foreach (var cell in tempOrderedCells)
                 {
-                    if (cell.Value.DesiredSize.Height < scrollOffset)
+                    if (cell.Value.BoundsInLayout.Bottom < layoutItemsInRect.Top)
                     {
                         needRecycleCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.DesiredSize.Height;
                     }
                     else
                     {
@@ -164,16 +180,14 @@
                     }
                 }
             }
-            else if (scrollOffset < 0)//往下滑, 下面的需要回收
+            else if (scrollOffset < 0)//when swipe down, recycle bottom
             {
-                scrollOffset = -scrollOffset;
                 for (int i = tempOrderedCells.Count - 1; i >= 0; i--)
                 {
                     var cell = tempOrderedCells[i];
-                    if (cell.Value.DesiredSize.Height < scrollOffset)
+                    if (cell.Value.BoundsInLayout.Top > layoutItemsInRect.Bottom)
                     {
                         needRecycleCell.Add(cell.Key);
-                        scrollOffset -= cell.Value.DesiredSize.Height;
                     }
                     else
                     {
@@ -182,167 +196,235 @@
                 }
             }
 
-            foreach (var indexPath in needRecycleCell)//需要回收的
+            foreach (var indexPath in needRecycleCell)
             {
-                var cell = availableCells[indexPath];
-                if (cell == CollectionView.DragedItem)//Drag的不回收
+                var cell = availableViewHolders[indexPath];
+                if (cell == CollectionView.DragedItem)//don't recycle DragedItem
                 {
                     continue;
                 }
                 CollectionView.RecycleViewHolder(cell);
-                availableCells.Remove(indexPath);
+                availableViewHolders.Remove(indexPath);
             }
 
             tempOrderedCells.Clear();
             needRecycleCell.Clear();
             scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
 
-            if (isStartAnimate)
+            /*
+             * Remove
+             */
+            if (IsOperating)
             {
-                //被remove的Item需要加入动画管理器, 动画后再回收
                 for (int index = Updates.Count - 1; index >= 0; index--)
                 {
                     var update = Updates[index];
-                    if (update.operateType == OperateItem.OperateType.remove)//需要移除的先移除, move后的IndexPath与之相同
+                    if (update.operateType == OperateItem.OperateType.Remove)//需要移除的先移除, move后的IndexPath与之相同
                     {
-                        if (CollectionView.SelectedRow.Contains(update.source))
+                        if (availableViewHolders.ContainsKey(update.source))
                         {
-                            CollectionView.SelectedRow.Remove(update.source);
-                        }
+                            var viewHolder = availableViewHolders[update.source];
+                            availableViewHolders.Remove(update.source);
 
-                        if (availableCells.ContainsKey(update.source))
-                        {
-                            var cell = availableCells[update.source];
-                            cell.Operation = (int)OperateItem.OperateType.remove;
-                            availableCells.Remove(update.source);
-                            AnimationManager.Add(cell);
+                            if (update.operateAnimate)
+                            {
+                                viewHolder.Operation = (int)OperateItem.OperateType.Remove;
+                            }
+                            else
+                            {
+                                viewHolder.Operation = (int)OperateItem.OperateType.RemoveNow;
+                            }
+                            AnimationManager.AddOperatedItem(viewHolder);
+
                             Updates.RemoveAt(index);
                         }
                     }
-                    else if (update.operateType == OperateItem.OperateType.update)
+                    else if (update.operateType == OperateItem.OperateType.Update)
                     {
                         //更新的我觉得不需要动画
-                        if (availableCells.ContainsKey(update.source))
+                        if (availableViewHolders.ContainsKey(update.source))
                         {
-                            var cell = availableCells[update.source];
-                            cell.Operation = (int)OperateItem.OperateType.update;
-                            AnimationManager.Add(cell);
-                            availableCells.Remove(update.source);
-                            //CollectionView.RecycleViewHolder(cell);
+                            var viewHolder = availableViewHolders[update.source];
+                            viewHolder.Operation = (int)OperateItem.OperateType.Update;
+                            AnimationManager.AddOperatedItem(viewHolder);
+                            availableViewHolders.Remove(update.source);
                             Updates.RemoveAt(index);
                         }
                     }
                 }
+            }
 
-                //如果move的里有选择的, 需要更新选择的IndexPath
-                var oldSelectedIndexPath = new List<NSIndexPath>();
+            /*
+             * update OldVisibleIndexPath and OldPreparedItm index
+             */
+            if (IsOperating)
+            {
+                var oldVisibleIndexPath = new List<NSIndexPath>();
+                var oldpreparedIndexPath = new NSIndexPath[2] { OldPreparedItems.StartItem, OldPreparedItems.EndItem };
                 for (int index = Updates.Count - 1; index >= 0; index--)
                 {
                     var update = Updates[index];
 
-                    if (update.operateType == OperateItem.OperateType.move)
+                    if (update.operateType == OperateItem.OperateType.Move)
                     {
-                        if (CollectionView.SelectedRow.Contains(update.source))
+                        if (VisibleIndexPath.Contains(update.source))
                         {
-                            CollectionView.SelectedRow.Remove(update.source);
-                            oldSelectedIndexPath.Add(update.target);
-                            break;
+                            VisibleIndexPath.Remove(update.source);
+                            oldVisibleIndexPath.Add(update.target);
+                        }
+                        if (update.source.Equals(oldpreparedIndexPath[0]))
+                        {
+                            oldpreparedIndexPath[0] = null;
+                            OldPreparedItems.StartItem = update.target;
+                        }
+                        if (update.source.Equals(oldpreparedIndexPath[1]))
+                        {
+                            oldpreparedIndexPath[1] = null;
+                            OldPreparedItems.EndItem = update.target;
                         }
                     }
                 }
-                CollectionView.SelectedRow.AddRange(oldSelectedIndexPath);
+                VisibleIndexPath.AddRange(oldVisibleIndexPath);
+            }
+            LastVisibleIndexPath = new List<NSIndexPath>(VisibleIndexPath);
+            VisibleIndexPath.Clear();
 
+            /*
+             * Move: if item in last PreparedItems, we update it's IndexPath, and reuse it directly
+             */
+            if (IsOperating)
+            {
                 //move的需要获取在之前可见区域的viewHolder, 更新indexPath为最新的, 然后进行动画.
                 Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
                 for (int index = Updates.Count - 1; index >= 0; index--)
                 {
                     var update = Updates[index];
 
-                    if (update.operateType == OperateItem.OperateType.move)//移动的且显示的直接替换
+                    if (update.operateType == OperateItem.OperateType.Move)//移动的且显示的直接替换
                     {
-                        if (availableCells.ContainsKey(update.source))
+                        if (availableViewHolders.ContainsKey(update.source))
                         {
-                            var oldView = availableCells[update.source];
-                            oldView.Operation = (int)OperateItem.OperateType.move;
-                            if (!oldView.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
-                            && update.animate)
+                            var oldViewHolder = availableViewHolders[update.source];
+                            if (!oldViewHolder.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
+                            && update.operateAnimate)//move的可以是没有动画但位置移动的
                             {
-                                AnimationManager.Add(oldView);
+                                oldViewHolder.Operation = (int)OperateItem.OperateType.Move;
+                                AnimationManager.AddOperatedItem(oldViewHolder);
                             }
-                            availableCells.Remove(update.source);
-                            if (availableCells.ContainsKey(update.target))
-                                tempAvailableCells.Add(update.target, oldView);
+                            if (!update.operateAnimate)
+                            {
+                                oldViewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
+                                AnimationManager.AddOperatedItem(oldViewHolder);
+                            }
+                            availableViewHolders.Remove(update.source);
+                            if (availableViewHolders.ContainsKey(update.target))
+                                tempAvailableCells.Add(update.target, oldViewHolder);
                             else
-                                availableCells.Add(update.target, oldView);
+                                availableViewHolders.Add(update.target, oldViewHolder);
+                            oldViewHolder.IndexPath = update.target;
                             Updates.RemoveAt(index);
                         }
                     }
                 }
                 foreach (var item in tempAvailableCells)
-                    availableCells.Add(item.Key, item.Value);
+                    availableViewHolders.Add(item.Key, item.Value);
             }
-            /*
-             * Items
-             */
-            NSIndexPath preLastVisiableIndexPath = null;
-            if (VisiableIndexPath.Count > 0)
-                preLastVisiableIndexPath = VisiableIndexPath[VisiableIndexPath.Count - 1];
-            VisiableIndexPath.Clear();
-            Rect layoutItemsInRect = Rect.FromLTRB(visibleBounds.Left, visibleBounds.Top - topExtandHeight, visibleBounds.Right, visibleBounds.Bottom + bottomExtandHeight);
-            tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableCells);
-            /*
-             * 实现加载更多
-             */
-            NSIndexPath newLastVisiableIndexPath = null;
-            if (VisiableIndexPath.Count > 0)
-                newLastVisiableIndexPath = VisiableIndexPath[VisiableIndexPath.Count - 1];
 
-            if (preLastVisiableIndexPath == null || !preLastVisiableIndexPath.Equals(newLastVisiableIndexPath))//避免多次加载
+            /*
+             * Measure Items
+             */
+            tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableViewHolders);
+
+            //record visible item
+            foreach (var item in CollectionView.PreparedItems)
             {
-                //判断是否是最后一个
-                if (newLastVisiableIndexPath != null)
+                if (item.Value.BoundsInLayout.IntersectsWith(visibleBounds))
                 {
-                    var sectionIndex = CollectionView.NumberOfSections() - 1;
-
-                    if (newLastVisiableIndexPath.Section == sectionIndex && newLastVisiableIndexPath.Row == CollectionView.NumberOfItemsInSection(sectionIndex) - 1)
-                    {
-                        CollectionView.Source.lastItemWillShow?.Invoke(CollectionView, newLastVisiableIndexPath);
-                    }
+                    VisibleIndexPath.Add(item.Key);
                 }
             }
 
-            if (isStartAnimate)
+            /*
+             * Select
+             */
+            foreach (var item in CollectionView.PreparedItems)
             {
-                /*
-                 * 标记insert, 添加到动画
-                 */
-                var insertList = new List<NSIndexPath>();
+                item.Value.Selected = CollectionView.SelectedItems.Contains(item.Key);
+            }
+
+            /*
+             * Move: if item no ViewHolder at last measure, at here can get ViewHolder
+             */
+            if (IsOperating)
+            {
+                for (int index = Updates.Count - 1; index >= 0; index--)
+                {
+                    var update = Updates[index];
+
+                    if (update.operateType == OperateItem.OperateType.Move)
+                    {
+                        if (CollectionView.PreparedItems.ContainsKey(update.target))
+                        {
+                            var viewHolder = CollectionView.PreparedItems[update.target];
+                            if (!viewHolder.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
+                            && update.operateAnimate)//move的可以是没有动画但位置移动的
+                            {
+                                viewHolder.OldBoundsInLayout = update.source== update.target && viewHolder.OldBoundsInLayout==Rect.Zero ? RectForItem(NSIndexPath.FromRowSection(update.source.Row - update.moveCount, update.source.Section)) : RectForItem(update.source); // try get old bounds
+                                viewHolder.Operation = (int)OperateItem.OperateType.Move;
+                                AnimationManager.AddOperatedItem(viewHolder);
+                            }
+                            if (!update.operateAnimate)
+                            {
+                                viewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
+                                AnimationManager.AddOperatedItem(viewHolder);
+                            }
+                            Updates.RemoveAt(index);
+                        }
+                    }
+                }
+            }
+            /*
+             * 标记insert, 添加到动画
+             */
+            if (IsOperating)
+            {
+                var insertList = new Dictionary<NSIndexPath, OperateItem>();
                 foreach (var item in Updates)
                 {
-                    if (item.operateType == OperateItem.OperateType.insert)
+                    if (item.operateType == OperateItem.OperateType.Insert)
                     {
-                        insertList.Add(item.source);
+                        insertList.Add(item.source, item);
                     }
                 }
                 foreach (var item in CollectionView.PreparedItems)
                 {
-                    if (insertList.Contains(item.Key))//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
+                    if (insertList.ContainsKey(item.Key))//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
                     {
-                        item.Value.Operation = (int)OperateItem.OperateType.insert;
-                        AnimationManager.Add(item.Value);
+                        item.Value.Operation = (int)OperateItem.OperateType.Insert;
+                        AnimationManager.AddOperatedItem(item.Value);
                     }
                 }
+                insertList.Clear();
             }
             Updates.Clear();
 
             // 重新测量后, 需要显示的已经存入缓存的字典, 剩余的放入可重用列表
-            foreach (MAUICollectionViewViewHolder cell in availableCells.Values)
+            foreach (MAUICollectionViewViewHolder cell in availableViewHolders.Values)
             {
-                if (cell.ReuseIdentifier != default)
+                if (cell == CollectionView.DragedItem)
+                {
+                    CollectionView.PreparedItems.Add(cell.IndexPath, cell);
+                    continue;
+                }
+
+                if (cell.ReuseIdentifier != default && 
+                    cell.Operation != (int)OperateItem.OperateType.Move)//avoid recycle will invisible item, we recycle it in animation
                 {
                     CollectionView.RecycleViewHolder(cell);
-                }
-                else
+                }else if(cell.Operation == (int)OperateItem.OperateType.Move)
+                {
+
+                }else
                 {
                     cell.RemoveFromSuperview();
                 }
@@ -353,6 +435,7 @@
              */
             tableHeight += MeasureFooter(tableHeight, layoutItemsInRect.Width);
 
+            //Debug.WriteLine($"ChildCount={CollectionView.ContentView.Children.Count} PreparedItem={CollectionView.PreparedItems.Count} RecycleCount={CollectionView.ReusableViewHolders.Count}");
             //Debug.WriteLine("TableView Content Height:" + tableHeight);
             return new Size(tableViewBoundsSize.Width, tableHeight);
         }
@@ -362,7 +445,7 @@
             //表头的View是确定的, 我们可以直接测量
             if (CollectionView.HeaderView != null)
             {
-                var measuredSize = CollectionView.MeasureChild(CollectionView.HeaderView, widthConstraint, double.PositiveInfinity).Request;
+                var measuredSize = CollectionView.HeaderView.MeasureSelf(widthConstraint, double.PositiveInfinity).Request;
                 CollectionView.HeaderView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }
@@ -370,26 +453,27 @@
         }
 
         /// <summary>
-        /// 每次布局可见的Item, 区别于<see cref="MAUICollectionView.PreparedItems"/>
+        /// current Visible items, it is different with <see cref="MAUICollectionView.PreparedItems"/>
         /// </summary>
-        public List<NSIndexPath> VisiableIndexPath { get; protected set; } = new List<NSIndexPath>();
+        public List<NSIndexPath> VisibleIndexPath { get; protected set; } = new List<NSIndexPath>();
+        public List<NSIndexPath> LastVisibleIndexPath { get; protected set; } = new List<NSIndexPath>();
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="top"></param>
-        /// <param name="inRect"></param>
-        /// <param name="visiableRect">可见区域, 对应于ScrollView大小</param>
+        /// <param name="inRect">rect for prepared items</param>
+        /// <param name="visibleRect">rect for visible items</param>
         /// <param name="availableCells"></param>
         /// <returns></returns>
-        protected abstract double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells);
+        protected abstract double MeasureItems(double top, Rect inRect, Rect visibleRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells);
 
         protected virtual double MeasureFooter(double top, double widthConstraint)
         {
             //表尾的View是确定的, 我们可以直接测量
             if (CollectionView.FooterView != null)
             {
-                var measuredSize = CollectionView.MeasureChild(CollectionView.FooterView, widthConstraint, double.PositiveInfinity).Request;
+                var measuredSize = CollectionView.FooterView.MeasureSelf(widthConstraint, double.PositiveInfinity).Request;
                 CollectionView.FooterView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }
@@ -397,24 +481,69 @@
         }
 
         /// <summary>
-        /// 
+        /// Get item at point.
         /// </summary>
-        /// <param name="point">相对于TableView的位置, 可以是在TableView上设置手势获取的位置</param>
-        /// <returns>未找到时可返回null</returns>
-        public abstract NSIndexPath IndexPathForVisibaleRowAtPointOfCollectionView(Point point);
+        /// <param name="point">the point in Content or CollectionView</param>
+        /// <param name="baseOnContent"> specify point is base on Content or CollectionView</param>
+        /// <returns></returns>
+        public virtual NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
+        {
+            if (!baseOnContent)
+            {
+                var contentOffset = CollectionView.ScrollY;
+                point.Y = point.Y + contentOffset;//convert to base on content
+            }
+
+            foreach (var item in CollectionView.PreparedItems)
+            {
+                if(item.Value.BoundsInLayout.Contains(point))
+                {
+                    return item.Key;
+                }
+            }
+            return null;
+        }
+
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="point">相对与Content的位置</param>
-        /// <returns>未找到时可返回null</returns>
-        public abstract NSIndexPath IndexPathForRowAtPointOfContentView(Point point);
-        /// <summary>
-        /// 返回IndexPath对应的行在ContentView中的位置. 在某些Item大小不固定的Layout中, 其可能是不精确的, 会变化的. 可能只是即时状态, 比如滑动后数据会变化.
+        /// Get rect of item. this method maybe be slow.
         /// </summary>
         /// <returns></returns>
-        public abstract Rect RectForRowOfIndexPathInContentView(NSIndexPath indexPath);
+        public virtual Rect RectForItem(NSIndexPath indexPath) 
+        {
+            if (CollectionView.PreparedItems.ContainsKey(indexPath))
+            {
+                return CollectionView.PreparedItems[indexPath].BoundsInLayout;
+            }
+            return Rect.Zero;
+        }
 
-        public abstract double GetItemsCurrentHeight(NSIndexPath indexPath, int count);
+        public virtual void ScrollTo(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
+        {
+            var rect = RectForItem(indexPath);
+            switch (scrollPosition)
+            {
+                case ScrollPosition.None:
+                case ScrollPosition.Top:
+                    CollectionView.ScrollToAsync(0, rect.Top, animated);
+                    break;
+                case ScrollPosition.Middle:
+                    CollectionView.ScrollToAsync(0, rect.Y + rect.Height / 2, animated);
+                    break;
+                case ScrollPosition.Bottom:
+                    CollectionView.ScrollToAsync(0, rect.Bottom, animated);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Get total height of items. we also measure invisible items after visible item, because it be used to adjust ScrollY for stay don't move visible items when Remove or Insert.
+        /// Notice, these items' section should be same.
+        /// </summary>
+        /// <param name="indexPath"></param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public abstract double EstimateHeightForItems(NSIndexPath indexPath, int count);
+
         public void Dispose()
         {
             AnimationManager.Dispose();

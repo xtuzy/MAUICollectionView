@@ -12,14 +12,21 @@ public partial class ManyItemsVisiableTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-            Source = new Source(viewModel),
             SelectionMode = SelectionMode.Multiple,
             CanDrag = true,
             CanContextMenu = true,
         };
-        Content = tableView;
-        tableView.ItemsLayout = new CollectionViewListLayout(tableView)
+        content.Content = tableView;
+        tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
+        };
+        SetSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = new Source(viewModel);
+        };
+        RemoveSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = null;
         };
     }
 
@@ -30,21 +37,21 @@ public partial class ManyItemsVisiableTestPage : ContentPage
         {
             ViewModel = viewModel;
 
-            heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
-            numberOfItemsInSection += numberOfRowsInSectionMethod;
-            cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
-            numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
-            reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
+            HeightForItem += heightForRowAtIndexPathMethod;
+            NumberOfItems += numberOfRowsInSectionMethod;
+            ViewHolderForItem += cellForRowAtIndexPathMethod;
+            NumberOfSections += numberOfSectionsInTableViewMethod;
+            ReuseIdForItem += reuseIdentifierForRowAtIndexPathMethod;
         }
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
         {
-            return 1;
+            return ViewModel.models.Count;
         }
 
         public int numberOfRowsInSectionMethod(MAUICollectionView tableView, int section)
         {
-            return ViewModel.models.Count;
+            return ViewModel.models[section].Count;
         }
 
         public string reuseIdentifierForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
@@ -52,13 +59,13 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             return itemCell;
         }
 
-        public float heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
+        public double heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
             var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
             switch (type)
             {
                 case itemCell:
-                    return MAUICollectionViewViewHolder.MeasureSelf;
+                    return MAUICollectionViewViewHolder.AutoSize;
                 default:
                     return 100;
             }
@@ -90,12 +97,16 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                         textCell = new ItemViewHolder(new Grid(), type) { };
                     }
 
-                    textCell.Name.Text = ViewModel.models[indexPath.Row].PersonName;
-                    textCell.Phone.Text = ViewModel.models[indexPath.Row].PersonPhone;
+                    textCell.Name.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonName;
+                    textCell.Phone.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonPhone;
 
                     cell = textCell;
                 }
             }
+            if (cell.ContextMenu != null)
+                cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+            if (cell is ItemViewHolder)
+                (cell as ItemViewHolder).Id.Text = indexPath.ToString();
             return cell;
         }
 
@@ -105,11 +116,13 @@ public partial class ManyItemsVisiableTestPage : ContentPage
 
             public Label Name;
             public Label Phone;
+            public Label Id;
             public ItemViewHolder(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
             {
                 var grid = itemView as Grid;
                 grid.ColumnDefinitions = new ColumnDefinitionCollection()
                 {
+                    new ColumnDefinition(){ Width = GridLength.Star},
                     new ColumnDefinition(){ Width = GridLength.Star},
                     new ColumnDefinition(){ Width = GridLength.Star}
                 };
@@ -125,11 +138,47 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                     HorizontalOptions = LayoutOptions.Start,
                     VerticalOptions = LayoutOptions.Center
                 };
+                Id = new Label()
+                {
+                    VerticalTextAlignment =TextAlignment.Center,
+                    HorizontalOptions = LayoutOptions.Start,
+                    VerticalOptions = LayoutOptions.Center
+                };
                 grid.Add(Name);
                 grid.Add(Phone);
+                grid.Add(Id);
 
                 Grid.SetColumn(Name, 0);
                 Grid.SetColumn(Phone, 1);
+                Grid.SetColumn(Id, 2);
+
+                Id.SetBinding(Label.TextProperty, new Binding(nameof(IndexPath), source: this));
+
+#if WINDOWS || MACCATALYST
+                var menu = new MenuFlyout();
+                var menuItem = new MenuFlyoutItem()
+                {
+                    Text = "Delete",
+                    Command = new Command(() => { }),
+                    CommandParameter = IndexPath
+                };
+                menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+                menu.Add(menuItem);
+                ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+#endif
+            }
+
+            public override void UpdateSelectionState(bool shouldHighlight)
+            {
+                base.UpdateSelectionState(shouldHighlight);
+                if(shouldHighlight)
+                {
+                    BackgroundColor = Colors.Gray;
+                }
+                else
+                {
+                    BackgroundColor = Colors.Transparent;
+                }
             }
 
             public override void PrepareForReuse()

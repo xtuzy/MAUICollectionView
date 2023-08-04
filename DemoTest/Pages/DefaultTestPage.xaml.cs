@@ -37,14 +37,22 @@ public partial class DefaultTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-            Source = new Source(viewModel),
-            SelectionMode = SelectionMode.Single,
-            CanDrag = true,
+            HeightExpansionFactor = 0,
+            SelectionMode = SelectionMode.Multiple,
+            //CanDrag = true,
             CanContextMenu = true,
         };
-        content.Content = tableView;
-        tableView.ItemsLayout = new CollectionViewListLayout(tableView)
+        tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
+        };
+        content.Content = tableView;
+        this.SetSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = new Source(viewModel);
+        };
+        this.RemoveSource.Clicked += (sender, e) =>
+        {
+            tableView.Source = null;
         };
 
         //ѡ��Item
@@ -53,20 +61,20 @@ public partial class DefaultTestPage : ContentPage
         {
             var p = e.GetPosition(tableView);
 #if IOS
-            var indexPath = tableView.ItemsLayout.IndexPathForRowAtPointOfContentView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value);
 #else
-            var indexPath = tableView.ItemsLayout.IndexPathForVisibaleRowAtPointOfCollectionView(p.Value);
+            var indexPath = tableView.ItemsLayout.ItemAtPoint(p.Value, false);
 #endif
             if (indexPath != null)
-                tableView.SelectRowAtIndexPath(indexPath, false, ScrollPosition.None);
+                tableView.SelectItem(indexPath, false, ScrollPosition.None);
         };
         //tableView.Content.GestureRecognizers.Add(click);
 
         //Header
-        var headerButton = new Button() { Text = "Header GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var headerButton = new Button() { Text = "Header GoTo 49-10", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, 49), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Header");
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
@@ -74,10 +82,10 @@ public partial class DefaultTestPage : ContentPage
 
         //Footer
         var footer = new VerticalStackLayout();
-        var footerButton = new Button() { Text = "Footer GoTo20", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var footerButton = new Button() { Text = "Footer GoTo 1-9", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToRowAtIndexPath(NSIndexPath.FromRowSection(20, 0), ScrollPosition.Top, true);
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(9, 1), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Footer");
         };
         var footActivityIndicator = new ActivityIndicator() { Color = Colors.Red, IsVisible = false, IsRunning = false, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
@@ -86,6 +94,7 @@ public partial class DefaultTestPage : ContentPage
 
         tableView.FooterView = new MAUICollectionViewViewHolder(footer, "foot");
 
+        tableView.EmptyView = new Grid() { BackgroundColor = Colors.Yellow, Children = { new Label() { Text = "No data!", TextColor = Colors.Black, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center } } };
         tableView.BackgroundView = new Grid() { BackgroundColor = Colors.LightPink };
 
         this.Loaded += (sender, e) =>
@@ -101,16 +110,22 @@ public partial class DefaultTestPage : ContentPage
         //Add
         Add.Clicked += (sender, e) =>
         {
-            var index = 2;
-            (tableView.Source as Source).InsertData(index);
-            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0),3);
+            var index = 3;
+            var count = 3;
+            (tableView.Source as Source).InsertData(0, index, count);
+            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0), count);
         };
 
         Remove.Clicked += (sender, e) =>
         {
-            var index = 2;
-            (tableView.Source as Source).RemoveData(index);
-            tableView.NotifyItemRangeRemoved(NSIndexPath.FromRowSection(index, 0),3);
+            var arg = NSIndexPath.FromRowSection(3, 0);
+            var count = 3;
+            var distance = arg.Row + count - viewModel.models[arg.Section].Count;
+            if (distance < 0)
+                (tableView.Source as Source).RemoveData(arg.Section, arg.Row, count);
+            else
+                (tableView.Source as Source).RemoveData(arg.Section, arg.Row, viewModel.models[arg.Section].Count - arg.Row);
+            tableView.NotifyItemRangeRemoved(arg, count);
         };
 
         Move.Clicked += (sender, e) =>
@@ -125,7 +140,7 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index, 0) });
+            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index + 1, 0) });
         };
 
         Reload.Clicked += (sender, e) =>

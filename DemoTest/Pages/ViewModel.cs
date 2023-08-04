@@ -1,13 +1,10 @@
 ﻿using Bogus;
 using MauiUICollectionView;
-using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
-using SharpConstraintLayout.Maui.Widget;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using The49.Maui.ContextMenu;
-using Yang.Maui.Helper.Image;
 
 namespace DemoTest.Pages
 {
@@ -47,7 +44,7 @@ namespace DemoTest.Pages
             }
         }
 
-        public List<Model> models;
+        public List<List<Model>> models;
         public ObservableCollection<Model> ObservableModels = new ObservableCollection<Model>();
         private Faker<Model> testModel;
         public ViewModel()
@@ -66,10 +63,24 @@ namespace DemoTest.Pages
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
-            models = testModel.Generate(1000);
-
-            foreach(var m in models)
+            var modelsList = testModel.Generate(1000);
+            var itenmCountInSection = 20;
+            models = new List<List<Model>>();
+            for (var index = 0; index < modelsList.Count / itenmCountInSection; index++)
             {
+                var list = new List<Model>();
+                var lineStart = index * itenmCountInSection;
+                for (var i = 0; i < itenmCountInSection; i++)
+                {
+                    var itemIndex = lineStart + i;
+                    list.Add(modelsList[itemIndex]);
+                }
+                models.Add(list);
+            }
+            for (var index=0;index<modelsList.Count;index++)
+            {
+                var m = modelsList[index];
+                m.Index = index;
                 ObservableModels.Add(m);
             }
         }
@@ -92,13 +103,34 @@ namespace DemoTest.Pages
         {
             ViewModel = viewModel;
 
-            heightForRowAtIndexPath += heightForRowAtIndexPathMethod;
-            numberOfItemsInSection += numberOfRowsInSectionMethod;
-            cellForRowAtIndexPath += cellForRowAtIndexPathMethod;
-            numberOfSectionsInCollectionView += numberOfSectionsInTableViewMethod;
-            reuseIdentifierForRowAtIndexPath += reuseIdentifierForRowAtIndexPathMethod;
-            lastItemWillShow += lastItemWillShowMethod;
-            willDragTo += WillDragToMethod;
+            HeightForItem += HeightForItemMethod;
+            NumberOfItems += NumberOfItemsMethod;
+            ViewHolderForItem += ViewHolderForItemMethod;
+            NumberOfSections += NumberOfSectionsMethod;
+            ReuseIdForItem += ReuseIdForItemMethod;
+            WantDragTo += WillDragToMethod;
+            DidPrepareItem += DidPrepareItemMethod;
+            IsSectionItem += IsSectionItemMethod;
+        }
+
+        bool IsSectionItemMethod(MAUICollectionView view, NSIndexPath indexPath)
+        {
+            var id = ReuseIdForItemMethod(view, indexPath);
+            if (id == sectionCell)
+                return true;
+            else
+                return false;
+        }
+
+        /// <summary>
+        /// modify action of items that will show
+        /// </summary>
+        /// <param name="view"></param>
+        /// <param name="indexPath"></param>
+        /// <param name="viewHolder"></param>
+        private void DidPrepareItemMethod(MAUICollectionView view, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder)
+        {
+
         }
 
         private void WillDragToMethod(MAUICollectionView collectionView, NSIndexPath path1, NSIndexPath path2)
@@ -109,32 +141,32 @@ namespace DemoTest.Pages
             MoveData(path1.Row, path2.Row);
         }
 
-        public void RemoveData(int index)
+        public void RemoveData(int section, int row, int count = 3)
         {
-            ViewModel.models.RemoveRange(index,3);
+            ViewModel.models[section].RemoveRange(row, count);
         }
 
-        public void InsertData(int index)
+        public void InsertData(int section, int row, int count = 3)
         {
-            ViewModel.models.InsertRange(index, ViewModel.Generate(3));
+            ViewModel.models[section].InsertRange(row, ViewModel.Generate(count));
         }
 
         public void ChangeData(int index)
         {
-            ViewModel.models[index] = ViewModel.Generate();
+            ViewModel.models[0][index] = ViewModel.Generate();
         }
 
         public void MoveData(int index, int toIndex)
         {
-            var item = ViewModel.models[index];
-            ViewModel.models.RemoveAt(index);
-            ViewModel.models.Insert(toIndex, item);
+            var item = ViewModel.models[0][index];
+            ViewModel.models[0].RemoveAt(index);
+            ViewModel.models[0].Insert(toIndex, item);
         }
 
         public void LoadMoreOnFirst()
         {
             var models = ViewModel.Generate(20);
-            ViewModel.models.InsertRange(0, models);
+            ViewModel.models[0].InsertRange(0, models);
         }
 
         public void lastItemWillShowMethod(MAUICollectionView collectionView, NSIndexPath indexPath)
@@ -156,7 +188,7 @@ namespace DemoTest.Pages
                 }
                 await Task.Delay(2000);
                 var models = ViewModel.Generate(20);
-                ViewModel.models.AddRange(models);
+                ViewModel.models[ViewModel.models.Count - 1].AddRange(models);
 
                 collectionView.ReloadDataCount();
                 if (loading != null)
@@ -170,56 +202,59 @@ namespace DemoTest.Pages
             });
         }
 
-        public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
-        {
-            return 1;
-        }
-
-        public int numberOfRowsInSectionMethod(MAUICollectionView tableView, int section)
+        public int NumberOfSectionsMethod(MAUICollectionView tableView)
         {
             return ViewModel.models.Count;
         }
 
-        public string reuseIdentifierForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
+        public int NumberOfItemsMethod(MAUICollectionView tableView, int section)
+        {
+            return ViewModel.models[section].Count + 1; //+1 is add section header
+        }
+
+        public string ReuseIdForItemMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
             if (indexPath.Row == 0)
             {
                 return sectionCell;
             }
-            //return itemCell;
             return itemCellSimple;
         }
 
-        public float heightForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
+        public double HeightForItemMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
-            var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
+            var type = ReuseIdForItemMethod(tableView, indexPath);
             switch (type)
             {
                 case sectionCell:
                     return 40;
                 case itemCellSimple:
-                    return MAUICollectionViewViewHolder.MeasureSelf;
+                    return MAUICollectionViewViewHolder.AutoSize;
                 default:
                     return 100;
             }
         }
 
-        int newCellCount = 0;
+        Model GetItemData(NSIndexPath indexPath)
+        {
+            return ViewModel.models[indexPath.Section][indexPath.Row - 1];
+        }
+
         //给每个cell设置ID号（重复利用时使用）
         const string sectionCell = "sectionCell";
         const string itemCellSimple = "itemCellSimple";
-        public MAUICollectionViewViewHolder cellForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
+        public MAUICollectionViewViewHolder ViewHolderForItemMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
         {
             //从tableView的一个队列里获取一个cell
-            var type = reuseIdentifierForRowAtIndexPathMethod(tableView, indexPath);
+            var type = ReuseIdForItemMethod(tableView, indexPath);
             MAUICollectionViewViewHolder cell;
             if (oldViewHolder != null)//只需局部刷新
             {
                 cell = oldViewHolder;
                 if (cell is ItemViewHolderSimple itemcellsimple)
                 {
-                    if(itemcellsimple != null) 
-                        itemcellsimple.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
+                    if (itemcellsimple != null)
+                        itemcellsimple.ModelView.TestButton.Text = $"B Item Id={indexPath.Section}-{indexPath.Row}";
                 }
             }
             else
@@ -239,40 +274,54 @@ namespace DemoTest.Pages
                     textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row}";
 
                     cell = textCell;
-                }else if (type == itemCellSimple)
+                }
+                else if (type == itemCellSimple)
                 {
                     var simpleCell = cell as ItemViewHolderSimple;
                     if (simpleCell == null)
                     {
                         //没有,创建一个
                         simpleCell = new ItemViewHolderSimple(new ModelViewSimple() { }, type) { };
-                        simpleCell.NewCellIndex = ++newCellCount;
-                        simpleCell.ModelView.CommentCountLabel.Text = simpleCell.NewCellIndex.ToString();
-                        var command = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
-                            RemoveData(arg.Row);
-                            tableView.NotifyItemRangeRemoved(arg);
+                            var count = 3;
+                            var distance = arg.Row - 1 + count - ViewModel.models[arg.Section].Count;
+                            if (distance < 0)
+                                RemoveData(arg.Section, arg.Row - 1, count);
+                            else
+                            {
+                                count = ViewModel.models[arg.Section].Count - (arg.Row - 1);
+                                RemoveData(arg.Section, arg.Row - 1, count);
+                            }
+                            tableView.NotifyItemRangeRemoved(arg, count);
                             tableView.ReMeasure();
                         });
-                        simpleCell.InitMenu(command);
+                        var insertCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 3;
+                            InsertData(arg.Section, arg.Row, count);
+                            tableView.NotifyItemRangeInserted(arg, count);
+                            tableView.ReMeasure();
+                        });
+                        simpleCell.InitMenu(deleteCommand, insertCommand);
                         simpleCell.ModelView.TestButton.Clicked += async (sender, e) =>
                         {
                             await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={simpleCell.IndexPath.Section} Row={simpleCell.IndexPath.Row}", "OK");
                         };
                     }
 
-                    simpleCell.ModelView.PersonName.Text = ViewModel.models[indexPath.Row].PersonName;
-                    simpleCell.ModelView.PersonGender.Text = ViewModel.models[indexPath.Row].PersonGender;
-                    simpleCell.ModelView.PersonPhone.Text = ViewModel.models[indexPath.Row].PersonPhone;
-                    simpleCell.ModelView.PersonTextBlogTitle.Text = ViewModel.models[indexPath.Row].PersonTextBlogTitle;
-                    simpleCell.ModelView.PersonImageBlog.Source = ViewModel.models[indexPath.Row].PersonImageBlogUrl;
-                    simpleCell.ModelView.PersonTextBlog.Text = ViewModel.models[indexPath.Row].PersonTextBlog;
-                    simpleCell.ModelView.TestButton.Text = $"Item Id={indexPath.Section}-{indexPath.Row}";
-
+                    var data = GetItemData(indexPath);
+                    simpleCell.ModelView.PersonName.Text = data.PersonName;
+                    simpleCell.ModelView.PersonGender.Text = data.PersonGender;
+                    simpleCell.ModelView.PersonPhone.Text = data.PersonPhone;
+                    simpleCell.ModelView.PersonTextBlogTitle.Text = data.PersonTextBlogTitle;
+                    simpleCell.ModelView.PersonImageBlog.Source = data.PersonImageBlogUrl;
+                    simpleCell.ModelView.PersonTextBlog.Text = data.PersonTextBlog;
+                    simpleCell.ModelView.TestButton.Text = $"AId={indexPath.ToString()}";
+                    
                     cell = simpleCell;
                 }
             }
-            cell.IndexPath = indexPath;
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = tableView.CanContextMenu;
             return cell;
@@ -292,6 +341,7 @@ namespace DemoTest.Pages
         public string LikeIconUrl { get; set; }
         public string CommentIconUrl { get; set; }
         public string ShareIconUrl { get; set; }
+        public int Index { get; set; }
     }
 
     internal class SectionViewHolder : MAUICollectionViewViewHolder
@@ -306,6 +356,9 @@ namespace DemoTest.Pages
             grid.Add(TextView);
             TextView.HorizontalOptions = LayoutOptions.Center;
             TextView.VerticalOptions = LayoutOptions.Center;
+            TextView.BackgroundColor = Colors.Gray;
+            TextView.TextColor = Colors.White;
+            TextView.FontAttributes = FontAttributes.Bold;
         }
 
         public override void PrepareForReuse()
@@ -332,8 +385,6 @@ namespace DemoTest.Pages
 
     internal class ItemViewHolderSimple : MAUICollectionViewViewHolder
     {
-        public int NewCellIndex;
-
         public ItemViewHolderSimple(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
             ModelView = itemView as ModelViewSimple;
@@ -376,40 +427,65 @@ namespace DemoTest.Pages
             aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
             aContextMenu.PlatformMenu.MenuItemClick += (s1, arg1) =>
             {
-                MenuCommand.Execute(IndexPath);
+                switch (arg1.Item.ItemId)
+                {
+                    case Resource.Id.delete_item:
+                        DeleteMenuCommand.Execute(IndexPath);
+                        break;
+                    case Resource.Id.insert_item:
+                        InsertMenuCommand.Execute(IndexPath);
+                        break;
+                }
             };
             ContextMenu = aContextMenu;
 #endif
         }
 
 
-        public Command MenuCommand;
-        public void InitMenu(Command command)
+        public Command DeleteMenuCommand;
+        public Command InsertMenuCommand;
+        public void InitMenu(Command deleteCommand, Command insertCommand)
         {
-            MenuCommand = command;
+            DeleteMenuCommand = deleteCommand;
+            InsertMenuCommand = insertCommand;
 #if IOS
             var menu = new Menu();
-            var menuItem = new The49.Maui.ContextMenu.Action()
+            var deleteMenuItem = new The49.Maui.ContextMenu.Action()
             {
                 Title = "Delete",
-                Command = command,
+                Command = deleteCommand,
             };
-            menuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            var insertMenuItem = new The49.Maui.ContextMenu.Action()
+            {
+                Title = "Insert",
+                Command = insertCommand,
+            };
+            deleteMenuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            insertMenuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
             {
-                menuItem
+                deleteMenuItem,
+                insertMenuItem
             };
             ContextMenu = new MauiUICollectionView.Gestures.iOSContextMenu(this, menu);
 #elif WINDOWS || MACCATALYST
             var menu = new MenuFlyout();
-            var menuItem = new MenuFlyoutItem()
+            var deleteMenuItem = new MenuFlyoutItem()
             {
                 Text = "Delete",
-                Command = command,
+                Command = deleteCommand,
                 CommandParameter = IndexPath
             };
-            menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-            menu.Add(menuItem);
+            var insertMenuItem = new MenuFlyoutItem()
+            {
+                Text = "Insert",
+                Command = insertCommand,
+                CommandParameter = IndexPath
+            };
+            deleteMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            insertMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            menu.Add(deleteMenuItem);
+            menu.Add(insertMenuItem);
             ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
         }
@@ -417,6 +493,10 @@ namespace DemoTest.Pages
 
     class ModelViewSimple : ContainerLayout
     {
+        static int newCellCount = 0;
+
+        public int NewCellIndex;
+
         public Image PersonIcon;
         public Label PersonName;
         public Label PersonGender;
@@ -454,9 +534,9 @@ namespace DemoTest.Pages
             PersonIconContainer.Content = PersonIcon;
             var personInfoContainer = new HorizontalStackLayout();
             var personTextInfoContainer = new VerticalStackLayout();
-             PersonName = new Label() { TextColor = Colors.White };
-           var personOtherInfoContainer = new HorizontalStackLayout();
-             PersonGender = new Label() { TextColor = Colors.White };
+            PersonName = new Label() { TextColor = Colors.White };
+            var personOtherInfoContainer = new HorizontalStackLayout();
+            PersonGender = new Label() { TextColor = Colors.White };
             PersonPhone = new Label() { Margin = new Thickness(5, 0, 0, 0), TextColor = Colors.White };
             personOtherInfoContainer.Add(PersonGender);
             personOtherInfoContainer.Add(PersonPhone);
@@ -466,9 +546,9 @@ namespace DemoTest.Pages
             personInfoContainer.Add(personTextInfoContainer);
             PersonTextBlogTitle = new Label() { FontSize = 20, LineBreakMode = LineBreakMode.WordWrap, MaxLines = 2, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
             PersonTextBlog = new Label() { LineBreakMode = LineBreakMode.WordWrap, MaxLines = 3, TextColor = Colors.White, BackgroundColor = Colors.SlateGray };
-            var imageInfoContainer = new Grid();
+            var imageInfoContainer = new HorizontalStackLayout();
             PersonImageBlog = new Image() { WidthRequest = 100, HeightRequest = 100, BackgroundColor = Colors.AliceBlue, HorizontalOptions = LayoutOptions.Start };
-            TestButton = new Button() { Text = "Hello", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.End };
+            TestButton = new Button() { Text = "Hello", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
             imageInfoContainer.Add(PersonImageBlog);
             imageInfoContainer.Add(TestButton);
             layout.Add(personInfoContainer);
@@ -516,6 +596,9 @@ namespace DemoTest.Pages
 
             layout.Add(bottomIconBar);
             Grid.SetRow(bottomIconBar, 4);
+
+            NewCellIndex = ++newCellCount;
+            CommentCountLabel.Text = NewCellIndex.ToString();
         }
 
         private void LikeIcon_Clicked(object sender, EventArgs e)
@@ -536,6 +619,7 @@ namespace DemoTest.Pages
             PersonTextBlogTitle.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlogTitle));
             PersonTextBlog.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlog));
             PersonImageBlog.SetBinding(Image.SourceProperty, nameof(Model.PersonImageBlogUrl));
+            TestButton.SetBinding(Button.TextProperty, nameof(Model.Index));
         }
     }
 
