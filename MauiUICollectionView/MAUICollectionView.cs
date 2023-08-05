@@ -272,7 +272,7 @@ namespace MauiUICollectionView
                 if (MeasuredContentSize != Size.Zero && IsScrolling)
                     size = MeasuredContentSize;
                 else
-                    size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
+                        size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
             }
 
             // set empty view
@@ -309,8 +309,8 @@ namespace MauiUICollectionView
         /// </summary>
         void MeasureNowAfterScroll()
         {
-            if (ItemsLayout != null && Source != null)
-                MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
+                if (ItemsLayout != null && Source != null)
+                    MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
         }
 
         /// <summary>

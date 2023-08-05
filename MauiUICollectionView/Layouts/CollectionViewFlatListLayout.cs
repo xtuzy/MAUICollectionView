@@ -1,4 +1,6 @@
-﻿namespace MauiUICollectionView.Layouts
+﻿using System.Diagnostics;
+
+namespace MauiUICollectionView.Layouts
 {
     public partial class CollectionViewFlatListLayout : CollectionViewLayout
     {
@@ -8,8 +10,8 @@
 
         protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
-            if (CollectionView.IsScrolling && 
-                isScrollToDirectly == false && 
+            if (CollectionView.IsScrolling &&
+                isScrollToDirectly == false &&
                 !IsOperating)
             {
                 MeasureItemsWhenScroll(inRect, availablePreparedItems);
@@ -45,15 +47,17 @@
 
             //estimate all items' height
             double itemsHeight = 0;
-            var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault();
-            itemsHeight += (lastPreparedItem.Value.BoundsInLayout.Bottom - top);
             var numberOfSections = CollectionView.NumberOfSections();
+            var (lastPreparedItem, lastPreparedItemViewHolder) = CollectionView.PreparedItems.LastOrDefault();
+            if (lastPreparedItemViewHolder != null)
+                itemsHeight += (lastPreparedItemViewHolder.BoundsInLayout.Bottom - top);
             var lastItem = NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections - 1) - 1, numberOfSections - 1);
-            if (lastItem > lastPreparedItem.Key)
+            if (lastPreparedItem == null)
+                lastPreparedItem = NSIndexPath.FromRowSection(0, 0);
+            if (lastItem > lastPreparedItem)
             {
-                itemsHeight += ItemCountInRange(lastPreparedItem.Key, lastItem) * lastPreparedItem.Value.BoundsInLayout.Height;
+                itemsHeight += ItemCountInRange(lastPreparedItem, lastItem) * StartBoundsCache[StartBoundsCache.Count - 1].Height;
             }
-
             return itemsHeight;
         }
 
@@ -108,16 +112,64 @@
             }
             else //use header's bottom as baseline to layout
             {
-                OnLayoutChildren(inRect, new LayoutInfor()
+                if (CollectionView.ScrollY > top)
                 {
-                    StartItem = NSIndexPath.FromRowSection(0, 0),
-                    StartBounds = new Rect(0, top, 0, 0),
-                }, availablePreparedItems);
+                    //快速滑动出错时, 出现计算错误, 数据被清空, 尝试修复
+                    if (CollectionView.ScrollY < StartBoundsCache[StartBoundsCache.Count - 1].Bottom)
+                    {
+                        for (int i = 0; i < StartBoundsCache.Count; i++)
+                        {
+                            var rect = StartBoundsCache[i];
+                            if (rect.Contains(0, CollectionView.ScrollY))
+                            {
+                                OnLayoutChildren(inRect, new LayoutInfor()
+                                {
+                                    StartItem = NSIndexPath.FromRowSection(i, 0),
+                                    StartBounds = new Rect(0, rect.Top, 0, 0),
+                                }, availablePreparedItems);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        OnLayoutChildren(inRect, new LayoutInfor()
+                        {
+                            StartItem = EstimateItem(CollectionView.ScrollY),
+                            StartBounds = new Rect(0, CollectionView.ScrollY, 0, 0),
+                        }, availablePreparedItems);
+                    }
+                }
+                else
+                {
+                    OnLayoutChildren(inRect, new LayoutInfor()
+                    {
+                        StartItem = NSIndexPath.FromRowSection(0, 0),
+                        StartBounds = new Rect(0, top, 0, 0),
+                    }, availablePreparedItems);
+                }
             }
-            if(CollectionView.PreparedItems.Count == 0)
-            {
+        }
 
+        NSIndexPath EstimateItem(double scrollY)
+        {
+            var firstItemBounds = StartBoundsCache.First();
+            double averageHeight = (StartBoundsCache.Last().Bottom - firstItemBounds.Top) / StartBoundsCache.Count;
+
+            var numberOfSections = CollectionView.NumberOfSections();
+            double allHeight = 0;
+            for (var section = 0; section < numberOfSections; section++)
+            {
+                var rowsInSection = CollectionView.NumberOfItemsInSection(section);
+                if(scrollY - firstItemBounds.Top < allHeight + rowsInSection * averageHeight)
+                {
+                    return NSIndexPath.FromRowSection((int)((scrollY - firstItemBounds.Top - allHeight) / averageHeight), section);
+                }
+                else
+                {
+                    allHeight += rowsInSection * averageHeight;
+                }
             }
+            return null;
         }
 
         /// <summary>
@@ -177,7 +229,7 @@
                         indexPath = NSIndexPath.FromRowSection(row, section);
                         var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, top, Edge.Top, indexPath, availableCells);
                         if (viewHolder != null) CollectionView.PreparedItems.Add(indexPath, viewHolder);
-                        else
+                        if (bounds.Bottom >= inRect.Bottom)
                             return;
                         top += bounds.Height;
                     }
@@ -202,7 +254,7 @@
                         indexPath = NSIndexPath.FromRowSection(row, section);
                         var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availableCells);
                         if (viewHolder != null) tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
-                        else
+                        if (bounds.Top <= inRect.Top)
                             return tempOrderedPreparedItems;
                         bottom -= bounds.Height;
                     }
@@ -272,7 +324,6 @@
                 }
             }
             else//加载上面的
-
             {
                 if (OldPreparedItems.StartBounds.Top <= inRect.Top)
                 {
@@ -317,7 +368,7 @@
             Top, Bottom, Left, Right
         }
 
-        (MAUICollectionViewViewHolder viewHolder, Rect height) layoutChunk(Rect inRect, double constrainedWidth, double baseline, Edge edge, NSIndexPath indexPath, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableViewHolders)
+        (MAUICollectionViewViewHolder viewHolder, Rect bounds) layoutChunk(Rect inRect, double constrainedWidth, double baseline, Edge edge, NSIndexPath indexPath, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableViewHolders)
         {
             //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
             MAUICollectionViewViewHolder viewHolder = null;
@@ -341,7 +392,7 @@
                 {
 
                 }
-                viewHolder.WidthRequest = constrainedWidth;
+                //viewHolder.WidthRequest = constrainedWidth;
                 //测量高度
                 Size measureSize;
                 var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
@@ -434,59 +485,63 @@
         /// </summary>
         void FitBoundsWhenCloseHeader()
         {
-            var visibleFirst = CollectionView.PreparedItems.First();
-            if (visibleFirst.Key.Section == 0 && (visibleFirst.Key.Row >= 0 && visibleFirst.Key.Row < StartBoundsCache.Count - 1))
+            //正常布局时
+            if (CollectionView.PreparedItems.Count > 0)
             {
-                /*
-                 * case 1: item's position not fit header, we try find one item let it fit.
-                 */
-                var targetBounds = StartBoundsCache[visibleFirst.Key.Row];
-                var currentBounds = visibleFirst.Value.BoundsInLayout;
-                if (targetBounds.Top != currentBounds.Top)
+                var visibleFirst = CollectionView.PreparedItems.First();
+                if (visibleFirst.Key.Section == 0 && (visibleFirst.Key.Row >= 0 && visibleFirst.Key.Row < StartBoundsCache.Count - 1))
                 {
-                    BaseLineItemUsually = new LayoutInfor()
+                    /*
+                     * case 1: item's position not fit header, we try find one item let it fit.
+                     */
+                    var targetBounds = StartBoundsCache[visibleFirst.Key.Row];
+                    var currentBounds = visibleFirst.Value.BoundsInLayout;
+                    if (targetBounds.Top != currentBounds.Top)
                     {
-                        StartBounds = new Rect(0, targetBounds.Top, 0, 0),
-                        StartItem = visibleFirst.Key
-                    };
-                    CollectionView.ScrollToAsync(0, CollectionView.ScrollY + (targetBounds.Top - currentBounds.Top), false);
-                    isScrollToDirectly = true;
-                }
-            }
-            else
-            {
-                /*
-                 * case 2: top don't have space to scroll to header
-                 */
-                var minTop = StartBoundsCache.Last().Top;
-                if (visibleFirst.Value.BoundsInLayout.Top < minTop && (visibleFirst.Key.Row >= StartBoundsCache.Count - 1))
-                {
-                    BaseLineItemUsually = new LayoutInfor()
-                    {
-                        StartBounds = new Rect(0, minTop, 0, 0),
-                        StartItem = visibleFirst.Key
-                    };
-                    CollectionView.ScrollToAsync(0, CollectionView.ScrollY + (minTop - visibleFirst.Value.BoundsInLayout.Top), false);
-                    isScrollToDirectly = true;
+                        BaseLineItemUsually = new LayoutInfor()
+                        {
+                            StartBounds = new Rect(0, targetBounds.Top, 0, 0),
+                            StartItem = visibleFirst.Key
+                        };
+                        CollectionView.ScrollToAsync(0, CollectionView.ScrollY + (targetBounds.Top - currentBounds.Top), false);
+                        isScrollToDirectly = true;
+                    }
                 }
                 else
                 {
                     /*
-                     * case 3: when top have too big space to scroll header, when first item show, will show space. 
+                     * case 2: top don't have space to scroll to header
                      */
-                    var firstItem = NSIndexPath.FromRowSection(0, 0);
-                    if (visibleFirst.Key == firstItem)
+                    var minTop = StartBoundsCache.Last().Top;
+                    if (visibleFirst.Value.BoundsInLayout.Top < minTop && (visibleFirst.Key.Row >= StartBoundsCache.Count - 1))
                     {
-                        var firstItemRect = visibleFirst.Value.BoundsInLayout;
-                        if(firstItemRect.Top > 0)
+                        BaseLineItemUsually = new LayoutInfor()
                         {
-                            BaseLineItemUsually = new LayoutInfor()
+                            StartBounds = new Rect(0, minTop, 0, 0),
+                            StartItem = visibleFirst.Key
+                        };
+                        CollectionView.ScrollToAsync(0, CollectionView.ScrollY + (minTop - visibleFirst.Value.BoundsInLayout.Top), false);
+                        isScrollToDirectly = true;
+                    }
+                    else
+                    {
+                        /*
+                         * case 3: when top have too big space to scroll header, when first item show, will show space. 
+                         */
+                        var firstItem = NSIndexPath.FromRowSection(0, 0);
+                        if (visibleFirst.Key == firstItem)
+                        {
+                            var firstItemRect = visibleFirst.Value.BoundsInLayout;
+                            if (firstItemRect.Top > 0)
                             {
-                                StartBounds = new Rect(0, StartBoundsCache[0].Top, 0, 0),
-                                StartItem = firstItem
-                            };
-                            CollectionView.ScrollToAsync(0, StartBoundsCache[0].Top, false);
-                            isScrollToDirectly = true;
+                                BaseLineItemUsually = new LayoutInfor()
+                                {
+                                    StartBounds = new Rect(0, StartBoundsCache[0].Top, 0, 0),
+                                    StartItem = firstItem
+                                };
+                                CollectionView.ScrollToAsync(0, StartBoundsCache[0].Top, false);
+                                isScrollToDirectly = true;
+                            }
                         }
                     }
                 }

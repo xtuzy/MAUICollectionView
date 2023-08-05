@@ -151,7 +151,6 @@ namespace MauiUICollectionView.Layouts
             OldPreparedItems = new LayoutInfor();
             if (tempOrderedCells.Count > 0)
             {
-                
                 var start = tempOrderedCells[0];
                 OldPreparedItems.StartItem= start.Key;
                 OldPreparedItems.StartBounds= start.Value.BoundsInLayout;

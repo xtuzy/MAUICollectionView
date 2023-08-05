@@ -375,10 +375,10 @@ namespace MauiUICollectionView
                     DragCommand(new DragEventArgs(GestureStatus.Running, lastDragPosition) { Device = GestureDevice.Mouse });
                 }
                 lastScrollY = e.ScrollY;
-                //Console.WriteLine($"Scrolled {e.ScrollY}");
+                Debug.WriteLine($"Scrolled {e.ScrollY} dy={scrollOffset}");
                 ItemsLayout.AnimationManager.StopOperateAnim();
             }
-            //MeasureNowAfterScroll();
+            MeasureNowAfterScroll();
             ReMeasure();
         }
 

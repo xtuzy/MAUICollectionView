@@ -150,10 +150,10 @@ public partial class DefaultTestPage : ContentPage
 
         ChangeLayout.Clicked += (sender, e) =>
         {
-            if (tableView.ItemsLayout is CollectionViewListLayout)
+            if (tableView.ItemsLayout is CollectionViewFlatListLayout)
                 tableView.ItemsLayout = new CollectionViewGridLayout(tableView);
             else
-                tableView.ItemsLayout = new CollectionViewListLayout(tableView);
+                tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView);
             tableView.ReMeasure();
         };
 

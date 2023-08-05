@@ -19,7 +19,7 @@
         /// </summary>
         public Size AspectRatio { get; set; } = new Size(1, 1);
 
-        protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
+        protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
             double measureItem(NSIndexPath indexPath, Rect itemRect, bool unknowItemHeight)
             {
@@ -28,10 +28,14 @@
                 {
                     //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
                     MAUICollectionViewViewHolder cell = null;
-                    if (availableCells.ContainsKey(indexPath))
+                    if (availablePreparedItems.ContainsKey(indexPath))
                     {
-                        cell = availableCells[indexPath];
-                        availableCells.Remove(indexPath);
+                        cell = availablePreparedItems[indexPath];
+                        availablePreparedItems.Remove(indexPath);
+                        if(CollectionView.IsScrolling &&!IsOperating)
+                        {
+                            //return cell.BoundsInLayout.Height;
+                        }
                     }
                     cell = CollectionView.Source.ViewHolderForItem(CollectionView, indexPath, cell, inRect.Width);
 
@@ -78,9 +82,9 @@
                 }
                 else// if don't in prepared rect
                 {
-                    if (availableCells.ContainsKey(indexPath))//we want store bounds info for invisible item, because maybe we need it to make animation
+                    if (availablePreparedItems.ContainsKey(indexPath))//we want store bounds info for invisible item, because maybe we need it to make animation
                     {
-                        var cell = availableCells[indexPath];
+                        var cell = availablePreparedItems[indexPath];
 
                         if (cell.Operation == (int)OperateItem.OperateType.Move
                             && IsOperating
@@ -209,7 +213,7 @@
             }
 
             //if viewHolder is invisible, we calculate its position for animation
-            foreach(var viewHolder in availableCells)
+            foreach(var viewHolder in availablePreparedItems)
             {
                 var rect = RectForItem(viewHolder.Key);
                 measureItem(viewHolder.Key, rect, false);
