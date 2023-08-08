@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using static System.Collections.Specialized.BitVector32;
 
 namespace MauiUICollectionView.Layouts
 {
@@ -8,8 +8,12 @@ namespace MauiUICollectionView.Layouts
         {
         }
 
+        double lastItemsHeight = -1;
+        double lastScrollY = -1;
         protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
+            lastScrollY = CollectionView.ScrollY;
+
             if (CollectionView.IsScrolling &&
                 isScrollToDirectly == false &&
                 !IsOperating)
@@ -58,6 +62,7 @@ namespace MauiUICollectionView.Layouts
             {
                 itemsHeight += ItemCountInRange(lastPreparedItem, lastItem) * StartBoundsCache[StartBoundsCache.Count - 1].Height;
             }
+            lastItemsHeight = itemsHeight;
             return itemsHeight;
         }
 
@@ -100,7 +105,7 @@ namespace MauiUICollectionView.Layouts
         {
             if (BaseLineItemUsually != null)// use specify baseline to layout
             {
-                OnLayoutChildren(inRect, BaseLineItemUsually, availablePreparedItems);
+                OnLayoutChildren(inRect, BaseLineItemUsually.Copy(), availablePreparedItems);
             }
             else if (OldPreparedItems.StartItem != null)// use last layout item as baseline to layout
             {
@@ -150,17 +155,22 @@ namespace MauiUICollectionView.Layouts
             }
         }
 
+        double EstimateAverageHeight()
+        {
+            return (StartBoundsCache.Last().Bottom - StartBoundsCache.First().Top) / StartBoundsCache.Count;
+        }
+
         NSIndexPath EstimateItem(double scrollY)
         {
             var firstItemBounds = StartBoundsCache.First();
-            double averageHeight = (StartBoundsCache.Last().Bottom - firstItemBounds.Top) / StartBoundsCache.Count;
+            double averageHeight = EstimateAverageHeight();
 
             var numberOfSections = CollectionView.NumberOfSections();
             double allHeight = 0;
             for (var section = 0; section < numberOfSections; section++)
             {
                 var rowsInSection = CollectionView.NumberOfItemsInSection(section);
-                if(scrollY - firstItemBounds.Top < allHeight + rowsInSection * averageHeight)
+                if (scrollY - firstItemBounds.Top < allHeight + rowsInSection * averageHeight)
                 {
                     return NSIndexPath.FromRowSection((int)((scrollY - firstItemBounds.Top - allHeight) / averageHeight), section);
                 }
@@ -169,7 +179,8 @@ namespace MauiUICollectionView.Layouts
                     allHeight += rowsInSection * averageHeight;
                 }
             }
-            return null;
+            //maybe scrolly is very big
+            return NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections-1), numberOfSections-1);
         }
 
         /// <summary>
@@ -182,7 +193,7 @@ namespace MauiUICollectionView.Layouts
         {
             if (start.Section == end.Section)
             {
-                return end.Row - start.Row;
+                return end.Row - start.Row - 1;
             }
             else
             {
@@ -206,24 +217,25 @@ namespace MauiUICollectionView.Layouts
         /// 从上方或者下方布置Item以填满给定矩形. 
         /// </summary>
         /// <param name="inRect"></param>
-        /// <param name="top"></param>
-        /// <param name="isTop"></param>
+        /// <param name="baselineInfor">according to it to layout other items</param>
         /// <param name="availableCells"></param>
         /// <exception cref="NotImplementedException"></exception>
         void OnLayoutChildren(Rect inRect, LayoutInfor baselineInfor, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
         {
-            void LayoutFromTopToBottom()
+            void LayoutFromTopToBottom(LayoutInfor topBaselineInfor)
             {
-                var top = baselineInfor.StartBounds.Top;
+                if (topBaselineInfor.StartItem == null)
+                    return;
+                var top = topBaselineInfor.StartBounds.Top;
                 // 填充item到矩形高度
                 var numberOfSections = CollectionView.NumberOfSections();
-                NSIndexPath indexPath = baselineInfor.StartItem;
-                for (int section = baselineInfor.StartItem.Section; section < numberOfSections; section++)
+                NSIndexPath indexPath = topBaselineInfor.StartItem;
+                for (int section = topBaselineInfor.StartItem.Section; section < numberOfSections; section++)
                 {
                     int numberOfRows = CollectionView.NumberOfItemsInSection(section);
                     int row = 0;
-                    if (section == baselineInfor.StartItem.Section)
-                        row = baselineInfor.StartItem.Row;
+                    if (section == topBaselineInfor.StartItem.Section)
+                        row = topBaselineInfor.StartItem.Row;
                     for (; row < numberOfRows; row++)
                     {
                         indexPath = NSIndexPath.FromRowSection(row, section);
@@ -236,40 +248,33 @@ namespace MauiUICollectionView.Layouts
                 }
             }
 
-            List<KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>> LayoutFromBottomToTop()
+            void LayoutFromBottomToTop(LayoutInfor bottomBaselineInfor)
             {
+                if (bottomBaselineInfor.EndItem == null)
+                    return;
                 List<KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>> tempOrderedPreparedItems = new();
-                var bottom = baselineInfor.EndBounds.Bottom;
+                var bottom = bottomBaselineInfor.EndBounds.Bottom;
                 // 填充item到矩形高度
                 var numberOfSections = CollectionView.NumberOfSections();
-                NSIndexPath indexPath = baselineInfor.EndItem;
-                for (int section = baselineInfor.EndItem.Section; section >= 0; section--)
+                NSIndexPath indexPath = bottomBaselineInfor.EndItem;
+                for (int section = bottomBaselineInfor.EndItem.Section; section >= 0; section--)
                 {
                     int numberOfRows = CollectionView.NumberOfItemsInSection(section);
                     int row = numberOfRows - 1;
-                    if (section == baselineInfor.EndItem.Section)
-                        row = baselineInfor.EndItem.Row;
+                    if (section == bottomBaselineInfor.EndItem.Section)
+                        row = bottomBaselineInfor.EndItem.Row;
                     for (; row >= 0; row--)
                     {
                         indexPath = NSIndexPath.FromRowSection(row, section);
                         var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availableCells);
                         if (viewHolder != null) tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
                         if (bounds.Top <= inRect.Top)
-                            return tempOrderedPreparedItems;
+                            goto FinishLoop;
                         bottom -= bounds.Height;
                     }
                 }
-                return tempOrderedPreparedItems;
-            }
 
-            if (baselineInfor.StartItem != null)//从上到下
-            {
-                LayoutFromTopToBottom();
-            }
-            else//从下往上
-            {
-                List<KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>> tempOrderedPreparedItems = LayoutFromBottomToTop();
-
+                FinishLoop:
                 // 从小到大加入
                 for (var index = tempOrderedPreparedItems.Count - 1; index >= 0; index--)
                 {
@@ -277,6 +282,20 @@ namespace MauiUICollectionView.Layouts
                     CollectionView.PreparedItems.Add(item.Key, item.Value);
                 }
             }
+
+            if (baselineInfor.StartItem != null)//从上到下
+            {
+                if(baselineInfor.StartBounds.Top > inRect.Top)
+                    LayoutFromBottomToTop(new LayoutInfor() { EndItem = nextItem(baselineInfor.StartItem, -1), EndBounds = new Rect(0, 0, 0, baselineInfor.StartBounds.Top) });
+                LayoutFromTopToBottom(baselineInfor);
+            }
+            else//从下往上
+            {
+                LayoutFromBottomToTop(baselineInfor);
+                if (baselineInfor.EndBounds.Bottom < inRect.Bottom)
+                    LayoutFromTopToBottom(new LayoutInfor() { StartItem = nextItem(baselineInfor.EndItem, 1), StartBounds = new Rect(0, baselineInfor.EndBounds.Bottom, 0, 0) });
+            }
+
         }
 
         /// <summary>
@@ -650,6 +669,40 @@ namespace MauiUICollectionView.Layouts
                     return itemHeight;
                 }
             }
+        }
+
+        public override Rect RectForItem(NSIndexPath indexPath)
+        {
+            var rect = base.RectForItem(indexPath);
+            if (rect == Rect.Zero)
+            {
+                //base on any visible item
+                if (CollectionView.PreparedItems.Count > 0)
+                {
+                    var item = CollectionView.PreparedItems.First();
+                    var itemIndexPath = item.Key;
+                    var itemViewHolder = item.Value;
+                    if (indexPath < itemIndexPath)
+                    {
+                        var count = ItemCountInRange(indexPath, itemIndexPath);
+                        double averageHeight = EstimateAverageHeight();
+                        var allItemHeight = count * averageHeight;
+                        return new Rect(0, itemViewHolder.BoundsInLayout.Top - allItemHeight, itemViewHolder.BoundsInLayout.Width, averageHeight);
+                    }
+
+                    item = CollectionView.PreparedItems.Last();
+                    itemIndexPath = item.Key;
+                    itemViewHolder = item.Value;
+                    if (indexPath > itemIndexPath)
+                    {
+                        var count = ItemCountInRange(itemIndexPath, indexPath);
+                        double averageHeight = EstimateAverageHeight();
+                        var allItemHeight = count * averageHeight;
+                        return new Rect(0, itemViewHolder.BoundsInLayout.Bottom + allItemHeight, itemViewHolder.BoundsInLayout.Width, averageHeight);
+                    }
+                }
+            }
+            return rect;
         }
     }
 }

@@ -159,6 +159,7 @@ public partial class DefaultTestPage : ContentPage
 
         content.Command = new Command(() =>
         {
+            if (OperatingSystem.IsWindows()) return;//RefreshView will load many times when drag scroll bar
             (tableView.Source as Source).LoadMoreOnFirst();
             tableView.NotifyDataSetChanged();
             content.IsRefreshing = false;

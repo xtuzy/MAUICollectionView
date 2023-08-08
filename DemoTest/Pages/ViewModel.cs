@@ -284,7 +284,7 @@ namespace DemoTest.Pages
                         simpleCell = new ItemViewHolderSimple(new ModelViewSimple() { }, type) { };
                         var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
-                            var count = 3;
+                            var count = 2;
                             var distance = arg.Row - 1 + count - ViewModel.models[arg.Section].Count;
                             if (distance < 0)
                                 RemoveData(arg.Section, arg.Row - 1, count);
@@ -298,8 +298,8 @@ namespace DemoTest.Pages
                         });
                         var insertCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
-                            var count = 3;
-                            InsertData(arg.Section, arg.Row, count);
+                            var count = 2;
+                            InsertData(arg.Section, arg.Row-1, count);//section header occupy a row
                             tableView.NotifyItemRangeInserted(arg, count);
                             tableView.ReMeasure();
                         });
@@ -651,7 +651,7 @@ namespace DemoTest.Pages
             ViewModel.Stopwatch.Restart();
             var size = (layout.Children[0] as IView).Measure(widthConstraint, heightConstraint);
             ViewModel.Stopwatch.Stop();
-            ViewModel.CalculateMeanMeasureTimeAsync(ViewModel.Stopwatch.ElapsedMilliseconds);
+            //ViewModel.CalculateMeanMeasureTimeAsync(ViewModel.Stopwatch.ElapsedMilliseconds);
             return size;
         }
     }

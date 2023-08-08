@@ -80,7 +80,7 @@ namespace MauiUICollectionView
             this.TranslationX = 0;
             this.TranslationY = 0;
             this.Scale = 1;
-            this.Opacity = 1;
+            this.Opacity = 0;
             this.ZIndex = 1;
             Operation = -1;
         }

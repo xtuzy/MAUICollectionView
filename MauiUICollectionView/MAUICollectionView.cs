@@ -406,6 +406,7 @@ namespace MauiUICollectionView
                     if (viewHolder.ReuseIdentifier == identifier)
                     {
                         ReusableViewHolders.RemoveAt(index);
+                        viewHolder.Opacity = 1;
                         return viewHolder;
                     }
                 }

@@ -1,5 +1,4 @@
-﻿using Microsoft.Maui.Controls;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace MauiUICollectionView.Layouts
 {
@@ -51,7 +50,7 @@ namespace MauiUICollectionView.Layouts
         {
             CollectionView.Source?.WillArrange?.Invoke(CollectionView);
             AnimationManager.Run(CollectionView.IsScrolling, IsOperating);
-            
+
             IsOperating = false;//disappear动画结束
             CollectionView.IsScrolling = false;
 
@@ -94,8 +93,19 @@ namespace MauiUICollectionView.Layouts
         {
             public NSIndexPath StartItem;
             public NSIndexPath EndItem;
-            public Rect StartBounds; 
-            public Rect EndBounds; 
+            public Rect StartBounds;
+            public Rect EndBounds;
+
+            public LayoutInfor Copy()
+            {
+                return new LayoutInfor()
+                {
+                    StartItem = this.StartItem,
+                    EndItem = this.EndItem,
+                    StartBounds = this.StartBounds,
+                    EndBounds = this.EndBounds
+                };
+            }
         }
 
         /// <summary>
@@ -152,8 +162,8 @@ namespace MauiUICollectionView.Layouts
             if (tempOrderedCells.Count > 0)
             {
                 var start = tempOrderedCells[0];
-                OldPreparedItems.StartItem= start.Key;
-                OldPreparedItems.StartBounds= start.Value.BoundsInLayout;
+                OldPreparedItems.StartItem = start.Key;
+                OldPreparedItems.StartBounds = start.Value.BoundsInLayout;
                 var end = tempOrderedCells[tempOrderedCells.Count - 1];
                 OldPreparedItems.EndItem = end.Key;
                 OldPreparedItems.EndBounds = end.Value.BoundsInLayout;
@@ -368,7 +378,16 @@ namespace MauiUICollectionView.Layouts
                             if (!viewHolder.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
                             && update.operateAnimate)//move的可以是没有动画但位置移动的
                             {
-                                viewHolder.OldBoundsInLayout = update.source== update.target && viewHolder.OldBoundsInLayout==Rect.Zero ? RectForItem(NSIndexPath.FromRowSection(update.source.Row - update.moveCount, update.source.Section)) : RectForItem(update.source); // try get old bounds
+                                if (update.source == update.target && viewHolder.OldBoundsInLayout == Rect.Zero)
+                                {
+                                    var bounds = RectForItem(NSIndexPath.FromRowSection(update.source.Row - update.moveCount, update.source.Section));//if delete other section's item
+                                    viewHolder.OldBoundsInLayout = new Rect(bounds.X, bounds.Y, viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
+                                }
+                                else
+                                {
+                                    var bounds = RectForItem(update.source); //if delete same section's item
+                                    viewHolder.OldBoundsInLayout = new Rect(bounds.X, bounds.Y, viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
+                                }
                                 viewHolder.Operation = (int)OperateItem.OperateType.Move;
                                 AnimationManager.AddOperatedItem(viewHolder);
                             }
@@ -416,14 +435,26 @@ namespace MauiUICollectionView.Layouts
                     continue;
                 }
 
-                if (cell.ReuseIdentifier != default && 
+                if (cell.ReuseIdentifier != default &&
                     cell.Operation != (int)OperateItem.OperateType.Move)//avoid recycle will invisible item, we recycle it in animation
                 {
                     CollectionView.RecycleViewHolder(cell);
-                }else if(cell.Operation == (int)OperateItem.OperateType.Move)
+                }
+                else if (cell.Operation == (int)OperateItem.OperateType.Move)
                 {
-
-                }else
+                    if (IsOperating)
+                    {
+                        //these item is: last is visible, now will be invisible.
+                        //we check animation data correct
+                        var bounds = RectForItem(cell.IndexPath); // try get new bounds
+                        if (bounds != cell.BoundsInLayout)
+                        {
+                            cell.OldBoundsInLayout = cell.BoundsInLayout;
+                            cell.BoundsInLayout = new Rect(bounds.X, bounds.Y, cell.OldBoundsInLayout.Width, cell.OldBoundsInLayout.Height);
+                        }
+                    }
+                }
+                else
                 {
                     cell.RemoveFromSuperview();
                 }
@@ -495,7 +526,7 @@ namespace MauiUICollectionView.Layouts
 
             foreach (var item in CollectionView.PreparedItems)
             {
-                if(item.Value.BoundsInLayout.Contains(point))
+                if (item.Value.BoundsInLayout.Contains(point))
                 {
                     return item.Key;
                 }
@@ -507,7 +538,7 @@ namespace MauiUICollectionView.Layouts
         /// Get rect of item. this method maybe be slow.
         /// </summary>
         /// <returns></returns>
-        public virtual Rect RectForItem(NSIndexPath indexPath) 
+        public virtual Rect RectForItem(NSIndexPath indexPath)
         {
             if (CollectionView.PreparedItems.ContainsKey(indexPath))
             {
