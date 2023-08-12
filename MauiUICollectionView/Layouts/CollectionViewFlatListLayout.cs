@@ -16,7 +16,7 @@ namespace MauiUICollectionView.Layouts
 
             if (CollectionView.IsScrolling &&
                 isScrollToDirectly == false &&
-                !IsOperating)
+                !HasOperation)
             {
                 MeasureItemsWhenScroll(inRect, availablePreparedItems);
             }
@@ -93,7 +93,7 @@ namespace MauiUICollectionView.Layouts
             }
         }
 
-        LayoutInfor BaseLineItemUsually;
+        public LayoutInfor BaseLineItemUsually;
 
         /// <summary>
         /// When not touch scrolling, we use it to remeasure all prepared items.
@@ -286,14 +286,14 @@ namespace MauiUICollectionView.Layouts
             if (baselineInfor.StartItem != null)//从上到下
             {
                 if(baselineInfor.StartBounds.Top > inRect.Top)
-                    LayoutFromBottomToTop(new LayoutInfor() { EndItem = nextItem(baselineInfor.StartItem, -1), EndBounds = new Rect(0, 0, 0, baselineInfor.StartBounds.Top) });
+                    LayoutFromBottomToTop(new LayoutInfor() { EndItem = CollectionView.NextItem(baselineInfor.StartItem, -1), EndBounds = new Rect(0, 0, 0, baselineInfor.StartBounds.Top) });
                 LayoutFromTopToBottom(baselineInfor);
             }
             else//从下往上
             {
                 LayoutFromBottomToTop(baselineInfor);
                 if (baselineInfor.EndBounds.Bottom < inRect.Bottom)
-                    LayoutFromTopToBottom(new LayoutInfor() { StartItem = nextItem(baselineInfor.EndItem, 1), StartBounds = new Rect(0, baselineInfor.EndBounds.Bottom, 0, 0) });
+                    LayoutFromTopToBottom(new LayoutInfor() { StartItem = CollectionView.NextItem(baselineInfor.EndItem, 1), StartBounds = new Rect(0, baselineInfor.EndBounds.Bottom, 0, 0) });
             }
 
         }
@@ -411,12 +411,14 @@ namespace MauiUICollectionView.Layouts
                 {
 
                 }
-                //viewHolder.WidthRequest = constrainedWidth;
                 //测量高度
                 Size measureSize;
+
                 var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
+
                 if (rowHeightWant != MAUICollectionViewViewHolder.AutoSize)//fixed value
                 {
+                    viewHolder.HeightRequest = rowHeightWant;
                     measureSize = viewHolder.MeasureSelf(constrainedWidth, rowHeightWant).Request;
                 }
                 else//need measure
@@ -429,10 +431,12 @@ namespace MauiUICollectionView.Layouts
 
                 //store bounds,  we will use it when arrange
                 if (viewHolder.Operation == (int)OperateItem.OperateType.Move &&
-                    IsOperating &&
-                    bounds != viewHolder.BoundsInLayout)//move + anim + diff bounds
+                    HasOperation)//move + anim + diff bounds
                 {
-                    viewHolder.OldBoundsInLayout = viewHolder.BoundsInLayout;//move operate need old position to make animation
+                    if (bounds != viewHolder.BoundsInLayout)
+                        viewHolder.OldBoundsInLayout = viewHolder.BoundsInLayout;//move operate need old position to make animation
+                    else
+                        viewHolder.OldBoundsInLayout = Rect.Zero;
                     viewHolder.BoundsInLayout = bounds;
                 }
                 else
@@ -567,53 +571,6 @@ namespace MauiUICollectionView.Layouts
             }
         }
 
-        NSIndexPath nextItem(NSIndexPath indexPath, int count)
-        {
-            var sectionCount = CollectionView.NumberOfSections();
-            if (count >= 0)
-            {
-                for (var section = indexPath.Section; section < sectionCount; section++)
-                {
-                    var itemCount = CollectionView.NumberOfItemsInSection(section);
-                    var itemStartIndex = 0;
-                    if (section == indexPath.Section)
-                    {
-                        itemCount = itemCount - (indexPath.Row + 1);
-                        itemStartIndex = indexPath.Row;
-                    }
-                    var remainCount = count - itemCount;
-                    if (remainCount <= 0)
-                    {
-                        return NSIndexPath.FromRowSection(itemStartIndex + count, section);
-                    }
-                    else
-                        count = remainCount;
-                }
-            }
-            else
-            {
-                count = -count;
-                for (var section = indexPath.Section; section >= 0; section--)
-                {
-                    var itemCount = CollectionView.NumberOfItemsInSection(section);
-                    var itemStartIndex = itemCount;
-                    if (section == indexPath.Section)
-                    {
-                        itemCount = indexPath.Row + 1;
-                        itemStartIndex = indexPath.Row;
-                    }
-                    var remainCount = count - itemCount;
-                    if (remainCount <= 0)
-                    {
-                        return NSIndexPath.FromRowSection(itemStartIndex - count, section);
-                    }
-                    else
-                        count = remainCount;
-                }
-            }
-            return null;
-        }
-
         public override void ScrollTo(NSIndexPath indexPath, ScrollPosition scrollPosition, bool animated)
         {
             if (animated)
@@ -625,7 +582,7 @@ namespace MauiUICollectionView.Layouts
                 else if (last < indexPath) end = ItemCountInRange(indexPath, first);
                 var anim = new Animation((v) =>
                 {
-                    var target = nextItem(last, (int)v);
+                    var target = CollectionView.NextItem(last, (int)v);
                     ScrollToItem(target);
                 }, 0, end);
                 anim.Commit(CollectionView, "ScrollTo", 16, 250, null, (v, b) =>

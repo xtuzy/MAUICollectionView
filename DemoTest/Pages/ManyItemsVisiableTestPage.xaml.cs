@@ -164,7 +164,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 };
                 menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
                 menu.Add(menuItem);
-                ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+                //ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
             }
 

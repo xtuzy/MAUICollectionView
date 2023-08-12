@@ -77,7 +77,7 @@ namespace DemoTest.Pages
                 }
                 models.Add(list);
             }
-            for (var index=0;index<modelsList.Count;index++)
+            for (var index = 0; index < modelsList.Count; index++)
             {
                 var m = modelsList[index];
                 m.Index = index;
@@ -141,14 +141,14 @@ namespace DemoTest.Pages
             MoveData(path1.Row, path2.Row);
         }
 
-        public void RemoveData(int section, int row, int count = 3)
+        public void RemoveData(int section, int dataRow, int count = 3)
         {
-            ViewModel.models[section].RemoveRange(row, count);
+            ViewModel.models[section].RemoveRange(dataRow, count);
         }
 
-        public void InsertData(int section, int row, int count = 3)
+        public void InsertData(int section, int dataRow, int count = 3)
         {
-            ViewModel.models[section].InsertRange(row, ViewModel.Generate(count));
+            ViewModel.models[section].InsertRange(dataRow, ViewModel.Generate(count));
         }
 
         public void ChangeData(int index)
@@ -299,7 +299,7 @@ namespace DemoTest.Pages
                         var insertCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
                         {
                             var count = 2;
-                            InsertData(arg.Section, arg.Row-1, count);//section header occupy a row
+                            InsertData(arg.Section, arg.Row - 1, count);//section header occupy a row
                             tableView.NotifyItemRangeInserted(arg, count);
                             tableView.ReMeasure();
                         });
@@ -318,7 +318,7 @@ namespace DemoTest.Pages
                     simpleCell.ModelView.PersonImageBlog.Source = data.PersonImageBlogUrl;
                     simpleCell.ModelView.PersonTextBlog.Text = data.PersonTextBlog;
                     simpleCell.ModelView.TestButton.Text = $"AId={indexPath.ToString()}";
-                    
+
                     cell = simpleCell;
                 }
             }
@@ -473,21 +473,37 @@ namespace DemoTest.Pages
             var deleteMenuItem = new MenuFlyoutItem()
             {
                 Text = "Delete",
-                Command = deleteCommand,
-                CommandParameter = IndexPath
+                //Command = deleteCommand,
+                CommandParameter = this
             };
             var insertMenuItem = new MenuFlyoutItem()
             {
                 Text = "Insert",
-                Command = insertCommand,
-                CommandParameter = IndexPath
+                // = insertCommand,
+                CommandParameter = this
             };
+            deleteMenuItem.Clicked += DeleteMenuItem_Clicked;
+            insertMenuItem.Clicked += InsertMenuItem_Clicked;
             deleteMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             insertMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             menu.Add(deleteMenuItem);
             menu.Add(insertMenuItem);
             ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
+        }
+
+        private void DeleteMenuItem_Clicked(object sender, EventArgs e)
+        {
+            MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
+            var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
+            DeleteMenuCommand.Execute(repo.IndexPath);
+        }
+
+        private void InsertMenuItem_Clicked(object sender, EventArgs e)
+        {
+            MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
+            var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
+            InsertMenuCommand.Execute(repo.IndexPath);
         }
     }
 

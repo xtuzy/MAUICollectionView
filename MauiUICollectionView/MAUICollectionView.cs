@@ -272,7 +272,7 @@ namespace MauiUICollectionView
                 if (MeasuredContentSize != Size.Zero && IsScrolling)
                     size = MeasuredContentSize;
                 else
-                        size = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width != 0 ? CollectionViewConstraintSize.Width : widthConstraint, CollectionViewConstraintSize.Height != 0 ? CollectionViewConstraintSize.Height : heightConstraint);
+                    size = ItemsLayout.MeasureContents(widthConstraint <= 0 || double.IsInfinity(widthConstraint)? CollectionViewConstraintSize.Width : widthConstraint, heightConstraint <=0 || double.IsInfinity(heightConstraint) ? CollectionViewConstraintSize.Height : heightConstraint);
             }
 
             // set empty view
@@ -309,8 +309,8 @@ namespace MauiUICollectionView
         /// </summary>
         void MeasureNowAfterScroll()
         {
-                if (ItemsLayout != null && Source != null)
-                    MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
+            if (ItemsLayout != null && Source != null)
+                MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
         }
 
         /// <summary>
@@ -485,6 +485,59 @@ namespace MauiUICollectionView
             return sections.Count > section ? sections[section] : 0;
         }
 
+        /// <summary>
+        /// get indexPath
+        /// </summary>
+        /// <param name="indexPath"></param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public NSIndexPath NextItem(NSIndexPath indexPath, int count)
+        {
+            var sectionCount = NumberOfSections();
+            if (count >= 0)
+            {
+                for (var section = indexPath.Section; section < sectionCount; section++)
+                {
+                    var itemCount = NumberOfItemsInSection(section);
+                    var itemStartIndex = 0;
+                    if (section == indexPath.Section)
+                    {
+                        itemCount = itemCount - (indexPath.Row + 1);
+                        itemStartIndex = indexPath.Row;
+                    }
+                    var remainCount = count - itemCount;
+                    if (remainCount <= 0)
+                    {
+                        return NSIndexPath.FromRowSection(itemStartIndex + count, section);
+                    }
+                    else
+                        count = remainCount;
+                }
+            }
+            else
+            {
+                count = -count;
+                for (var section = indexPath.Section; section >= 0; section--)
+                {
+                    var itemCount = NumberOfItemsInSection(section);
+                    var itemStartIndex = itemCount;
+                    if (section == indexPath.Section)
+                    {
+                        itemCount = indexPath.Row + 1;
+                        itemStartIndex = indexPath.Row;
+                    }
+                    var remainCount = count - itemCount;
+                    if (remainCount <= 0)
+                    {
+                        return NSIndexPath.FromRowSection(itemStartIndex - count, section);
+                    }
+                    else
+                        count = remainCount;
+                }
+            }
+            return null;
+        }
+
         #endregion
 
         #region 操作
@@ -510,6 +563,7 @@ namespace MauiUICollectionView
 
         /// <summary>
         /// Notifies the CollectionView that some items have been removed from data set and that changes need to be made.
+        /// Remove have some fixed action like native CollectionView:don't change position of visible items.
         /// </summary>
         /// <param name="indexPath"></param>
         public void NotifyItemRangeRemoved(NSIndexPath indexPath, int count = 1)
@@ -539,7 +593,11 @@ namespace MauiUICollectionView
                 var needRemovedIndexPath = GetNextItem(lastRemovedIndexPath);
                 if (needRemovedIndexPath.Section != indexPath.Section)
                     break;
-                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Remove, source = needRemovedIndexPath, operateAnimate = !(ItemsLayout.VisibleIndexPath.FirstOrDefault().Row - indexPath.Row >= count) });
+                Updates.Add(new OperateItem()
+                {
+                    operateType = OperateItem.OperateType.Remove,
+                    source = needRemovedIndexPath
+                });
                 lastRemovedIndexPath = needRemovedIndexPath;
             }
 
@@ -556,7 +614,6 @@ namespace MauiUICollectionView
                     operateType = OperateItem.OperateType.Move,
                     source = needMovedIndexPath,
                     target = needMovedIndexPath.Section == indexPath.Section ? NSIndexPath.FromRowSection(needMovedIndexPath.Row - count, needMovedIndexPath.Section) : needMovedIndexPath, //if not same section, don't change IndexPath
-                    operateAnimate = !isRemovedBeforeVisible,
                     moveCount = -count
                 });
                 lastMovedIndexPath = needMovedIndexPath;
@@ -573,7 +630,6 @@ namespace MauiUICollectionView
                         operateType = OperateItem.OperateType.Move,
                         source = visibleItem.Key,
                         target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row - count, visibleItem.Key.Section) : visibleItem.Key,
-                        operateAnimate = !isRemovedBeforeVisible
                     });
                 }
             }
@@ -582,21 +638,70 @@ namespace MauiUICollectionView
 
             updatSelectedIndexPathWhenRemoveOperate(indexPath, count);
 
-            if (isRemovedBeforeVisible)//if remove before visible, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            //when remove, maybe don't change current visible item
+            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            if (layout != null)
             {
-                var visibleFirst = ItemsLayout.VisibleIndexPath.FirstOrDefault();
-                if (visibleFirst.Section == indexPath.Section && visibleFirst.Row - indexPath.Row < count)//if remove first visible, we remeasure, not scroll
-                    this.ReMeasure();
+                var firstVisibleItem = PreparedItems.FirstOrDefault();
+                var lastVisibleItem = PreparedItems.LastOrDefault();
+                var firstInsert = indexPath;
+                var lastInsert = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
+
+                if (firstVisibleItem.Key.Compare(lastInsert) > 0)//remove items before first visible item, we need update baseline indexpath
+                {
+                    layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                    {
+                        //indexpath maybe change
+                        StartItem = firstVisibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(firstVisibleItem.Key.Row - count, firstVisibleItem.Key.Section) : firstVisibleItem.Key,
+                        StartBounds = firstVisibleItem.Value.BoundsInLayout
+                    };
+                }
                 else
                 {
-                    var removeAllHight = ItemsLayout.EstimateHeightForItems(indexPath, count);
-                    ScrollToAsync(ScrollX, ScrollY - removeAllHight, false);
+                    if (firstInsert > firstVisibleItem.Key)// remove items before last visible item, we use last visible item as baseline
+                    {
+                        layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                        {
+                            StartItem = firstVisibleItem.Key,
+                            StartBounds = firstVisibleItem.Value.BoundsInLayout
+                        };
+                    }
+                    else if (lastInsert < lastVisibleItem.Key)
+                    {
+                        for (var moveCount = 1; moveCount <= 2 * count; moveCount++)
+                        {
+                            var needMovedIndexPath = NextItem(indexPath , -moveCount);
+                            if (needMovedIndexPath == null) continue;
+                            Updates.Add(new OperateItem()
+                            {
+                                operateType = OperateItem.OperateType.Move,
+                                source = needMovedIndexPath,
+                                target = needMovedIndexPath,
+                                moveCount = -count
+                            });
+                        }
+                        layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                        {
+                            StartItem = lastVisibleItem.Key,
+                            StartBounds = lastVisibleItem.Value.BoundsInLayout
+                        };
+                    }
+                    else//removed items contain visible items
+                    {
+                        var next = NextItem(lastInsert, 1);
+                        if (next != null)
+                        {
+                            layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                            {
+                                StartItem = next,
+                                StartBounds = new Rect(0, ScrollY, 0, 0)
+                            };
+                        }
+                    }
                 }
             }
-            else
-            {
-                this.ReMeasure();
-            }
+
+            this.ReMeasure();
         }
 
         /// <summary>
@@ -611,9 +716,18 @@ namespace MauiUICollectionView
             if (Updates.Count > 0)
                 ItemsLayout.AnimationManager.StopOperateAnim();
 
-            var isInsertBeforeVisiable = false;//insert before visible item, don't show visible position animation
-            if (indexPath.Compare(ItemsLayout.VisibleIndexPath.FirstOrDefault()) < 0)
-                isInsertBeforeVisiable = true;
+            //insert position need move
+            for (var index = 0; index < count; index++)
+            {
+                var needInsertedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
+                Updates.Add(new OperateItem()
+                {
+                    moveCount = count,
+                    operateType = OperateItem.OperateType.Move,
+                    source = needInsertedIndexPath,
+                    target = NSIndexPath.FromRowSection(needInsertedIndexPath.Row + count, needInsertedIndexPath.Section),
+                });
+            }
 
             //visible item maybe need move position after insert items
             foreach (var visibleItem in PreparedItems)
@@ -626,7 +740,6 @@ namespace MauiUICollectionView
                         operateType = OperateItem.OperateType.Move,
                         source = visibleItem.Key,
                         target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row + count, visibleItem.Key.Section) : visibleItem.Key,
-                        operateAnimate = !isInsertBeforeVisiable
                     });
                 }
             }
@@ -646,15 +759,35 @@ namespace MauiUICollectionView
 
             updatSelectedIndexPathWhenInsertOperate(indexPath, count);
 
-            if (isInsertBeforeVisiable)//if insert before VisibleItems, don't change visible item position, so need change ScrollY to fit, Maui official CollectionView use this action.
+            //when insert, maybe don't change current visible item
+            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            if (layout != null)
             {
-                var insertAllHight = ItemsLayout.EstimateHeightForItems(indexPath, count);
-                ScrollToAsync(ScrollX, ScrollY + insertAllHight, false);
+                var firstVisibleItem = PreparedItems.FirstOrDefault();
+                var lastVisibleItem = PreparedItems.LastOrDefault();
+                var firstInsert = indexPath;
+                var lastInsert = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
+                //after last visible item
+                if (firstVisibleItem.Key.Compare(lastInsert) > 0)
+                {
+                    layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                    {
+                        //indexpath maybe change
+                        StartItem = firstVisibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(firstVisibleItem.Key.Row + count, firstVisibleItem.Key.Section) : firstVisibleItem.Key,
+                        StartBounds = firstVisibleItem.Value.BoundsInLayout
+                    };
+                }
+                else
+                {
+                    layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                    {
+                        StartItem = firstVisibleItem.Key,
+                        StartBounds = firstVisibleItem.Value.BoundsInLayout
+                    };
+                }
             }
-            else
-            {
-                this.ReMeasure();
-            }
+
+            this.ReMeasure();
         }
 
         public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)

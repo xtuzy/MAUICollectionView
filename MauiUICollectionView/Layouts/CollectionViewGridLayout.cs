@@ -32,7 +32,7 @@
                     {
                         cell = availablePreparedItems[indexPath];
                         availablePreparedItems.Remove(indexPath);
-                        if(CollectionView.IsScrolling &&!IsOperating)
+                        if(CollectionView.IsScrolling &&!HasOperation)
                         {
                             //return cell.BoundsInLayout.Height;
                         }
@@ -54,7 +54,7 @@
                         var bounds = new Rect(itemRect.X, itemRect.Y, measureSize.Width, measureSize.Height);
 
                         if (cell.Operation == (int)OperateItem.OperateType.Move && // move
-                            IsOperating && // anim
+                            HasOperation && // anim
                             bounds != cell.BoundsInLayout) // diff bounds
                         {
                             cell.OldBoundsInLayout = cell.BoundsInLayout;
@@ -63,7 +63,7 @@
                         else
                         {
                             if (cell.Operation == (int)OperateItem.OperateType.Move &&
-                                IsOperating)
+                                HasOperation)
                                 cell.OldBoundsInLayout = Rect.Zero;
                             cell.BoundsInLayout = bounds;
                         }
@@ -87,7 +87,7 @@
                         var cell = availablePreparedItems[indexPath];
 
                         if (cell.Operation == (int)OperateItem.OperateType.Move
-                            && IsOperating
+                            && HasOperation
                             && itemRect != cell.BoundsInLayout)//move + anim + diff bounds
                         {
                             cell.OldBoundsInLayout = cell.BoundsInLayout;//move operate need old position to make animation

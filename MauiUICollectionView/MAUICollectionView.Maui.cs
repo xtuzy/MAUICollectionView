@@ -43,6 +43,7 @@ namespace MauiUICollectionView
 
         private void MAUICollectionView_SizeChanged(object sender, EventArgs e)
         {
+            Debug.WriteLine($"{this} SizeChanged");
             if (CollectionViewConstraintSize != this.Bounds.Size)
             {
                 CollectionViewConstraintSize = this.Bounds.Size;

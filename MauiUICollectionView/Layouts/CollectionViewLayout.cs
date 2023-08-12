@@ -40,8 +40,11 @@ namespace MauiUICollectionView.Layouts
 
         /// <summary>
         /// when operating, it is true.
+        /// notice only use it in Layout, because Maui maybe measure many times before arrange. i set it to false at the end of measure.
         /// </summary>
-        protected bool IsOperating = false;
+        protected bool HasOperation = false;
+
+        public bool RunOperateAnimation = false;
 
         /// <summary>
         /// Arrange Header, Items and Footer. They will be arranged according to <see cref="MAUICollectionViewViewHolder.BoundsInLayout"/>
@@ -49,9 +52,9 @@ namespace MauiUICollectionView.Layouts
         public virtual void ArrangeContents()
         {
             CollectionView.Source?.WillArrange?.Invoke(CollectionView);
-            AnimationManager.Run(CollectionView.IsScrolling, IsOperating);
+            AnimationManager.Run(CollectionView.IsScrolling, RunOperateAnimation);
 
-            IsOperating = false;//disappear动画结束
+            RunOperateAnimation = false;//disappear动画结束
             CollectionView.IsScrolling = false;
 
             if (CollectionView.HeaderView != null)
@@ -124,7 +127,8 @@ namespace MauiUICollectionView.Layouts
             Debug.WriteLine($"Measure ScrollY={CollectionView.ScrollY}");
             if (Updates.Count > 0)
             {
-                IsOperating = true;
+                HasOperation = true;
+                RunOperateAnimation = true;
             }
 
             //tableView自身的大小
@@ -223,7 +227,7 @@ namespace MauiUICollectionView.Layouts
             /*
              * Remove
              */
-            if (IsOperating)
+            if (HasOperation)
             {
                 for (int index = Updates.Count - 1; index >= 0; index--)
                 {
@@ -239,10 +243,10 @@ namespace MauiUICollectionView.Layouts
                             {
                                 viewHolder.Operation = (int)OperateItem.OperateType.Remove;
                             }
-                            else
+                            /*else
                             {
                                 viewHolder.Operation = (int)OperateItem.OperateType.RemoveNow;
-                            }
+                            }*/
                             AnimationManager.AddOperatedItem(viewHolder);
 
                             Updates.RemoveAt(index);
@@ -266,7 +270,7 @@ namespace MauiUICollectionView.Layouts
             /*
              * update OldVisibleIndexPath and OldPreparedItm index
              */
-            if (IsOperating)
+            if (HasOperation)
             {
                 var oldVisibleIndexPath = new List<NSIndexPath>();
                 var oldpreparedIndexPath = new NSIndexPath[2] { OldPreparedItems.StartItem, OldPreparedItems.EndItem };
@@ -301,7 +305,7 @@ namespace MauiUICollectionView.Layouts
             /*
              * Move: if item in last PreparedItems, we update it's IndexPath, and reuse it directly
              */
-            if (IsOperating)
+            if (HasOperation)
             {
                 //move的需要获取在之前可见区域的viewHolder, 更新indexPath为最新的, 然后进行动画.
                 Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
@@ -320,16 +324,16 @@ namespace MauiUICollectionView.Layouts
                                 oldViewHolder.Operation = (int)OperateItem.OperateType.Move;
                                 AnimationManager.AddOperatedItem(oldViewHolder);
                             }
-                            if (!update.operateAnimate)
+                            /*if (!update.operateAnimate)
                             {
                                 oldViewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
                                 AnimationManager.AddOperatedItem(oldViewHolder);
-                            }
+                            }*/
                             availableViewHolders.Remove(update.source);
-                            if (availableViewHolders.ContainsKey(update.target))
+                            //if (availableViewHolders.ContainsKey(update.target))
                                 tempAvailableCells.Add(update.target, oldViewHolder);
-                            else
-                                availableViewHolders.Add(update.target, oldViewHolder);
+                            //else
+                                //availableViewHolders.Add(update.target, oldViewHolder);
                             oldViewHolder.IndexPath = update.target;
                             Updates.RemoveAt(index);
                         }
@@ -364,7 +368,7 @@ namespace MauiUICollectionView.Layouts
             /*
              * Move: if item no ViewHolder at last measure, at here can get ViewHolder
              */
-            if (IsOperating)
+            if (HasOperation)
             {
                 for (int index = Updates.Count - 1; index >= 0; index--)
                 {
@@ -391,11 +395,11 @@ namespace MauiUICollectionView.Layouts
                                 viewHolder.Operation = (int)OperateItem.OperateType.Move;
                                 AnimationManager.AddOperatedItem(viewHolder);
                             }
-                            if (!update.operateAnimate)
+                            /*if (!update.operateAnimate)
                             {
                                 viewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
                                 AnimationManager.AddOperatedItem(viewHolder);
-                            }
+                            }*/
                             Updates.RemoveAt(index);
                         }
                     }
@@ -404,7 +408,7 @@ namespace MauiUICollectionView.Layouts
             /*
              * 标记insert, 添加到动画
              */
-            if (IsOperating)
+            if (HasOperation)
             {
                 var insertList = new Dictionary<NSIndexPath, OperateItem>();
                 foreach (var item in Updates)
@@ -442,7 +446,7 @@ namespace MauiUICollectionView.Layouts
                 }
                 else if (cell.Operation == (int)OperateItem.OperateType.Move)
                 {
-                    if (IsOperating)
+                    if (HasOperation)
                     {
                         //these item is: last is visible, now will be invisible.
                         //we check animation data correct
@@ -465,6 +469,7 @@ namespace MauiUICollectionView.Layouts
              */
             tableHeight += MeasureFooter(tableHeight, layoutItemsInRect.Width);
 
+            HasOperation = false;
             //Debug.WriteLine($"ChildCount={CollectionView.ContentView.Children.Count} PreparedItem={CollectionView.PreparedItems.Count} RecycleCount={CollectionView.ReusableViewHolders.Count}");
             //Debug.WriteLine("TableView Content Height:" + tableHeight);
             return new Size(tableViewBoundsSize.Width, tableHeight);
