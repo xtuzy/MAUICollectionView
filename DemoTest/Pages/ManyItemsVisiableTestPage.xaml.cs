@@ -152,7 +152,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 Grid.SetColumn(Phone, 1);
                 Grid.SetColumn(Id, 2);
 
-                Id.SetBinding(Label.TextProperty, new Binding(nameof(IndexPath), source: this));
+                //Id.SetBinding(Label.TextProperty, new Binding(nameof(IndexPath), source: this));
 
 #if WINDOWS || MACCATALYST
                 var menu = new MenuFlyout();
@@ -164,7 +164,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 };
                 menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
                 menu.Add(menuItem);
-                ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+                //ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
             }
 

@@ -222,7 +222,7 @@
                     operateItems.RemoveAt(i);
                     CollectionView.RecycleViewHolder(item);
                 }
-                else if (item.Operation == (int)OperateItem.OperateType.MoveNow)
+                /*else if (item.Operation == (int)OperateItem.OperateType.MoveNow)
                 {
                     item.Opacity = 1;
                     item.TranslationX = 0;
@@ -232,7 +232,7 @@
                 {
                     item.Opacity = 0;
                     CollectionView.RecycleViewHolder(item);
-                }
+                }*/
             }
 
             if (listInsertViewHolder.Count > 0)
@@ -408,7 +408,9 @@
                     }
 
                     if (item.BoundsInLayout.Bottom <= firstPreparedItem.BoundsInLayout.Top ||
-                        item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom)
+                        item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom ||
+                        item.IndexPath < firstPreparedItem.IndexPath ||
+                        item.IndexPath > lastPreparedItem.IndexPath)//when item is invisible, bounds maybe be estimated, use it maybe have bug, so add more limit, we must recycle invisible item.
                     {
                         CollectionView.RecycleViewHolder(item);
                     }

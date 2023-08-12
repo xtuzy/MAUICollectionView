@@ -29,8 +29,6 @@
                 <Button x:Name="ChangeLayout" Text="ChangeLayout" />
             </HorizontalStackLayout>
         </ScrollView>
-        <ContentView Grid.Row="1">
-            <RefreshView x:Name="content" />
-        </ContentView>
+        <ContentView x:Name="content" Grid.Row="1" />
     </Grid>
 </ContentPage>

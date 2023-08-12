@@ -25,11 +25,11 @@
             /// <summary>
             /// don't change position, but change IndexPath. it be designed for AnimationManager, AnimationManager don't have animation for it.
             /// </summary>
-            MoveNow,
+            //MoveNow,
             /// <summary>
             /// it be designed for AnimationManager, AnimationManager don't have animation for it.
             /// </summary>
-            RemoveNow
+            //RemoveNow
         }
 
         /// <summary>

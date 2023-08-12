@@ -1,11 +1,7 @@
-using Bogus;
 using MauiUICollectionView;
 using MauiUICollectionView.Layouts;
-using Microsoft.Maui.Controls.Shapes;
-using SharpConstraintLayout.Maui.Widget;
 using System.Diagnostics;
 using Yang.Maui.Helper.Device.Screen;
-using Yang.Maui.Helper.Image;
 using MAUICollectionView = MauiUICollectionView.MAUICollectionView;
 namespace DemoTest.Pages;
 
@@ -33,19 +29,24 @@ public partial class DefaultTestPage : ContentPage
             fr.Start();
         }
 #endif
-
+        var refreshview = new RefreshView();
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             HeightExpansionFactor = 0,
             SelectionMode = SelectionMode.Multiple,
-            //CanDrag = true,
+            CanDrag = true,
             CanContextMenu = true,
         };
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
         };
+#if WINDOWS
         content.Content = tableView;
+#else
+        content.Content = refreshview;
+        refreshview.Content = tableView;
+#endif
         this.SetSource.Clicked += (sender, e) =>
         {
             tableView.Source = new Source(viewModel);
@@ -110,22 +111,22 @@ public partial class DefaultTestPage : ContentPage
         //Add
         Add.Clicked += (sender, e) =>
         {
-            var index = 3;
+            var item = NSIndexPath.FromRowSection(3, 0);
             var count = 3;
-            (tableView.Source as Source).InsertData(0, index, count);
-            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(index, 0), count);
+            (tableView.Source as Source).InsertData(item.Section, item.Row - 1, count);//have a section item, so row need -1
+            tableView.NotifyItemRangeInserted(item, count);
         };
 
         Remove.Clicked += (sender, e) =>
         {
-            var arg = NSIndexPath.FromRowSection(3, 0);
+            var item = NSIndexPath.FromRowSection(3, 0);
             var count = 3;
-            var distance = arg.Row + count - viewModel.models[arg.Section].Count;
+            var distance = item.Row + count - viewModel.models[item.Section].Count;
             if (distance < 0)
-                (tableView.Source as Source).RemoveData(arg.Section, arg.Row, count);
+                (tableView.Source as Source).RemoveData(item.Section, item.Row - 1, count);
             else
-                (tableView.Source as Source).RemoveData(arg.Section, arg.Row, viewModel.models[arg.Section].Count - arg.Row);
-            tableView.NotifyItemRangeRemoved(arg, count);
+                (tableView.Source as Source).RemoveData(item.Section, item.Row - 1, viewModel.models[item.Section].Count - item.Row);
+            tableView.NotifyItemRangeRemoved(item, count);
         };
 
         Move.Clicked += (sender, e) =>
@@ -150,18 +151,26 @@ public partial class DefaultTestPage : ContentPage
 
         ChangeLayout.Clicked += (sender, e) =>
         {
-            if (tableView.ItemsLayout is CollectionViewListLayout)
+            if (tableView.ItemsLayout is CollectionViewFlatListLayout)
                 tableView.ItemsLayout = new CollectionViewGridLayout(tableView);
             else
-                tableView.ItemsLayout = new CollectionViewListLayout(tableView);
+                tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView);
             tableView.ReMeasure();
         };
 
-        content.Command = new Command(() =>
+        refreshview.Command = new Command(() =>
         {
+            if (OperatingSystem.IsWindows()) return;//RefreshView will load many times when drag scroll bar
             (tableView.Source as Source).LoadMoreOnFirst();
             tableView.NotifyDataSetChanged();
-            content.IsRefreshing = false;
+            refreshview.IsRefreshing = false;
         });
+
+        this.SizeChanged += DefaultTestPage_SizeChanged;
+    }
+
+    private void DefaultTestPage_SizeChanged(object sender, EventArgs e)
+    {
+        Debug.WriteLine(nameof(DefaultTestPage_SizeChanged));
     }
 }
