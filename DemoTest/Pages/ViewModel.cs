@@ -421,7 +421,8 @@ namespace DemoTest.Pages
             base.OnHandlerChanged();
 #if ANDROID
             var av = this.Handler.PlatformView as Android.Views.View;
-            var aContextMenu = new MauiUICollectionView.Gestures.AndroidContextMenu(av.Context, av);
+            var aContextMenu = ContextMenu as MauiUICollectionView.Gestures.AndroidContextMenu;
+            aContextMenu.Init(av.Context, av);
 
             //设置PopupMenu样式, see https://learn.microsoft.com/en-us/xamarin/android/user-interface/controls/popup-menu
             aContextMenu.PlatformMenu.Inflate(Resource.Menu.popup_menu);
@@ -489,6 +490,8 @@ namespace DemoTest.Pages
             menu.Add(deleteMenuItem);
             menu.Add(insertMenuItem);
             ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+#elif ANDROID
+            ContextMenu = new MauiUICollectionView.Gestures.AndroidContextMenu();
 #endif
         }
 
