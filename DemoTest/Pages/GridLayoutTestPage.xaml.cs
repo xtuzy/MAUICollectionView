@@ -91,7 +91,7 @@ public partial class GridLayoutTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index, 0) });
+            tableView.NotifyItemRangeChanged(NSIndexPath.FromRowSection(index, 0));
             tableView.ReMeasure();
         };
     }

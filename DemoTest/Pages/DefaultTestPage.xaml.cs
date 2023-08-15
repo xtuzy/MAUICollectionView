@@ -35,13 +35,13 @@ public partial class DefaultTestPage : ContentPage
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             HeightExpansionFactor = 0,
             SelectionMode = SelectionMode.Multiple,
-            CanDrag = true,
+            //CanDrag = true,
             CanContextMenu = true,
         };
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
         };
-#if WINDOWS
+#if WINDOWS || ANDROID
         content.Content = tableView;
 #else
         content.Content = refreshview;
@@ -141,7 +141,7 @@ public partial class DefaultTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index + 1, 0) });
+            tableView.NotifyItemRangeChanged(NSIndexPath.FromRowSection(index + 1, 0) );
         };
 
         Reload.Clicked += (sender, e) =>
