@@ -707,7 +707,7 @@ namespace MauiUICollectionView
 
             ReloadDataCount();
 
-            updatSelectedIndexPathWhenRemoveOperate(indexPath, count);
+            updatSelectedIndexPathWhenOperate(diff);
 
             ReMeasure();
         }
@@ -772,7 +772,7 @@ namespace MauiUICollectionView
 
             ReloadDataCount();
 
-            updatSelectedIndexPathWhenInsertOperate(indexPath, count);
+            updatSelectedIndexPathWhenOperate(diff);
 
             this.ReMeasure();
         }
@@ -838,7 +838,7 @@ namespace MauiUICollectionView
                 }
             }*/
             ReloadDataCount();
-            updatSelectedIndexPathWhenMoveOperate(indexPath, toIndexPath);
+            //updatSelectedIndexPathWhenOperate(diff);
             this.ReMeasure();
         }
 
@@ -873,119 +873,19 @@ namespace MauiUICollectionView
             this.ReMeasure();
         }
 
-        void updatSelectedIndexPathWhenInsertOperate(NSIndexPath indexPath, int count)
+        void updatSelectedIndexPathWhenOperate(DiffAnimation diff)
         {
+            var selectedItems = new List<NSIndexPath>();
             for (int i = SelectedItems.Count - 1; i >= 0; i--)
             {
-                var selectedItem = SelectedItems[i];
-                if (selectedItem.Section == indexPath.Section)
+                var indexPath = diff.TryGetCurrentIndexPath(SelectedItems[i]);
+                if (indexPath != null)
                 {
-                    if (indexPath.Row <= selectedItem.Row)//insert in front of selected
-                    {
-                        selectedItem.UpdateRow(selectedItem.Row + count);
-                    }
-                    else//insert behind selected
-                    {
-
-                    }
+                    selectedItems.Add(indexPath);
                 }
             }
-        }
-
-        void updatSelectedIndexPathWhenMoveOperate(NSIndexPath indexPath, NSIndexPath toIndexPath)
-        {
-            //如果同Section, Move影响的只是之间的
-            if (indexPath.Section == toIndexPath.Section)
-            {
-                var isUpMove = indexPath.Row > toIndexPath.Row;
-                //先移除
-                for (int i = SelectedItems.Count - 1; i >= 0; i--)
-                {
-                    var selectedItem = SelectedItems[i];
-                    if (selectedItem.Section == indexPath.Section)//同一section的item才变化
-                    {
-                        if (selectedItem.Row == indexPath.Row)
-                        {
-                            selectedItem.UpdateRow(toIndexPath.Row);
-                            continue;
-                        }
-
-                        if (isUpMove)//从底部向上移动, 目标位置下面的都需要向下移动
-                        {
-                            if (selectedItem.Row >= toIndexPath.Row && selectedItem.Row < indexPath.Row)
-                            {
-                                selectedItem.UpdateRow(selectedItem.Row + 1);
-                            }
-                        }
-                        else
-                        {
-                            if (selectedItem.Row > indexPath.Row && selectedItem.Row <= toIndexPath.Row)
-                            {
-                                selectedItem.UpdateRow(selectedItem.Row - 1);
-                            }
-                        }
-
-                    }
-                }
-            }
-            //如果不同Section, 则影响不同的section后面的
-            else
-            {
-                //先移除, 移除的Item后面的Item需要向前移动
-                for (int i = SelectedItems.Count - 1; i >= 0; i--)
-                {
-                    var selectedItem = SelectedItems[i];
-                    if (selectedItem.Section == indexPath.Section)
-                    {
-                        if (selectedItem.Row == indexPath.Row)
-                        {
-                            selectedItem.UpdateRow(toIndexPath.Row);
-                            continue;
-                        }
-
-                        if (selectedItem.Row > indexPath.Row)
-                        {
-                            selectedItem.UpdateRow(selectedItem.Row - 1);
-                        }
-                    }
-                }
-
-                //后插入, 后面的需要向后移动
-                for (int i = SelectedItems.Count - 1; i >= 0; i--)
-                {
-                    var selectedItem = SelectedItems[i];
-                    if (selectedItem.Section == toIndexPath.Section)
-                    {
-                        if (selectedItem.Row >= toIndexPath.Row)
-                        {
-                            selectedItem.UpdateRow(selectedItem.Row + 1);
-                        }
-                    }
-                }
-            }
-        }
-
-        void updatSelectedIndexPathWhenRemoveOperate(NSIndexPath indexPath, int count)
-        {
-            for (int i = SelectedItems.Count - 1; i >= 0; i--)
-            {
-                var selectedItem = SelectedItems[i];
-                if (selectedItem.Section == indexPath.Section)
-                {
-                    if (indexPath.Row + count - 1 < selectedItem.Row)//remove all in front of selected
-                    {
-                        selectedItem.UpdateRow(selectedItem.Row - count);
-                    }
-                    else if (indexPath.Row <= selectedItem.Row && selectedItem.Row <= indexPath.Row + count - 1)//remove this selected
-                    {
-                        SelectedItems.Remove(selectedItem);
-                    }
-                    else//remove behind selected
-                    {
-
-                    }
-                }
-            }
+            SelectedItems.Clear();
+            SelectedItems = selectedItems;
         }
         #endregion
     }

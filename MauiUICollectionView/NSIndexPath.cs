@@ -30,11 +30,6 @@
             return new NSIndexPath() { Row = row, Section = section };
         }
 
-        public void UpdateRow(int row)
-        {
-            Row = row;
-        }
-
         public bool IsEqual(NSIndexPath other)
         {
             if (other == null)
