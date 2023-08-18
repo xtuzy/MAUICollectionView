@@ -45,7 +45,17 @@
                 }
             }
 
-            FitBoundsWhenCloseHeader();
+            LayoutInfor visibleItems = new LayoutInfor();
+            foreach (var item in CollectionView.PreparedItems)
+            {
+                if (item.Value.BoundsInLayout.IntersectsWith(visiableRect))
+                {
+                    if (visibleItems.StartItem == null)
+                        visibleItems.StartItem = item.Key;
+                    visibleItems.EndItem = item.Key;
+                }
+            }
+            FitBoundsWhenCloseHeader(visibleItems);
 
             //estimate all items' height
             double itemsHeight = 0;
@@ -477,12 +487,12 @@
         /// <summary>
         /// this layout support go to, so item's position is not accurate sometimes, we need adjust position to fit header's position.
         /// </summary>
-        void FitBoundsWhenCloseHeader()
+        void FitBoundsWhenCloseHeader(LayoutInfor visibleItems)
         {
             //正常布局时
             if (CollectionView.PreparedItems.Count > 0)
             {
-                var visibleFirst = CollectionView.PreparedItems.First();
+                var visibleFirst = visibleItems.StartItem;
                 /*if (visibleFirst.Key.Section == 0 && (visibleFirst.Key.Row >= 0 && visibleFirst.Key.Row < StartBoundsCache.Count - 1))
                 {
                     *//*
@@ -523,56 +533,57 @@
 
                 if (CollectionView.ScrollY <= StartBoundsCache[0].Top)
                 {
-                    if (visibleFirst.Key.Compare(firstItem) == 0)
+                    if (visibleFirst.Compare(firstItem) == 0)
                     {
 
                     }
                     else
                     {
                         var lastCache = NSIndexPath.FromRowSection(StartBoundsCache.Count - 1, 0);
-                        if (lastCache.Compare(visibleFirst.Key) >= 0)
+                        if (lastCache.Compare(visibleFirst) >= 0)
                         {
-                            var targetBounds = StartBoundsCache[visibleFirst.Key.Row];
-                            if (visibleFirst.Value.BoundsInLayout != targetBounds)
+                            var targetBounds = StartBoundsCache[visibleFirst.Row];
+                            if (CollectionView.PreparedItems[visibleFirst].BoundsInLayout != targetBounds)
                             {
                                 BaseLineItemUsually = new LayoutInfor()
                                 {
                                     StartBounds = new Rect(0, targetBounds.Top, 0, 0),
-                                    StartItem = visibleFirst.Key
+                                    StartItem = visibleFirst
                                 };
-                                CollectionView.ScrollToAsync(0, targetBounds.Top, false);
                                 isScrollToDirectly = true;
+                                CollectionView.ScrollToAsync(0, targetBounds.Top, false);
                             }
                         }
                         else
                         {
-                            var targetTop = visibleFirst.Value.BoundsInLayout.Bottom + CollectionView.ItemCountInRange(lastCache, visibleFirst.Key) * EstimateAverageHeight();
+                            var targetTop = CollectionView.PreparedItems[visibleFirst].BoundsInLayout.Bottom + CollectionView.ItemCountInRange(lastCache, visibleFirst) * EstimateAverageHeight();
 
                             BaseLineItemUsually = new LayoutInfor()
                             {
                                 StartBounds = new Rect(0, targetTop, 0, 0),
-                                StartItem = visibleFirst.Key
+                                StartItem = visibleFirst
                             };
-                            CollectionView.ScrollToAsync(0, targetTop, false);
                             isScrollToDirectly = true;
+                            CollectionView.ScrollToAsync(0, targetTop, false);
                         }
                     }
                 }
                 /*
-                 * case 3: when top have too big space to scroll header, when first item show, will show space. 
+                 * case 3: when top have too big space to scroll header, when first item show, will show space, so we directly scroll to top of first item. 
                  */
-                if (visibleFirst.Key.Compare(firstItem) == 0 )
+                if (visibleFirst.Compare(firstItem) == 0)
                 {
-                    var firstItemRect = visibleFirst.Value.BoundsInLayout;
-                    if (firstItemRect.Top > StartBoundsCache[0].Top)
+                    var firstItemRect = CollectionView.PreparedItems[visibleFirst].BoundsInLayout;
+                    if (firstItemRect.Top > StartBoundsCache[0].Top && //There is space  
+                        CollectionView.ScrollY < (firstItemRect.Bottom - firstItemRect.Height * 4 / 5))//when close to first item top
                     {
                         BaseLineItemUsually = new LayoutInfor()
                         {
                             StartBounds = new Rect(0, StartBoundsCache[0].Top, 0, 0),
                             StartItem = firstItem
                         };
-                        CollectionView.ScrollToAsync(0, StartBoundsCache[0].Top, false);
                         isScrollToDirectly = true;
+                        CollectionView.ScrollToAsync(0, StartBoundsCache[0].Top, false);
                     }
                 }
                 //}
