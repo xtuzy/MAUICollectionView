@@ -26,12 +26,13 @@ public partial class CollectionViewTestPage : ContentPage
             fr.Start();
         }
 #endif
-        var viewModel = new ViewModel();
+        var viewModel = ViewModel.Instance;
         collectionView.BindingContext = viewModel;
         collectionView.ItemTemplate = new DataTemplate(() =>
         {
             var view = new ModelViewSimple();
             view.BindingData();
+            view.TestButton.SetBinding(Button.TextProperty, nameof(Model.Index));
             return view;
         });
         collectionView.ItemsSource = viewModel.ObservableModels;

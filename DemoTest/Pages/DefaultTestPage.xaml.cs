@@ -13,7 +13,7 @@ public partial class DefaultTestPage : ContentPage
     internal static ViewModel viewModel;
     public DefaultTestPage()
     {
-        viewModel = new ViewModel();
+        viewModel = ViewModel.Instance;
 
         InitializeComponent();
 

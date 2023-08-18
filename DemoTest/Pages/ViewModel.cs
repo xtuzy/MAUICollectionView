@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using MauiUICollectionView;
+using Microsoft.Maui;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 using System.Collections.ObjectModel;
@@ -10,6 +11,17 @@ namespace DemoTest.Pages
 {
     internal class ViewModel
     {
+        static ViewModel instance;
+        internal static ViewModel Instance
+        {
+            get
+            {
+                if (instance == null)
+                    instance = new ViewModel();
+                return instance;
+            }
+        }
+
         public static Stopwatch Stopwatch = new Stopwatch();
 
         public static List<long> Times = new List<long>();
@@ -47,7 +59,7 @@ namespace DemoTest.Pages
         public List<List<Model>> models;
         public ObservableCollection<Model> ObservableModels = new ObservableCollection<Model>();
         private Faker<Model> testModel;
-        public ViewModel()
+        ViewModel()
         {
             testModel = new Faker<Model>();
             testModel
@@ -80,7 +92,7 @@ namespace DemoTest.Pages
             for (var index = 0; index < modelsList.Count; index++)
             {
                 var m = modelsList[index];
-                m.Index = index;
+                m.Index = index.ToString();
                 ObservableModels.Add(m);
             }
         }
@@ -105,7 +117,8 @@ namespace DemoTest.Pages
 
             HeightForItem += HeightForItemMethod;
             NumberOfItems += NumberOfItemsMethod;
-            ViewHolderForItem += ViewHolderForItemMethod;
+            //ViewHolderForItem += ViewHolderForItemMethod;
+            ViewHolderForItem += BindingItemMethod;
             NumberOfSections += NumberOfSectionsMethod;
             ReuseIdForItem += ReuseIdForItemMethod;
             WantDragTo += WillDragToMethod;
@@ -326,9 +339,87 @@ namespace DemoTest.Pages
                 cell.ContextMenu.IsEnable = tableView.CanContextMenu;
             return cell;
         }
+
+        public MAUICollectionViewViewHolder BindingItemMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
+        {
+            //从tableView的一个队列里获取一个cell
+            var type = ReuseIdForItemMethod(tableView, indexPath);
+            MAUICollectionViewViewHolder cell ;
+            if (oldViewHolder != null)//只需局部刷新
+            {
+                cell = oldViewHolder;
+            }
+            else
+            {
+                cell = tableView.DequeueRecycledViewHolderWithIdentifier(type);
+
+                if (type == sectionCell)
+                {
+                    var textCell = cell as SectionViewHolder;
+                    //判断队列里面是否有这个cell 没有自己创建，有直接使用
+                    if (textCell == null)
+                    {
+                        //没有,创建一个
+                        textCell = new SectionViewHolder(new Grid(), type) { };
+                    }
+                    textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row}";
+
+                    cell = textCell;
+                }
+                else if (type == itemCellSimple)
+                {
+                    var simpleCell = cell as ItemViewHolderSimple;
+                    if (simpleCell == null)
+                    {
+                        var content = new ModelViewSimple() { };
+                        content.BindingData();
+
+                        simpleCell = new ItemViewHolderSimple(content, type);
+                        var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 2;
+                            var distance = arg.Row - 1 + count - ViewModel.models[arg.Section].Count;
+                            if (distance < 0)
+                                RemoveData(arg.Section, arg.Row - 1, count);
+                            else
+                            {
+                                count = ViewModel.models[arg.Section].Count - (arg.Row - 1);
+                                RemoveData(arg.Section, arg.Row - 1, count);
+                            }
+                            tableView.NotifyItemRangeRemoved(arg, count);
+                            tableView.ReMeasure();
+                        });
+                        var insertCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 2;
+                            InsertData(arg.Section, arg.Row - 1, count);//section header occupy a row
+                            tableView.NotifyItemRangeInserted(arg, count);
+                            tableView.ReMeasure();
+                        });
+                        simpleCell.InitMenu(deleteCommand, insertCommand);
+                        simpleCell.ModelView.TestButton.Clicked += async (sender, e) =>
+                        {
+                            await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={simpleCell.IndexPath.Section} Row={simpleCell.IndexPath.Row}", "OK");
+                        };
+                    }
+                    cell = simpleCell;
+                }
+            }
+            if (cell is ItemViewHolderSimple)
+            {
+                var data = GetItemData(indexPath);
+                //data.Index = indexPath.ToString();
+                cell.BindingContext = data;
+                (cell as ItemViewHolderSimple).ModelView.TestButton.Text = indexPath.ToString();
+            }
+            if (cell.ContextMenu != null)
+                cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+
+            return cell;
+        }
     }
 
-    class Model
+    public class Model
     {
         public string PersonIconUrl { get; set; }
         public string PersonName { get; set; }
@@ -341,7 +432,7 @@ namespace DemoTest.Pages
         public string LikeIconUrl { get; set; }
         public string CommentIconUrl { get; set; }
         public string ShareIconUrl { get; set; }
-        public int Index { get; set; }
+        public string Index { get; set; }
     }
 
     internal class SectionViewHolder : MAUICollectionViewViewHolder
@@ -394,6 +485,7 @@ namespace DemoTest.Pages
 
         public override void PrepareForReuse()
         {
+            BindingContext = null;
             base.PrepareForReuse();
             ModelView.PersonIcon.Source = null;
             ModelView.PersonImageBlog.Source = null;
@@ -638,7 +730,6 @@ namespace DemoTest.Pages
             PersonTextBlogTitle.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlogTitle));
             PersonTextBlog.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlog));
             PersonImageBlog.SetBinding(Image.SourceProperty, nameof(Model.PersonImageBlogUrl));
-            TestButton.SetBinding(Button.TextProperty, nameof(Model.Index));
         }
     }
 
