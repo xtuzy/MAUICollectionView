@@ -86,14 +86,6 @@
             removeOperateAnimation?.Dispose();
             insertOperateAnimation?.Dispose();
 
-            //重置ViewHolder中的操作类型, 主要目的是因为Insert操作的动画时常执行不到, 导致其不透明设置不正确, 我在Arrange时集中对可见的默认操作Item设置不透明度, 防止遗漏
-            foreach (var item in CollectionView.PreparedItems)
-            {
-                item.Value.Operation = -1;
-            }
-
-            if (operateItems.Count == 0)
-                return;
             //这里调用它是为了确保回收
             OperateAnimFinished();
         }
@@ -331,7 +323,7 @@
                     //remove了中间的
                     if (moveOperateAnimation != null)
                     {
-                        moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 250, null, (v, b) =>
+                        moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 150, null, (v, b) =>
                         {
                             CollectionView.ReMeasure();
                             OperateAnimFinished();
@@ -347,7 +339,7 @@
             {
                 if (moveOperateAnimation != null)
                 {
-                    moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 250, null, (v, b) =>
+                    moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 150, null, (v, b) =>
                     {
                         CollectionView.ReMeasure();
                         //插入到中间时, 既有move又有insert
