@@ -21,7 +21,7 @@ namespace MauiUICollectionView.Layouts
         /// <summary>
         /// Store all operate
         /// </summary>
-        public List<OperateItem> Updates = new();
+        public (DiffAnimation.Operate Operation, DiffAnimation DiffAnimation)? Updates;
 
         private MAUICollectionView _collectionView;
         public MAUICollectionView CollectionView
@@ -125,7 +125,7 @@ namespace MauiUICollectionView.Layouts
         public virtual Size MeasureContents(double tableViewWidth, double tableViewHeight)
         {
             Debug.WriteLine($"Measure ScrollY={CollectionView.ScrollY}");
-            if (Updates.Count > 0)
+            if (Updates != null)
             {
                 HasOperation = true;
                 RunOperateAnimation = true;
@@ -159,6 +159,7 @@ namespace MauiUICollectionView.Layouts
             {
                 return x.Key.Compare(y.Key);
             });
+
             /*
              * Store old indexpath of prepareditem, maybe we need use it
              */
@@ -225,118 +226,44 @@ namespace MauiUICollectionView.Layouts
             scrollOffset = 0;//重置为0, 避免只更新数据时也移除cell
 
             /*
-             * Remove
-             */
-            if (HasOperation)
-            {
-                for (int index = Updates.Count - 1; index >= 0; index--)
-                {
-                    var update = Updates[index];
-                    if (update.operateType == OperateItem.OperateType.Remove)//需要移除的先移除, move后的IndexPath与之相同
-                    {
-                        if (availableViewHolders.ContainsKey(update.source))
-                        {
-                            var viewHolder = availableViewHolders[update.source];
-                            availableViewHolders.Remove(update.source);
-
-                            if (update.operateAnimate)
-                            {
-                                viewHolder.Operation = (int)OperateItem.OperateType.Remove;
-                            }
-                            /*else
-                            {
-                                viewHolder.Operation = (int)OperateItem.OperateType.RemoveNow;
-                            }*/
-                            AnimationManager.AddOperatedItem(viewHolder);
-
-                            Updates.RemoveAt(index);
-                        }
-                    }
-                    else if (update.operateType == OperateItem.OperateType.Update)
-                    {
-                        //更新的我觉得不需要动画
-                        if (availableViewHolders.ContainsKey(update.source))
-                        {
-                            var viewHolder = availableViewHolders[update.source];
-                            viewHolder.Operation = (int)OperateItem.OperateType.Update;
-                            AnimationManager.AddOperatedItem(viewHolder);
-                            availableViewHolders.Remove(update.source);
-                            Updates.RemoveAt(index);
-                        }
-                    }
-                }
-            }
-
-            /*
              * update OldVisibleIndexPath and OldPreparedItm index
              */
+            DiffAnimation diffAnimation = null;
             if (HasOperation)
             {
-                var oldVisibleIndexPath = new List<NSIndexPath>();
-                var oldpreparedIndexPath = new NSIndexPath[2] { OldPreparedItems.StartItem, OldPreparedItems.EndItem };
-                for (int index = Updates.Count - 1; index >= 0; index--)
-                {
-                    var update = Updates[index];
-
-                    if (update.operateType == OperateItem.OperateType.Move)
-                    {
-                        if (VisibleIndexPath.Contains(update.source))
-                        {
-                            VisibleIndexPath.Remove(update.source);
-                            oldVisibleIndexPath.Add(update.target);
-                        }
-                        if (update.source.Equals(oldpreparedIndexPath[0]))
-                        {
-                            oldpreparedIndexPath[0] = null;
-                            OldPreparedItems.StartItem = update.target;
-                        }
-                        if (update.source.Equals(oldpreparedIndexPath[1]))
-                        {
-                            oldpreparedIndexPath[1] = null;
-                            OldPreparedItems.EndItem = update.target;
-                        }
-                    }
-                }
-                VisibleIndexPath.AddRange(oldVisibleIndexPath);
+                diffAnimation = Updates.Value.DiffAnimation;
+                if (VisibleIndexPath.StartItem != null)
+                    VisibleIndexPath.StartItem = diffAnimation.TryGetCurrentIndexPath(VisibleIndexPath.StartItem);
+                if (VisibleIndexPath.EndItem != null)
+                    VisibleIndexPath.EndItem = diffAnimation.TryGetCurrentIndexPath(VisibleIndexPath.EndItem);
+                OldPreparedItems.StartItem = diffAnimation.TryGetCurrentIndexPath(OldPreparedItems.StartItem);
+                OldPreparedItems.EndItem = diffAnimation.TryGetCurrentIndexPath(OldPreparedItems.EndItem);
             }
-            LastVisibleIndexPath = new List<NSIndexPath>(VisibleIndexPath);
-            VisibleIndexPath.Clear();
+            LastVisibleIndexPath = VisibleIndexPath == null ? null : VisibleIndexPath.Copy();
+            VisibleIndexPath = new LayoutInfor();
 
             /*
+             * Remove: need remove viewholder, we don't directly reuse it.
              * Move: if item in last PreparedItems, we update it's IndexPath, and reuse it directly
              */
             if (HasOperation)
             {
                 //move的需要获取在之前可见区域的viewHolder, 更新indexPath为最新的, 然后进行动画.
                 Dictionary<NSIndexPath, MAUICollectionViewViewHolder> tempAvailableCells = new();//move修改旧的IndexPath,可能IndexPath已经存在, 因此使用临时字典存储
-                for (int index = Updates.Count - 1; index >= 0; index--)
+                for (int index = availableViewHolders.Count - 1; index >= 0; index--)
                 {
-                    var update = Updates[index];
-
-                    if (update.operateType == OperateItem.OperateType.Move)//移动的且显示的直接替换
+                    var oldItem = availableViewHolders.ElementAt(index);
+                    if (diffAnimation.IsRemoved(oldItem.Key))
                     {
-                        if (availableViewHolders.ContainsKey(update.source))
-                        {
-                            var oldViewHolder = availableViewHolders[update.source];
-                            if (!oldViewHolder.Equals(CollectionView.DragedItem) //Drag的不需要动画, 因为自身会在Arrange中移动
-                            && update.operateAnimate)//move的可以是没有动画但位置移动的
-                            {
-                                oldViewHolder.Operation = (int)OperateItem.OperateType.Move;
-                                AnimationManager.AddOperatedItem(oldViewHolder);
-                            }
-                            /*if (!update.operateAnimate)
-                            {
-                                oldViewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
-                                AnimationManager.AddOperatedItem(oldViewHolder);
-                            }*/
-                            availableViewHolders.Remove(update.source);
-                            //if (availableViewHolders.ContainsKey(update.target))
-                                tempAvailableCells.Add(update.target, oldViewHolder);
-                            //else
-                                //availableViewHolders.Add(update.target, oldViewHolder);
-                            oldViewHolder.IndexPath = update.target;
-                            Updates.RemoveAt(index);
-                        }
+                        availableViewHolders.Remove(oldItem.Key);
+                    }
+                    else
+                    {
+                        var oldViewHolder = oldItem.Value;
+                        var currentIndexPath = diffAnimation.TryGetCurrentIndexPath(oldItem.Key);
+                        availableViewHolders.Remove(oldItem.Key);
+                        tempAvailableCells.Add(currentIndexPath, oldViewHolder);
+                        oldViewHolder.IndexPath = currentIndexPath;
                     }
                 }
                 foreach (var item in tempAvailableCells)
@@ -348,12 +275,16 @@ namespace MauiUICollectionView.Layouts
              */
             tableHeight += MeasureItems(tableHeight, layoutItemsInRect, visibleBounds, availableViewHolders);
 
-            //record visible item
+            /*
+             * record visible item
+             */
             foreach (var item in CollectionView.PreparedItems)
             {
                 if (item.Value.BoundsInLayout.IntersectsWith(visibleBounds))
                 {
-                    VisibleIndexPath.Add(item.Key);
+                    if (VisibleIndexPath.StartItem == null)
+                        VisibleIndexPath.StartItem = item.Key;
+                    VisibleIndexPath.EndItem = item.Key;
                 }
             }
 
@@ -365,12 +296,15 @@ namespace MauiUICollectionView.Layouts
                 item.Value.Selected = CollectionView.SelectedItems.Contains(item.Key);
             }
 
+
             /*
              * Move: if item no ViewHolder at last measure, at here can get ViewHolder
              */
             if (HasOperation)
             {
-                for (int index = Updates.Count - 1; index >= 0; index--)
+                diffAnimation.RecordCurrentViewHolder(CollectionView.PreparedItems, VisibleIndexPath);
+                diffAnimation.Analysis(false);
+                /*for (int index = Updates.Count - 1; index >= 0; index--)
                 {
                     var update = Updates[index];
 
@@ -395,40 +329,19 @@ namespace MauiUICollectionView.Layouts
                                 viewHolder.Operation = (int)OperateItem.OperateType.Move;
                                 AnimationManager.AddOperatedItem(viewHolder);
                             }
-                            /*if (!update.operateAnimate)
+                            *//*if (!update.operateAnimate)
                             {
                                 viewHolder.Operation = (int)OperateItem.OperateType.MoveNow;
                                 AnimationManager.AddOperatedItem(viewHolder);
-                            }*/
+                            }*//*
                             Updates.RemoveAt(index);
                         }
                     }
-                }
+                }*/
+                Updates = null;
+                diffAnimation.Dispose();
             }
-            /*
-             * 标记insert, 添加到动画
-             */
-            if (HasOperation)
-            {
-                var insertList = new Dictionary<NSIndexPath, OperateItem>();
-                foreach (var item in Updates)
-                {
-                    if (item.operateType == OperateItem.OperateType.Insert)
-                    {
-                        insertList.Add(item.source, item);
-                    }
-                }
-                foreach (var item in CollectionView.PreparedItems)
-                {
-                    if (insertList.ContainsKey(item.Key))//插入的数据是原来没有的, 但其会与move的相同, 因为插入的位置原来的item需要move, 所以move会对旧的item处理
-                    {
-                        item.Value.Operation = (int)OperateItem.OperateType.Insert;
-                        AnimationManager.AddOperatedItem(item.Value);
-                    }
-                }
-                insertList.Clear();
-            }
-            Updates.Clear();
+
 
             // 重新测量后, 需要显示的已经存入缓存的字典, 剩余的放入可重用列表
             foreach (MAUICollectionViewViewHolder cell in availableViewHolders.Values)
@@ -446,7 +359,7 @@ namespace MauiUICollectionView.Layouts
                 }
                 else if (cell.Operation == (int)OperateItem.OperateType.Move)
                 {
-                    if (HasOperation)
+                    /*if (HasOperation)
                     {
                         //these item is: last is visible, now will be invisible.
                         //we check animation data correct
@@ -456,7 +369,7 @@ namespace MauiUICollectionView.Layouts
                             cell.OldBoundsInLayout = cell.BoundsInLayout;
                             cell.BoundsInLayout = new Rect(bounds.X, bounds.Y, cell.OldBoundsInLayout.Width, cell.OldBoundsInLayout.Height);
                         }
-                    }
+                    }*/
                 }
                 else
                 {
@@ -490,8 +403,8 @@ namespace MauiUICollectionView.Layouts
         /// <summary>
         /// current Visible items, it is different with <see cref="MAUICollectionView.PreparedItems"/>
         /// </summary>
-        public List<NSIndexPath> VisibleIndexPath { get; protected set; } = new List<NSIndexPath>();
-        public List<NSIndexPath> LastVisibleIndexPath { get; protected set; } = new List<NSIndexPath>();
+        public LayoutInfor VisibleIndexPath { get; protected set; }
+        public LayoutInfor LastVisibleIndexPath { get; protected set; }
 
         /// <summary>
         /// 

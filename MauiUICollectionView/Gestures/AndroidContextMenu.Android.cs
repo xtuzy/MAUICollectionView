@@ -1,10 +1,16 @@
 ﻿using Android.Content;
+using System.Diagnostics;
 
 namespace MauiUICollectionView.Gestures
 {
     public class AndroidContextMenu : IContextMenu
     {
-        public AndroidContextMenu(Context context, global::Android.Views.View av)
+        public AndroidContextMenu()
+        {
+
+        }
+
+        public void Init(Context context, global::Android.Views.View av)
         {
             PlatformMenu = new AndroidX.AppCompat.Widget.PopupMenu(context, av);
         }
@@ -15,6 +21,7 @@ namespace MauiUICollectionView.Gestures
 
         public void Show()
         {
+            Debug.WriteLine("Show");
             if (IsEnable)
             {
                 PlatformMenu?.Show();

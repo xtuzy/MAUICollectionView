@@ -30,11 +30,6 @@
             return new NSIndexPath() { Row = row, Section = section };
         }
 
-        public void UpdateRow(int row)
-        {
-            Row = row;
-        }
-
         public bool IsEqual(NSIndexPath other)
         {
             if (other == null)
@@ -63,6 +58,12 @@
             return Section.GetHashCode() + Row.GetHashCode();
         }
 
+        /// <summary>
+        /// equal or in
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
         public bool IsInRange(NSIndexPath start, NSIndexPath end)
         {
             if(start == null || end == null)

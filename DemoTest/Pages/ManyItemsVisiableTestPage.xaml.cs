@@ -8,7 +8,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
     public ManyItemsVisiableTestPage()
     {
         InitializeComponent();
-        var viewModel = new ViewModel();
+        var viewModel = ViewModel.Instance;
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,

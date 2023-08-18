@@ -272,7 +272,7 @@ namespace MauiUICollectionView
                 if (MeasuredContentSize != Size.Zero && IsScrolling)
                     size = MeasuredContentSize;
                 else
-                    size = ItemsLayout.MeasureContents(widthConstraint <= 0 || double.IsInfinity(widthConstraint)? CollectionViewConstraintSize.Width : widthConstraint, heightConstraint <=0 || double.IsInfinity(heightConstraint) ? CollectionViewConstraintSize.Height : heightConstraint);
+                    size = ItemsLayout.MeasureContents(widthConstraint <= 0 || double.IsInfinity(widthConstraint) ? CollectionViewConstraintSize.Width : widthConstraint, heightConstraint <= 0 || double.IsInfinity(heightConstraint) ? CollectionViewConstraintSize.Height : heightConstraint);
             }
 
             // set empty view
@@ -489,7 +489,7 @@ namespace MauiUICollectionView
         /// get indexPath
         /// </summary>
         /// <param name="indexPath"></param>
-        /// <param name="count"></param>
+        /// <param name="count">after indexPath, don't contain indexPath</param>
         /// <returns></returns>
         public NSIndexPath NextItem(NSIndexPath indexPath, int count)
         {
@@ -538,6 +538,36 @@ namespace MauiUICollectionView
             return null;
         }
 
+        /// <summary>
+        /// when start is 1, end is 4, return 2
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="end"></param>
+        /// <returns></returns>
+        public int ItemCountInRange(NSIndexPath start, NSIndexPath end)
+        {
+            if (start.Section == end.Section)
+            {
+                return end.Row - start.Row - 1;
+            }
+            else
+            {
+                int count = 0;
+                for (var section = start.Section; section <= end.Section; section++)
+                {
+                    int numberOfRows = NumberOfItemsInSection(section);
+                    int row = 0;
+                    if (section == start.Section) { row = start.Row; }
+                    if (section == end.Section) { numberOfRows = end.Row; }
+                    for (; row < numberOfRows; row++)
+                    {
+                        count++;
+                    }
+                }
+                return count;
+            }
+        }
+
         #endregion
 
         #region 操作
@@ -573,135 +603,115 @@ namespace MauiUICollectionView
             {
                 throw new IndexOutOfRangeException("Removed item beyond data");
             }
-            var Updates = ItemsLayout.Updates;
-            if (Updates.Count > 0)
+            if (ItemsLayout.Updates != null)
                 ItemsLayout.AnimationManager.StopOperateAnim();
-
-            /*
-             * Animation Analysis:
-             * If remove item in front of first visible item, and don't remove visible item, visible item don't need move.
-             * If remove visible item, need move, all items after last removed item need move, but we only move visible items and 'items equal to count'
-             */
-            var isRemovedBeforeVisible = false;//remove before visible item, don't show visible position animation
-            var lastNeedRemoveIndexPath = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);//use last item, avoid remove visible item
-            if (lastNeedRemoveIndexPath.Compare(ItemsLayout.VisibleIndexPath.FirstOrDefault()) < 0)
-                isRemovedBeforeVisible = true;
-
-            NSIndexPath lastRemovedIndexPath = NSIndexPath.FromRowSection(indexPath.Row - 1, indexPath.Section);
-            for (var index = 0; index < count; index++)
+            var operation = new DiffAnimation.Operate()
             {
-                var needRemovedIndexPath = GetNextItem(lastRemovedIndexPath);
-                if (needRemovedIndexPath.Section != indexPath.Section)
-                    break;
-                Updates.Add(new OperateItem()
-                {
-                    operateType = OperateItem.OperateType.Remove,
-                    source = needRemovedIndexPath
-                });
-                lastRemovedIndexPath = needRemovedIndexPath;
-            }
+                OperateType = OperateItem.OperateType.Remove,
+                Source = indexPath,
+                OperateCount = count
+            };
+            var diff = new DiffAnimation(operation, this);
+            ItemsLayout.Updates = (operation, diff);
 
-            // try Move 2*count items:
-            // first part, 1*counts items be moved to fill items that be removed.
-            // second part, 1*counts items be moved to fill items that be moved in first part. 
-            NSIndexPath lastMovedIndexPath = lastNeedRemoveIndexPath;
-            for (var moveCount = 1; moveCount <= 2 * count; moveCount++)
-            {
-                var needMovedIndexPath = GetNextItem(lastMovedIndexPath);
-                if (needMovedIndexPath == null) continue;
-                Updates.Add(new OperateItem()
-                {
-                    operateType = OperateItem.OperateType.Move,
-                    source = needMovedIndexPath,
-                    target = needMovedIndexPath.Section == indexPath.Section ? NSIndexPath.FromRowSection(needMovedIndexPath.Row - count, needMovedIndexPath.Section) : needMovedIndexPath, //if not same section, don't change IndexPath
-                    moveCount = -count
-                });
-                lastMovedIndexPath = needMovedIndexPath;
-            }
-
-            lastMovedIndexPath = NSIndexPath.FromRowSection(lastNeedRemoveIndexPath.Row + 2 * count, lastNeedRemoveIndexPath.Section);
-            //if visible items is too more(> 2 * count), maybe need more more.
-            foreach (var visibleItem in PreparedItems)
-            {
-                if (visibleItem.Key > lastMovedIndexPath)
-                {
-                    Updates.Add(new OperateItem()
-                    {
-                        operateType = OperateItem.OperateType.Move,
-                        source = visibleItem.Key,
-                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row - count, visibleItem.Key.Section) : visibleItem.Key,
-                    });
-                }
-            }
-
-            ReloadDataCount();
-
-            updatSelectedIndexPathWhenRemoveOperate(indexPath, count);
-
-            //when remove, maybe don't change current visible item
+            //when remove, maybe need change baseline for better animation.
             var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
             if (layout != null)
             {
-                var firstVisibleItem = PreparedItems.FirstOrDefault();
-                var lastVisibleItem = PreparedItems.LastOrDefault();
-                var firstInsert = indexPath;
-                var lastInsert = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
+                var firstVisibleItem = layout.VisibleIndexPath.StartItem;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+                var lastVisibleItem = layout.VisibleIndexPath.EndItem;
+                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].BoundsInLayout;
+                var firstRemoved = indexPath;
+                var lastRemoved = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
 
-                if (firstVisibleItem.Key.Compare(lastInsert) > 0)//remove items before first visible item, we need update baseline indexpath
+                NSIndexPath baselineLastIndexPath = null;
+                NSIndexPath baselineCurrentIndexPath = null;
+                bool moved = false;
+                if (firstVisibleItem.Compare(lastRemoved) > 0)//remove items before first visible item, we need update baseline indexpath
                 {
+                    /****]*First*****Last*****/
+                    baselineLastIndexPath = firstVisibleItem;
+                    baselineCurrentIndexPath = firstVisibleItem.Section == indexPath.Section ?
+                        NSIndexPath.FromRowSection(firstVisibleItem.Row - count, firstVisibleItem.Section) ://row will change when same section 
+                        firstVisibleItem;
                     layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                     {
                         //indexpath maybe change
-                        StartItem = firstVisibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(firstVisibleItem.Key.Row - count, firstVisibleItem.Key.Section) : firstVisibleItem.Key,
-                        StartBounds = firstVisibleItem.Value.BoundsInLayout
+                        StartItem = baselineCurrentIndexPath,
+                        StartBounds = firstVisibleItemBounds
                     };
                 }
                 else
                 {
-                    if (firstInsert > firstVisibleItem.Key)// remove items before last visible item, we use last visible item as baseline
+                    if (firstRemoved > firstVisibleItem)// removed item after first visible, use first visible as baseline. 
                     {
+                        /*****First*[****Last*****/
+                        baselineLastIndexPath = firstVisibleItem;
+                        baselineCurrentIndexPath = firstVisibleItem;
+
                         layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                         {
-                            StartItem = firstVisibleItem.Key,
-                            StartBounds = firstVisibleItem.Value.BoundsInLayout
+                            StartItem = baselineCurrentIndexPath,
+                            StartBounds = firstVisibleItemBounds
                         };
                     }
-                    else if (lastInsert < lastVisibleItem.Key)
+                    else if (lastRemoved < lastVisibleItem)//removed item before last visible item, and contain first visible
                     {
-                        for (var moveCount = 1; moveCount <= 2 * count; moveCount++)
-                        {
-                            var needMovedIndexPath = NextItem(indexPath , -moveCount);
-                            if (needMovedIndexPath == null) continue;
-                            Updates.Add(new OperateItem()
-                            {
-                                operateType = OperateItem.OperateType.Move,
-                                source = needMovedIndexPath,
-                                target = needMovedIndexPath,
-                                moveCount = -count
-                            });
-                        }
+                        /****[*First****]*Last*****/
+                        baselineLastIndexPath = lastVisibleItem;
+                        baselineCurrentIndexPath = lastVisibleItem.Section == indexPath.Section ?
+                            NSIndexPath.FromRowSection(lastVisibleItem.Row - count, lastVisibleItem.Section) ://row will change when same section 
+                            lastVisibleItem;
+
                         layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                         {
-                            StartItem = lastVisibleItem.Key,
-                            StartBounds = lastVisibleItem.Value.BoundsInLayout
+                            StartItem = baselineCurrentIndexPath,
+                            StartBounds = lastVisibleItemBounds
                         };
-                    }
-                    else//removed items contain visible items
-                    {
-                        var next = NextItem(lastInsert, 1);
-                        if (next != null)
+
+                        //fix move first item will measure multiple times when remove top item
+                        if (ItemCountInRange(NSIndexPath.FromRowSection(0, 0), baselineCurrentIndexPath) <= count)
                         {
                             layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                             {
-                                StartItem = next,
+                                StartItem = baselineCurrentIndexPath,
                                 StartBounds = new Rect(0, ScrollY, 0, 0)
                             };
+                            moved = true;
+                        }
+                    }
+                    else//removed items contain all visible items
+                    {
+                        /*****[First*****Last*]****/
+                        var next = NextItem(lastRemoved, 1);//last
+                        if (next != null)
+                        {
+                            baselineLastIndexPath = next;
+                            baselineCurrentIndexPath = next.Section == indexPath.Section ?
+                                NSIndexPath.FromRowSection(next.Row - count, next.Section) ://row will change when same section 
+                                next;
+                            layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                            {
+                                StartItem = baselineCurrentIndexPath,
+                                StartBounds = new Rect(0, ScrollY, 0, 0)
+                            };
+                            moved = true;
                         }
                     }
                 }
+
+                operation.BaselineItem = (baselineLastIndexPath, baselineCurrentIndexPath, moved);
+
+                diff.Analysis(true);
             }
 
-            this.ReMeasure();
+            ReloadDataCount();
+
+            updatSelectedIndexPathWhenOperate(diff);
+
+            ReMeasure();
         }
 
         /// <summary>
@@ -712,90 +722,73 @@ namespace MauiUICollectionView
         public void NotifyItemRangeInserted(NSIndexPath indexPath, int count = 1)
         {
             if (count < 1) return;
-            var Updates = ItemsLayout.Updates;
-            if (Updates.Count > 0)
+            if (ItemsLayout.Updates != null)
                 ItemsLayout.AnimationManager.StopOperateAnim();
-
-            //insert position need move
-            for (var index = 0; index < count; index++)
+            var operation = new DiffAnimation.Operate()
             {
-                var needInsertedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
-                Updates.Add(new OperateItem()
-                {
-                    moveCount = count,
-                    operateType = OperateItem.OperateType.Move,
-                    source = needInsertedIndexPath,
-                    target = NSIndexPath.FromRowSection(needInsertedIndexPath.Row + count, needInsertedIndexPath.Section),
-                });
-            }
+                OperateType = OperateItem.OperateType.Insert,
+                Source = indexPath,
+                OperateCount = count
+            };
+            var diff = new DiffAnimation(operation, this);
+            ItemsLayout.Updates = (operation, diff);
 
-            //visible item maybe need move position after insert items
-            foreach (var visibleItem in PreparedItems)
+            //when insert, maybe need change baseline for better animation.
+            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
+
+            if (layout != null)
             {
-                if (!(visibleItem.Key < indexPath))
+                var firstVisibleItem = layout.VisibleIndexPath.StartItem;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+                var lastVisibleItem = layout.VisibleIndexPath.EndItem;
+                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].BoundsInLayout;
+
+                var firstInsert = indexPath;
+                var lastInsert = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
+
+                NSIndexPath baselineLastIndexPath = null;
+                NSIndexPath baselineCurrentIndexPath = null;
+                bool moved = false;
+
+                /*
+                 * insert at any position, we don't change old first visible item as baseline, if we insert at position of old first visible item, we also don't change it
+                 */
+                baselineLastIndexPath = firstVisibleItem;
+                if (indexPath.Compare(firstVisibleItem) <= 0)
                 {
-                    Updates.Add(new OperateItem()
-                    {
-                        moveCount = count,
-                        operateType = OperateItem.OperateType.Move,
-                        source = visibleItem.Key,
-                        target = visibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(visibleItem.Key.Row + count, visibleItem.Key.Section) : visibleItem.Key,
-                    });
+                    baselineCurrentIndexPath = firstVisibleItem.Section == indexPath.Section ?
+                        NSIndexPath.FromRowSection(firstVisibleItem.Row + count, firstVisibleItem.Section) ://row will change when same section 
+                        firstVisibleItem;
                 }
-            }
-
-            //insert
-            for (var index = 0; index < count; index++)
-            {
-                var needInsertedIndexPath = NSIndexPath.FromRowSection(indexPath.Row + index, indexPath.Section);
-                Updates.Add(new OperateItem()
+                else
                 {
-                    operateType = OperateItem.OperateType.Insert,
-                    source = needInsertedIndexPath
-                });
+                    baselineCurrentIndexPath = firstVisibleItem;
+                }
+                layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                {
+                    StartItem = baselineCurrentIndexPath,
+                    StartBounds = firstVisibleItemBounds
+                };
+
+                operation.BaselineItem = (baselineLastIndexPath, baselineCurrentIndexPath, moved);
+
+                diff.Analysis(true);
             }
 
             ReloadDataCount();
 
-            updatSelectedIndexPathWhenInsertOperate(indexPath, count);
-
-            //when insert, maybe don't change current visible item
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
-            if (layout != null)
-            {
-                var firstVisibleItem = PreparedItems.FirstOrDefault();
-                var lastVisibleItem = PreparedItems.LastOrDefault();
-                var firstInsert = indexPath;
-                var lastInsert = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
-                //after last visible item
-                if (firstVisibleItem.Key.Compare(lastInsert) > 0)
-                {
-                    layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
-                    {
-                        //indexpath maybe change
-                        StartItem = firstVisibleItem.Key.Section == indexPath.Section ? NSIndexPath.FromRowSection(firstVisibleItem.Key.Row + count, firstVisibleItem.Key.Section) : firstVisibleItem.Key,
-                        StartBounds = firstVisibleItem.Value.BoundsInLayout
-                    };
-                }
-                else
-                {
-                    layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
-                    {
-                        StartItem = firstVisibleItem.Key,
-                        StartBounds = firstVisibleItem.Value.BoundsInLayout
-                    };
-                }
-            }
+            updatSelectedIndexPathWhenOperate(diff);
 
             this.ReMeasure();
         }
 
-        public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
+        private void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
         {
             var Updates = ItemsLayout.Updates;
-            if (Updates.Count > 0)
+            if (Updates != null)
                 ItemsLayout.AnimationManager.StopOperateAnim();
-            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = indexPath, target = toIndexPath });
+            /*Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = indexPath, target = toIndexPath });
 
             //如果同Section, Move影响的只是之间的
             if (indexPath.Section == toIndexPath.Section)
@@ -849,9 +842,9 @@ namespace MauiUICollectionView
                         }
                     }
                 }
-            }
+            }*/
             ReloadDataCount();
-            updatSelectedIndexPathWhenMoveOperate(indexPath, toIndexPath);
+            //updatSelectedIndexPathWhenOperate(diff);
             this.ReMeasure();
         }
 
@@ -859,134 +852,46 @@ namespace MauiUICollectionView
         /// Notifies the CollectionView that data have been replaced in these items.
         /// </summary>
         /// <param name="indexPaths"></param>
-        public void NotifyItemRangeChanged(IEnumerable<NSIndexPath> indexPaths)
+        public void NotifyItemRangeChanged(NSIndexPath indexPath)
         {
             var Updates = ItemsLayout.Updates;
-            if (Updates.Count > 0)
+            if (Updates != null)
                 ItemsLayout.AnimationManager.StopOperateAnim();
-            foreach (var visiableItem in PreparedItems)
+            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            if (layout != null)
             {
-                if (indexPaths.Contains(visiableItem.Key))//如果可见的Items包含需要更新的Item
+                var firstVisibleItem = PreparedItems.FirstOrDefault();
+                layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                 {
-                    Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Update, source = visiableItem.Key });
+                    StartItem = firstVisibleItem.Key,
+                    StartBounds = firstVisibleItem.Value.BoundsInLayout
+                };
+            }
+            for (var index = PreparedItems.Count - 1; index >= 0; index--)
+            {
+                var item = PreparedItems.ElementAt(index);
+                if (item.Key.Compare(indexPath) == 0)
+                {
+                    PreparedItems.Remove(item.Key);
+                    RecycleViewHolder(item.Value);
                 }
             }
             this.ReMeasure();
         }
 
-        void updatSelectedIndexPathWhenInsertOperate(NSIndexPath indexPath, int count)
+        void updatSelectedIndexPathWhenOperate(DiffAnimation diff)
         {
+            var selectedItems = new List<NSIndexPath>();
             for (int i = SelectedItems.Count - 1; i >= 0; i--)
             {
-                var selectedItem = SelectedItems[i];
-                if (selectedItem.Section == indexPath.Section)
+                var indexPath = diff.TryGetCurrentIndexPath(SelectedItems[i]);
+                if (indexPath != null)
                 {
-                    if (indexPath.Row <= selectedItem.Row)//insert in front of selected
-                    {
-                        selectedItem.UpdateRow(selectedItem.Row + count);
-                    }
-                    else//insert behind selected
-                    {
-
-                    }
+                    selectedItems.Add(indexPath);
                 }
             }
-        }
-
-        void updatSelectedIndexPathWhenMoveOperate(NSIndexPath indexPath, NSIndexPath toIndexPath)
-        {
-            //如果同Section, Move影响的只是之间的
-            if (indexPath.Section == toIndexPath.Section)
-            {
-                var isUpMove = indexPath.Row > toIndexPath.Row;
-                //先移除
-                for (int i = SelectedItems.Count - 1; i >= 0; i--)
-                {
-                    var selectedItem = SelectedItems[i];
-                    if (selectedItem.Section == indexPath.Section)//同一section的item才变化
-                    {
-                        if (selectedItem.Row == indexPath.Row)
-                        {
-                            selectedItem.UpdateRow(toIndexPath.Row);
-                            continue;
-                        }
-
-                        if (isUpMove)//从底部向上移动, 目标位置下面的都需要向下移动
-                        {
-                            if (selectedItem.Row >= toIndexPath.Row && selectedItem.Row < indexPath.Row)
-                            {
-                                selectedItem.UpdateRow(selectedItem.Row + 1);
-                            }
-                        }
-                        else
-                        {
-                            if (selectedItem.Row > indexPath.Row && selectedItem.Row <= toIndexPath.Row)
-                            {
-                                selectedItem.UpdateRow(selectedItem.Row - 1);
-                            }
-                        }
-
-                    }
-                }
-            }
-            //如果不同Section, 则影响不同的section后面的
-            else
-            {
-                //先移除, 移除的Item后面的Item需要向前移动
-                for (int i = SelectedItems.Count - 1; i >= 0; i--)
-                {
-                    var selectedItem = SelectedItems[i];
-                    if (selectedItem.Section == indexPath.Section)
-                    {
-                        if (selectedItem.Row == indexPath.Row)
-                        {
-                            selectedItem.UpdateRow(toIndexPath.Row);
-                            continue;
-                        }
-
-                        if (selectedItem.Row > indexPath.Row)
-                        {
-                            selectedItem.UpdateRow(selectedItem.Row - 1);
-                        }
-                    }
-                }
-
-                //后插入, 后面的需要向后移动
-                for (int i = SelectedItems.Count - 1; i >= 0; i--)
-                {
-                    var selectedItem = SelectedItems[i];
-                    if (selectedItem.Section == toIndexPath.Section)
-                    {
-                        if (selectedItem.Row >= toIndexPath.Row)
-                        {
-                            selectedItem.UpdateRow(selectedItem.Row + 1);
-                        }
-                    }
-                }
-            }
-        }
-
-        void updatSelectedIndexPathWhenRemoveOperate(NSIndexPath indexPath, int count)
-        {
-            for (int i = SelectedItems.Count - 1; i >= 0; i--)
-            {
-                var selectedItem = SelectedItems[i];
-                if (selectedItem.Section == indexPath.Section)
-                {
-                    if (indexPath.Row + count - 1 < selectedItem.Row)//remove all in front of selected
-                    {
-                        selectedItem.UpdateRow(selectedItem.Row - count);
-                    }
-                    else if (indexPath.Row <= selectedItem.Row && selectedItem.Row <= indexPath.Row + count - 1)//remove this selected
-                    {
-                        SelectedItems.Remove(selectedItem);
-                    }
-                    else//remove behind selected
-                    {
-
-                    }
-                }
-            }
+            SelectedItems.Clear();
+            SelectedItems = selectedItems;
         }
         #endregion
     }

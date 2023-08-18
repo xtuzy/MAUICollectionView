@@ -83,7 +83,7 @@ public partial class GridLayoutTestPage : ContentPage
             var index = 3;
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
-            tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
+            //tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
             tableView.ReMeasure();
         };
 
@@ -91,7 +91,7 @@ public partial class GridLayoutTestPage : ContentPage
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index, 0) });
+            tableView.NotifyItemRangeChanged(NSIndexPath.FromRowSection(index, 0));
             tableView.ReMeasure();
         };
     }

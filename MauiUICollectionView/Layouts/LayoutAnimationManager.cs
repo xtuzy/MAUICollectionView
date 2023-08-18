@@ -86,17 +86,8 @@
             removeOperateAnimation?.Dispose();
             insertOperateAnimation?.Dispose();
 
-            //重置ViewHolder中的操作类型, 主要目的是因为Insert操作的动画时常执行不到, 导致其不透明设置不正确, 我在Arrange时集中对可见的默认操作Item设置不透明度, 防止遗漏
-            foreach (var item in CollectionView.PreparedItems)
-            {
-                item.Value.Operation = -1;
-            }
-
-            if (operateItems.Count == 0)
-                return;
             //这里调用它是为了确保回收
-            SetItemsStateAfterAnimateFinished();
-            operateItems.Clear();
+            OperateAnimFinished();
         }
 
         void OperateAnimFinished()
@@ -178,6 +169,7 @@
             }
         }
 
+        CollectionViewLayout.LayoutInfor SnapShot;
         /// <summary>
         /// when operate item, need anim.
         /// </summary>
@@ -196,7 +188,7 @@
             insertOperateAnimation = null;
 
             var listRemoveViewHolder = new List<MAUICollectionViewViewHolder>();
-            var listMoveViewHolder = new List<MAUICollectionViewViewHolder>();
+            var listMoveViewHolder = new List<(MAUICollectionViewViewHolder viewHolder, Rect oldBounds, Rect currentBounds)>();
             var listInsertViewHolder = new List<MAUICollectionViewViewHolder>();
             var listUpdateViewHolder = new List<MAUICollectionViewViewHolder>();
             //结束时回收
@@ -214,7 +206,7 @@
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.Move)
                 {
-                    listMoveViewHolder.Add(item);
+                    listMoveViewHolder.Add((item, item.OldBoundsInLayout, item.BoundsInLayout));
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.Update)
                 {
@@ -222,17 +214,6 @@
                     operateItems.RemoveAt(i);
                     CollectionView.RecycleViewHolder(item);
                 }
-                /*else if (item.Operation == (int)OperateItem.OperateType.MoveNow)
-                {
-                    item.Opacity = 1;
-                    item.TranslationX = 0;
-                    item.TranslationY = 0;
-                }
-                else if (item.Operation == (int)OperateItem.OperateType.RemoveNow)
-                {
-                    item.Opacity = 0;
-                    CollectionView.RecycleViewHolder(item);
-                }*/
             }
 
             if (listInsertViewHolder.Count > 0)
@@ -255,26 +236,33 @@
             }
 
             //move Items的初始状态应该是Arrange在目标位置, tanslate后在之前的位置
-            var firstPreparedItem = CollectionView.PreparedItems.FirstOrDefault().Value;
-            var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault().Value;
+            var firstPreparedItem = CollectionView.PreparedItems.FirstOrDefault();
+            var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault();
+            SnapShot = new CollectionViewLayout.LayoutInfor()
+            {
+                StartItem = firstPreparedItem.Key,
+                StartBounds = firstPreparedItem.Value.BoundsInLayout,
+                EndItem = lastPreparedItem.Key,
+                EndBounds = lastPreparedItem.Value.BoundsInLayout,
+            };
             if (listMoveViewHolder.Count > 0)
             {
                 for (var i = listMoveViewHolder.Count - 1; i >= 0; i--)
                 {
                     var item = listMoveViewHolder[i];
-                    if (item.OldBoundsInLayout != Rect.Zero &&
-                    item.OldBoundsInLayout != item.BoundsInLayout)
+                    if (item.oldBounds != Rect.Zero &&
+                    item.oldBounds != item.currentBounds)
                     {
-                        item.Opacity = 1;
-                        if (item.BoundsInLayout.Bottom <= firstPreparedItem.BoundsInLayout.Top ||
-                            item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom
+                        item.viewHolder.Opacity = 1;
+                        if (item.currentBounds.Bottom <= SnapShot.StartBounds.Top ||
+                            item.currentBounds.Top >= SnapShot.EndBounds.Bottom
                             )//不在PreparedItem里的没有重新Arrange, 我们基于旧的位置
                         {
-                            item.ArrangeSelf(item.BoundsInLayout);
+                            item.viewHolder.ArrangeSelf(item.currentBounds);
                         }
 
-                        item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * 1;
-                        item.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * 1;
+                        item.viewHolder.TranslationX = (item.oldBounds.Left - item.currentBounds.Left) * 1;
+                        item.viewHolder.TranslationY = (item.oldBounds.Top - item.currentBounds.Top) * 1;
                     }
                 };
             }
@@ -287,11 +275,11 @@
                     for (var i = listMoveViewHolder.Count - 1; i >= 0; i--)
                     {
                         var item = listMoveViewHolder[i];
-                        if (item.OldBoundsInLayout != Rect.Zero &&
-                        item.OldBoundsInLayout != item.BoundsInLayout)
+                        if (item.oldBounds != Rect.Zero &&
+                        item.oldBounds != item.currentBounds)
                         {
-                            item.TranslationX = (item.OldBoundsInLayout.Left - item.BoundsInLayout.Left) * (1 - v);
-                            item.TranslationY = (item.OldBoundsInLayout.Top - item.BoundsInLayout.Top) * (1 - v);
+                            item.viewHolder.TranslationX = (item.oldBounds.Left - item.currentBounds.Left) * (1 - v);
+                            item.viewHolder.TranslationY = (item.oldBounds.Top - item.currentBounds.Top) * (1 - v);
                         }
                     };
                 }, 0, 1);
@@ -406,18 +394,22 @@
                     {
                         CollectionView.RecycleViewHolder(item);//如果动画步骤有问题, 此处确保回收
                     }
-
-                    if (item.BoundsInLayout.Bottom <= firstPreparedItem.BoundsInLayout.Top ||
-                        item.BoundsInLayout.Top >= lastPreparedItem.BoundsInLayout.Bottom ||
-                        item.IndexPath < firstPreparedItem.IndexPath ||
-                        item.IndexPath > lastPreparedItem.IndexPath)//when item is invisible, bounds maybe be estimated, use it maybe have bug, so add more limit, we must recycle invisible item.
-                    {
-                        CollectionView.RecycleViewHolder(item);
-                    }
-
-                    if (item.Operation == (int)OperateItem.OperateType.Insert)
+                    else if (item.Operation == (int)OperateItem.OperateType.Insert)
                     {
                         item.Opacity = 1;//if no insert animation, we show item when move animation finish
+                    }
+                    else if (item.Operation == (int)OperateItem.OperateType.Move)
+                    {
+                        item.TranslationX = 0;
+                        item.TranslationY = 0;
+
+                        if (item.BoundsInLayout.Bottom <= SnapShot.StartBounds.Top ||
+                            item.BoundsInLayout.Top >= SnapShot.EndBounds.Bottom ||
+                            (SnapShot.StartItem != null && item.IndexPath < SnapShot.StartItem) ||
+                            item.IndexPath > SnapShot.EndItem)//when item is invisible, bounds maybe be estimated, use it maybe have bug, so add more limit, we must recycle invisible item.
+                        {
+                            CollectionView.RecycleViewHolder(item);
+                        }
                     }
 
                     item.Operation = -1;

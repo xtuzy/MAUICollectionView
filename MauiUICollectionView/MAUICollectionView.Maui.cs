@@ -293,7 +293,7 @@ namespace MauiUICollectionView
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
                     DragedItem.Scale = 1;
-                    if (!DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath[0], ItemsLayout.VisibleIndexPath.LastOrDefault()))
+                    if (!DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath.StartItem, ItemsLayout.VisibleIndexPath.EndItem))
                     {
                         RecycleViewHolder(DragedItem);
                     }
@@ -377,7 +377,7 @@ namespace MauiUICollectionView
                 }
                 lastScrollY = e.ScrollY;
                 Debug.WriteLine($"Scrolled {e.ScrollY} dy={scrollOffset}");
-                ItemsLayout.AnimationManager.StopOperateAnim();
+                //ItemsLayout.AnimationManager.StopOperateAnim();
             }
             MeasureNowAfterScroll();
             ReMeasure();

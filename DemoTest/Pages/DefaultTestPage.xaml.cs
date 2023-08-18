@@ -13,7 +13,7 @@ public partial class DefaultTestPage : ContentPage
     internal static ViewModel viewModel;
     public DefaultTestPage()
     {
-        viewModel = new ViewModel();
+        viewModel = ViewModel.Instance;
 
         InitializeComponent();
 
@@ -33,15 +33,15 @@ public partial class DefaultTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-            HeightExpansionFactor = 0,
+            HeightExpansionFactor = 1,
             SelectionMode = SelectionMode.Multiple,
-            CanDrag = true,
+            //CanDrag = true,
             CanContextMenu = true,
         };
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
         };
-#if WINDOWS
+#if WINDOWS || ANDROID
         content.Content = tableView;
 #else
         content.Content = refreshview;
@@ -134,14 +134,14 @@ public partial class DefaultTestPage : ContentPage
             var index = 3;
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
-            tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
+            //tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
         };
 
         Change.Clicked += (sender, e) =>
         {
             var index = 2;
             (tableView.Source as Source).ChangeData(index);
-            tableView.NotifyItemRangeChanged(new[] { NSIndexPath.FromRowSection(index + 1, 0) });
+            tableView.NotifyItemRangeChanged(NSIndexPath.FromRowSection(index + 1, 0) );
         };
 
         Reload.Clicked += (sender, e) =>

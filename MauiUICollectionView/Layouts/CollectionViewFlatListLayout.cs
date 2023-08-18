@@ -1,6 +1,4 @@
-﻿using static System.Collections.Specialized.BitVector32;
-
-namespace MauiUICollectionView.Layouts
+﻿namespace MauiUICollectionView.Layouts
 {
     public partial class CollectionViewFlatListLayout : CollectionViewLayout
     {
@@ -47,7 +45,17 @@ namespace MauiUICollectionView.Layouts
                 }
             }
 
-            FitBoundsWhenCloseHeader();
+            LayoutInfor visibleItems = new LayoutInfor();
+            foreach (var item in CollectionView.PreparedItems)
+            {
+                if (item.Value.BoundsInLayout.IntersectsWith(visiableRect))
+                {
+                    if (visibleItems.StartItem == null)
+                        visibleItems.StartItem = item.Key;
+                    visibleItems.EndItem = item.Key;
+                }
+            }
+            FitBoundsWhenCloseHeader(visibleItems);
 
             //estimate all items' height
             double itemsHeight = 0;
@@ -60,7 +68,7 @@ namespace MauiUICollectionView.Layouts
                 lastPreparedItem = NSIndexPath.FromRowSection(0, 0);
             if (lastItem > lastPreparedItem)
             {
-                itemsHeight += ItemCountInRange(lastPreparedItem, lastItem) * StartBoundsCache[StartBoundsCache.Count - 1].Height;
+                itemsHeight += CollectionView.ItemCountInRange(lastPreparedItem, lastItem) * StartBoundsCache[StartBoundsCache.Count - 1].Height;
             }
             lastItemsHeight = itemsHeight;
             return itemsHeight;
@@ -93,6 +101,9 @@ namespace MauiUICollectionView.Layouts
             }
         }
 
+        /// <summary>
+        /// it contain information about item and bounds, we layout item according to it. it's IndexPath is latest.
+        /// </summary>
         public LayoutInfor BaseLineItemUsually;
 
         /// <summary>
@@ -180,37 +191,7 @@ namespace MauiUICollectionView.Layouts
                 }
             }
             //maybe scrolly is very big
-            return NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections-1), numberOfSections-1);
-        }
-
-        /// <summary>
-        /// when start is 1, end is 4, return 2
-        /// </summary>
-        /// <param name="start"></param>
-        /// <param name="end"></param>
-        /// <returns></returns>
-        int ItemCountInRange(NSIndexPath start, NSIndexPath end)
-        {
-            if (start.Section == end.Section)
-            {
-                return end.Row - start.Row - 1;
-            }
-            else
-            {
-                int count = 0;
-                for (var section = start.Section; section <= end.Section; section++)
-                {
-                    int numberOfRows = CollectionView.NumberOfItemsInSection(section);
-                    int row = 0;
-                    if (section == start.Section) { row = start.Row; }
-                    if (section == end.Section) { numberOfRows = end.Row; }
-                    for (; row < numberOfRows; row++)
-                    {
-                        count++;
-                    }
-                }
-                return count;
-            }
+            return NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections - 1), numberOfSections - 1);
         }
 
         /// <summary>
@@ -274,7 +255,7 @@ namespace MauiUICollectionView.Layouts
                     }
                 }
 
-                FinishLoop:
+            FinishLoop:
                 // 从小到大加入
                 for (var index = tempOrderedPreparedItems.Count - 1; index >= 0; index--)
                 {
@@ -285,7 +266,7 @@ namespace MauiUICollectionView.Layouts
 
             if (baselineInfor.StartItem != null)//从上到下
             {
-                if(baselineInfor.StartBounds.Top > inRect.Top)
+                if (baselineInfor.StartBounds.Top > inRect.Top)
                     LayoutFromBottomToTop(new LayoutInfor() { EndItem = CollectionView.NextItem(baselineInfor.StartItem, -1), EndBounds = new Rect(0, 0, 0, baselineInfor.StartBounds.Top) });
                 LayoutFromTopToBottom(baselineInfor);
             }
@@ -477,7 +458,7 @@ namespace MauiUICollectionView.Layouts
             var numberOfSections = CollectionView.NumberOfSections();
             if (targetIndexPath > lastPreparedItem.Key)//往下加载, 目标Item在可见区域底部, 由底部向上布局
             {
-                itemsOffset += ItemCountInRange(lastPreparedItem.Key, targetIndexPath) * lastPreparedItem.Value.BoundsInLayout.Height;
+                itemsOffset += CollectionView.ItemCountInRange(lastPreparedItem.Key, targetIndexPath) * lastPreparedItem.Value.BoundsInLayout.Height;
                 BaseLineItemUsually = new LayoutInfor()
                 {
                     EndBounds = new Rect(0, 0, 0, CollectionView.ScrollY + itemsOffset + CollectionView.Bounds.Height),
@@ -487,7 +468,7 @@ namespace MauiUICollectionView.Layouts
             }
             else if (targetIndexPath < firstPreparedItem.Key)//往上加载, 目标Item在可见区域顶部, 由顶部向下布局
             {
-                itemsOffset += (ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1) * firstPreparedItem.Value.BoundsInLayout.Height;
+                itemsOffset += (CollectionView.ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1) * firstPreparedItem.Value.BoundsInLayout.Height;
                 BaseLineItemUsually = new LayoutInfor()
                 {
                     StartBounds = new Rect(0, CollectionView.ScrollY - itemsOffset, 0, 0),
@@ -506,17 +487,17 @@ namespace MauiUICollectionView.Layouts
         /// <summary>
         /// this layout support go to, so item's position is not accurate sometimes, we need adjust position to fit header's position.
         /// </summary>
-        void FitBoundsWhenCloseHeader()
+        void FitBoundsWhenCloseHeader(LayoutInfor visibleItems)
         {
             //正常布局时
             if (CollectionView.PreparedItems.Count > 0)
             {
-                var visibleFirst = CollectionView.PreparedItems.First();
-                if (visibleFirst.Key.Section == 0 && (visibleFirst.Key.Row >= 0 && visibleFirst.Key.Row < StartBoundsCache.Count - 1))
+                var visibleFirst = visibleItems.StartItem;
+                /*if (visibleFirst.Key.Section == 0 && (visibleFirst.Key.Row >= 0 && visibleFirst.Key.Row < StartBoundsCache.Count - 1))
                 {
-                    /*
+                    *//*
                      * case 1: item's position not fit header, we try find one item let it fit.
-                     */
+                     *//*
                     var targetBounds = StartBoundsCache[visibleFirst.Key.Row];
                     var currentBounds = visibleFirst.Value.BoundsInLayout;
                     if (targetBounds.Top != currentBounds.Top)
@@ -532,9 +513,9 @@ namespace MauiUICollectionView.Layouts
                 }
                 else
                 {
-                    /*
+                    *//*
                      * case 2: top don't have space to scroll to header
-                     */
+                     *//*
                     var minTop = StartBoundsCache.Last().Top;
                     if (visibleFirst.Value.BoundsInLayout.Top < minTop && (visibleFirst.Key.Row >= StartBoundsCache.Count - 1))
                     {
@@ -547,27 +528,66 @@ namespace MauiUICollectionView.Layouts
                         isScrollToDirectly = true;
                     }
                     else
+                    {*/
+                var firstItem = NSIndexPath.FromRowSection(0, 0);
+
+                if (CollectionView.ScrollY <= StartBoundsCache[0].Top)
+                {
+                    if (visibleFirst.Compare(firstItem) == 0)
                     {
-                        /*
-                         * case 3: when top have too big space to scroll header, when first item show, will show space. 
-                         */
-                        var firstItem = NSIndexPath.FromRowSection(0, 0);
-                        if (visibleFirst.Key == firstItem)
+
+                    }
+                    else
+                    {
+                        var lastCache = NSIndexPath.FromRowSection(StartBoundsCache.Count - 1, 0);
+                        if (lastCache.Compare(visibleFirst) >= 0)
                         {
-                            var firstItemRect = visibleFirst.Value.BoundsInLayout;
-                            if (firstItemRect.Top > 0)
+                            var targetBounds = StartBoundsCache[visibleFirst.Row];
+                            if (CollectionView.PreparedItems[visibleFirst].BoundsInLayout != targetBounds)
                             {
                                 BaseLineItemUsually = new LayoutInfor()
                                 {
-                                    StartBounds = new Rect(0, StartBoundsCache[0].Top, 0, 0),
-                                    StartItem = firstItem
+                                    StartBounds = new Rect(0, targetBounds.Top, 0, 0),
+                                    StartItem = visibleFirst
                                 };
-                                CollectionView.ScrollToAsync(0, StartBoundsCache[0].Top, false);
                                 isScrollToDirectly = true;
+                                CollectionView.ScrollToAsync(0, targetBounds.Top, false);
                             }
+                        }
+                        else
+                        {
+                            var targetTop = CollectionView.PreparedItems[visibleFirst].BoundsInLayout.Bottom + CollectionView.ItemCountInRange(lastCache, visibleFirst) * EstimateAverageHeight();
+
+                            BaseLineItemUsually = new LayoutInfor()
+                            {
+                                StartBounds = new Rect(0, targetTop, 0, 0),
+                                StartItem = visibleFirst
+                            };
+                            isScrollToDirectly = true;
+                            CollectionView.ScrollToAsync(0, targetTop, false);
                         }
                     }
                 }
+                /*
+                 * case 3: when top have too big space to scroll header, when first item show, will show space, so we directly scroll to top of first item. 
+                 */
+                if (visibleFirst.Compare(firstItem) == 0)
+                {
+                    var firstItemRect = CollectionView.PreparedItems[visibleFirst].BoundsInLayout;
+                    if (firstItemRect.Top > StartBoundsCache[0].Top && //There is space  
+                        CollectionView.ScrollY < (firstItemRect.Bottom - firstItemRect.Height * 4 / 5))//when close to first item top
+                    {
+                        BaseLineItemUsually = new LayoutInfor()
+                        {
+                            StartBounds = new Rect(0, StartBoundsCache[0].Top, 0, 0),
+                            StartItem = firstItem
+                        };
+                        isScrollToDirectly = true;
+                        CollectionView.ScrollToAsync(0, StartBoundsCache[0].Top, false);
+                    }
+                }
+                //}
+                //}
             }
         }
 
@@ -578,8 +598,8 @@ namespace MauiUICollectionView.Layouts
                 var first = CollectionView.PreparedItems.First().Key;
                 var last = CollectionView.PreparedItems.Last().Key;
                 var end = 0;
-                if (first > indexPath) end = -ItemCountInRange(indexPath, first);
-                else if (last < indexPath) end = ItemCountInRange(indexPath, first);
+                if (first > indexPath) end = -CollectionView.ItemCountInRange(indexPath, first);
+                else if (last < indexPath) end = CollectionView.ItemCountInRange(indexPath, first);
                 var anim = new Animation((v) =>
                 {
                     var target = CollectionView.NextItem(last, (int)v);
@@ -641,7 +661,7 @@ namespace MauiUICollectionView.Layouts
                     var itemViewHolder = item.Value;
                     if (indexPath < itemIndexPath)
                     {
-                        var count = ItemCountInRange(indexPath, itemIndexPath);
+                        var count = CollectionView.ItemCountInRange(indexPath, itemIndexPath) + 1;
                         double averageHeight = EstimateAverageHeight();
                         var allItemHeight = count * averageHeight;
                         return new Rect(0, itemViewHolder.BoundsInLayout.Top - allItemHeight, itemViewHolder.BoundsInLayout.Width, averageHeight);
@@ -652,7 +672,7 @@ namespace MauiUICollectionView.Layouts
                     itemViewHolder = item.Value;
                     if (indexPath > itemIndexPath)
                     {
-                        var count = ItemCountInRange(itemIndexPath, indexPath);
+                        var count = CollectionView.ItemCountInRange(itemIndexPath, indexPath);
                         double averageHeight = EstimateAverageHeight();
                         var allItemHeight = count * averageHeight;
                         return new Rect(0, itemViewHolder.BoundsInLayout.Bottom + allItemHeight, itemViewHolder.BoundsInLayout.Width, averageHeight);
