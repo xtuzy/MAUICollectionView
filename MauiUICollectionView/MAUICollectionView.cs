@@ -613,60 +613,62 @@ namespace MauiUICollectionView
             };
             var diff = new DiffAnimation(operation, this);
             ItemsLayout.Updates = (operation, diff);
-            diff.RecordLastViewHolder(PreparedItems);
 
             //when remove, maybe need change baseline for better animation.
             var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
             if (layout != null)
             {
-                var firstVisibleItem = PreparedItems.FirstOrDefault();
-                var lastVisibleItem = PreparedItems.LastOrDefault();
+                var firstVisibleItem = layout.VisibleIndexPath.StartItem;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+                var lastVisibleItem = layout.VisibleIndexPath.EndItem;
+                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].BoundsInLayout;
                 var firstRemoved = indexPath;
                 var lastRemoved = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
 
                 NSIndexPath baselineLastIndexPath = null;
                 NSIndexPath baselineCurrentIndexPath = null;
                 bool moved = false;
-                if (firstVisibleItem.Key.Compare(lastRemoved) > 0)//remove items before first visible item, we need update baseline indexpath
+                if (firstVisibleItem.Compare(lastRemoved) > 0)//remove items before first visible item, we need update baseline indexpath
                 {
                     /****]*First*****Last*****/
-                    baselineLastIndexPath = firstVisibleItem.Key;
-                    baselineCurrentIndexPath = firstVisibleItem.Key.Section == indexPath.Section ?
-                        NSIndexPath.FromRowSection(firstVisibleItem.Key.Row - count, firstVisibleItem.Key.Section) ://row will change when same section 
-                        firstVisibleItem.Key;
+                    baselineLastIndexPath = firstVisibleItem;
+                    baselineCurrentIndexPath = firstVisibleItem.Section == indexPath.Section ?
+                        NSIndexPath.FromRowSection(firstVisibleItem.Row - count, firstVisibleItem.Section) ://row will change when same section 
+                        firstVisibleItem;
                     layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                     {
                         //indexpath maybe change
                         StartItem = baselineCurrentIndexPath,
-                        StartBounds = firstVisibleItem.Value.BoundsInLayout
+                        StartBounds = firstVisibleItemBounds
                     };
                 }
                 else
                 {
-                    if (firstRemoved > firstVisibleItem.Key)// removed item after first visible, use first visible as baseline. 
+                    if (firstRemoved > firstVisibleItem)// removed item after first visible, use first visible as baseline. 
                     {
                         /*****First*[****Last*****/
-                        baselineLastIndexPath = firstVisibleItem.Key;
-                        baselineCurrentIndexPath = firstVisibleItem.Key;
+                        baselineLastIndexPath = firstVisibleItem;
+                        baselineCurrentIndexPath = firstVisibleItem;
 
                         layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                         {
                             StartItem = baselineCurrentIndexPath,
-                            StartBounds = firstVisibleItem.Value.BoundsInLayout
+                            StartBounds = firstVisibleItemBounds
                         };
                     }
-                    else if (lastRemoved < lastVisibleItem.Key)//removed item before last visible item, and contain first visible
+                    else if (lastRemoved < lastVisibleItem)//removed item before last visible item, and contain first visible
                     {
                         /****[*First****]*Last*****/
-                        baselineLastIndexPath = lastVisibleItem.Key;
-                        baselineCurrentIndexPath = lastVisibleItem.Key.Section == indexPath.Section ?
-                            NSIndexPath.FromRowSection(lastVisibleItem.Key.Row - count, lastVisibleItem.Key.Section) ://row will change when same section 
-                            lastVisibleItem.Key;
+                        baselineLastIndexPath = lastVisibleItem;
+                        baselineCurrentIndexPath = lastVisibleItem.Section == indexPath.Section ?
+                            NSIndexPath.FromRowSection(lastVisibleItem.Row - count, lastVisibleItem.Section) ://row will change when same section 
+                            lastVisibleItem;
 
                         layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                         {
                             StartItem = baselineCurrentIndexPath,
-                            StartBounds = lastVisibleItem.Value.BoundsInLayout
+                            StartBounds = lastVisibleItemBounds
                         };
 
                         //fix move first item will measure multiple times when remove top item
@@ -730,14 +732,18 @@ namespace MauiUICollectionView
             };
             var diff = new DiffAnimation(operation, this);
             ItemsLayout.Updates = (operation, diff);
-            diff.RecordLastViewHolder(PreparedItems);
 
             //when insert, maybe need change baseline for better animation.
             var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
+
             if (layout != null)
             {
-                var firstVisibleItem = PreparedItems.FirstOrDefault();
-                var lastVisibleItem = PreparedItems.LastOrDefault();
+                var firstVisibleItem = layout.VisibleIndexPath.StartItem;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+                var lastVisibleItem = layout.VisibleIndexPath.EndItem;
+                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].BoundsInLayout;
+
                 var firstInsert = indexPath;
                 var lastInsert = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
 
@@ -748,21 +754,21 @@ namespace MauiUICollectionView
                 /*
                  * insert at any position, we don't change old first visible item as baseline, if we insert at position of old first visible item, we also don't change it
                  */
-                baselineLastIndexPath = firstVisibleItem.Key;
-                if (indexPath.Compare(firstVisibleItem.Key) <= 0)
+                baselineLastIndexPath = firstVisibleItem;
+                if (indexPath.Compare(firstVisibleItem) <= 0)
                 {
-                    baselineCurrentIndexPath = firstVisibleItem.Key.Section == indexPath.Section ?
-                        NSIndexPath.FromRowSection(firstVisibleItem.Key.Row + count, firstVisibleItem.Key.Section) ://row will change when same section 
-                        firstVisibleItem.Key;
+                    baselineCurrentIndexPath = firstVisibleItem.Section == indexPath.Section ?
+                        NSIndexPath.FromRowSection(firstVisibleItem.Row + count, firstVisibleItem.Section) ://row will change when same section 
+                        firstVisibleItem;
                 }
                 else
                 {
-                    baselineCurrentIndexPath = firstVisibleItem.Key;
+                    baselineCurrentIndexPath = firstVisibleItem;
                 }
                 layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                 {
                     StartItem = baselineCurrentIndexPath,
-                    StartBounds = firstVisibleItem.Value.BoundsInLayout
+                    StartBounds = firstVisibleItemBounds
                 };
 
                 operation.BaselineItem = (baselineLastIndexPath, baselineCurrentIndexPath, moved);
@@ -777,7 +783,7 @@ namespace MauiUICollectionView
             this.ReMeasure();
         }
 
-        public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
+        private void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
         {
             var Updates = ItemsLayout.Updates;
             if (Updates != null)

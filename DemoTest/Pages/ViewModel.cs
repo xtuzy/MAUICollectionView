@@ -150,7 +150,7 @@ namespace DemoTest.Pages
         {
             if (path1.Row == 0 || path2.Row == 0)//section的header不处理, 不然会出错
                 return;
-            collectionView.MoveItem(path1, path2);
+            //collectionView.MoveItem(path1, path2);
             MoveData(path1.Row, path2.Row);
         }
 

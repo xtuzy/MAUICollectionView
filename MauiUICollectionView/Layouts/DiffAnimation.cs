@@ -18,11 +18,13 @@
 
         public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> LastViewHolders = new Dictionary<NSIndexPath, MAUICollectionViewViewHolder>();
         public Dictionary<NSIndexPath, MAUICollectionViewViewHolder> CurrentViewHolders = new Dictionary<NSIndexPath, MAUICollectionViewViewHolder>();
-        public void RecordLastViewHolder(Dictionary<NSIndexPath, MAUICollectionViewViewHolder> lastViewHolders)
+        public void RecordLastViewHolder(Dictionary<NSIndexPath, MAUICollectionViewViewHolder> lastViewHolders, CollectionViewLayout.LayoutInfor visibleItems)
         {
             foreach (var item in lastViewHolders)
             {
-                LastViewHolders.Add(item.Key, item.Value);
+                if (item.Key.Compare(visibleItems.StartItem) >= 0 &&
+                    item.Key.Compare(visibleItems.EndItem) <= 0)
+                    LastViewHolders.Add(item.Key, item.Value);
             }
         }
 
@@ -87,25 +89,26 @@
             return false;
         }
 
-        public void RecordCurrentViewHolder(Dictionary<NSIndexPath, MAUICollectionViewViewHolder> currentViewHolders)
+        public void RecordCurrentViewHolder(Dictionary<NSIndexPath, MAUICollectionViewViewHolder> currentViewHolders, CollectionViewLayout.LayoutInfor visibleItems)
         {
             foreach (var item in currentViewHolders)
             {
-                CurrentViewHolders.Add(item.Key, item.Value);
+                if (item.Key.Compare(visibleItems.StartItem) >= 0 &&
+                    item.Key.Compare(visibleItems.EndItem) <= 0)
+                    CurrentViewHolders.Add(item.Key, item.Value);
             }
         }
 
-        ILayoutAnimationManager AnimationManager;
+        ILayoutAnimationManager AnimationManager => CollectionView.ItemsLayout.AnimationManager;
         MAUICollectionView CollectionView;
 
         public DiffAnimation(Operate operation, MAUICollectionView collectionView)
         {
             Operation = operation;
             CollectionView = collectionView;
-            AnimationManager = CollectionView.ItemsLayout.AnimationManager;
         }
 
-        public void Analysis(bool analysisLast)
+        public void Analysis(bool isBeforeMeasure)
         {
             if (Operation.OperateType == OperateItem.OperateType.Remove)
             {
@@ -118,7 +121,7 @@
                 }
                 else
                 {
-                    if (analysisLast)
+                    if (isBeforeMeasure)
                     {
                         foreach (var item in LastViewHolders)
                         {
@@ -191,7 +194,7 @@
                 }
                 else
                 {
-                    if (analysisLast)
+                    if (isBeforeMeasure)
                     {
                         foreach (var item in LastViewHolders)
                         {
@@ -230,6 +233,9 @@
                                 emitateLastIndexPath = CollectionView.NextItem(item.Key, Operation.OperateCount);
 
                                 var bounds = CollectionView.ItemsLayout.RectForItem(emitateLastIndexPath);
+                                if (bounds == viewHolder.BoundsInLayout && 
+                                    viewHolder.OldBoundsInLayout != Rect.Zero)//if have have data(in extend items), pass
+                                    continue;
                                 viewHolder.OldBoundsInLayout = viewHolder.BoundsInLayout;
                                 viewHolder.BoundsInLayout = new Rect(bounds.X, bounds.Y, viewHolder.OldBoundsInLayout.Width, viewHolder.OldBoundsInLayout.Height);
                             }
@@ -244,7 +250,9 @@
 
         public void Dispose()
         {
-            //throw new NotImplementedException();
+            CollectionView = null;
+            LastViewHolders.Clear();
+            CurrentViewHolders.Clear();
         }
     }
 }

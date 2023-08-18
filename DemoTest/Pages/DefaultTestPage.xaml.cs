@@ -33,7 +33,7 @@ public partial class DefaultTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-            HeightExpansionFactor = 0,
+            HeightExpansionFactor = 1,
             SelectionMode = SelectionMode.Multiple,
             //CanDrag = true,
             CanContextMenu = true,
@@ -134,7 +134,7 @@ public partial class DefaultTestPage : ContentPage
             var index = 3;
             var target = 1;
             (tableView.Source as Source).MoveData(index, target);
-            tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
+            //tableView.MoveItem(NSIndexPath.FromRowSection(index, 0), NSIndexPath.FromRowSection(target, 0));
         };
 
         Change.Clicked += (sender, e) =>

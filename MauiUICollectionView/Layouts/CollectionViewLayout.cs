@@ -302,7 +302,7 @@ namespace MauiUICollectionView.Layouts
              */
             if (HasOperation)
             {
-                diffAnimation.RecordCurrentViewHolder(CollectionView.PreparedItems);
+                diffAnimation.RecordCurrentViewHolder(CollectionView.PreparedItems, VisibleIndexPath);
                 diffAnimation.Analysis(false);
                 /*for (int index = Updates.Count - 1; index >= 0; index--)
                 {

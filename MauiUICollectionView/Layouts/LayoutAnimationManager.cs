@@ -323,7 +323,7 @@
                     //remove了中间的
                     if (moveOperateAnimation != null)
                     {
-                        moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 150, null, (v, b) =>
+                        moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 250, null, (v, b) =>
                         {
                             CollectionView.ReMeasure();
                             OperateAnimFinished();
@@ -339,7 +339,7 @@
             {
                 if (moveOperateAnimation != null)
                 {
-                    moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 150, null, (v, b) =>
+                    moveOperateAnimation.Commit(CollectionView, "moveAnmiation", 16, 250, null, (v, b) =>
                     {
                         CollectionView.ReMeasure();
                         //插入到中间时, 既有move又有insert
