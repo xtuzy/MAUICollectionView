@@ -293,7 +293,8 @@ namespace MauiUICollectionView
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
                     DragedItem.Scale = 1;
-                    if (!DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath.StartItem, ItemsLayout.VisibleIndexPath.EndItem))
+                    if (DragedItem.IndexPath == null ||
+                        !DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath.StartItem, ItemsLayout.VisibleIndexPath.EndItem))
                     {
                         RecycleViewHolder(DragedItem);
                     }

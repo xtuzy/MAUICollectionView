@@ -1,5 +1,7 @@
 using MauiUICollectionView;
 using MauiUICollectionView.Layouts;
+using Microsoft.Maui.Controls;
+using static System.Collections.Specialized.BitVector32;
 
 namespace DemoTest.Pages;
 
@@ -42,6 +44,24 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             ViewHolderForItem += cellForRowAtIndexPathMethod;
             NumberOfSections += numberOfSectionsInTableViewMethod;
             ReuseIdForItem += reuseIdentifierForRowAtIndexPathMethod;
+            WantDragTo += DragTo;
+            WantDropTo += DropTo;
+        }
+
+        private void DropTo(MAUICollectionView view, NSIndexPath path1, NSIndexPath path2)
+        {
+            var data = ViewModel.models[path1.Section][path1.Row];
+            ViewModel.models[path1.Section].Remove(data);
+            ViewModel.models[path2.Section].Insert(path2.Row, data);
+            view.MoveItem(path1, path2);
+        }
+
+        private void DragTo(MAUICollectionView view, NSIndexPath path1, NSIndexPath path2)
+        {
+            var data = ViewModel.models[path1.Section][path1.Row];
+            ViewModel.models[path1.Section].Remove(data);
+            ViewModel.models[path2.Section].Insert(path2.Row, data);
+            view.MoveItem(path1, path2);
         }
 
         public int numberOfSectionsInTableViewMethod(MAUICollectionView tableView)
@@ -97,16 +117,17 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                         textCell = new ItemViewHolder(new Grid(), type) { };
                     }
 
-                    textCell.Name.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonName;
-                    textCell.Phone.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonPhone;
-
                     cell = textCell;
                 }
             }
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = tableView.CanContextMenu;
             if (cell is ItemViewHolder)
+            {
                 (cell as ItemViewHolder).Id.Text = indexPath.ToString();
+                (cell as ItemViewHolder).Name.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonName;
+                (cell as ItemViewHolder).Phone.Text = ViewModel.models[indexPath.Section][indexPath.Row].PersonPhone;
+            }
             return cell;
         }
 

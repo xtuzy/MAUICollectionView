@@ -11,6 +11,9 @@
             public int OperateCount;
             public NSIndexPath Source;
             public NSIndexPath Target;
+            /// <summary>
+            /// moved means item is moved, not only change index.
+            /// </summary>
             public (NSIndexPath lastIndex, NSIndexPath currentIndex, bool moved) BaselineItem;
         }
 
@@ -65,6 +68,106 @@
                     else
                     {
                         return oldIndexPath;
+                    }
+                }
+                else
+                {
+                    return oldIndexPath;
+                }
+            }
+            else if (Operation.OperateType == OperateItem.OperateType.Move)
+            {
+                if (oldIndexPath.Compare(Operation.Source) == 0)
+                {
+                    return Operation.Target;
+                }
+
+                if (Operation.Source.Compare(Operation.Target) < 0)
+                {
+                    /*
+                     * 0*****1*S***T*2
+                     */
+                    if (Operation.Source.Section == Operation.Target.Section)
+                    {
+                        if (oldIndexPath.IsInRange(Operation.Source, Operation.Target))
+                        {
+                            return NSIndexPath.FromRowSection(oldIndexPath.Row-1, oldIndexPath.Section);
+                        }
+                        else
+                        {
+                            return oldIndexPath;
+                        }
+                    }
+                    else
+                    {
+                        /*
+                         * 0***S**1*****2**T***3
+                         */
+                        if (oldIndexPath.IsInRange(Operation.Source, Operation.Target))
+                        {
+                            if(oldIndexPath.Section == Operation.Source.Section)
+                                return NSIndexPath.FromRowSection(oldIndexPath.Row - 1, oldIndexPath.Section);
+                            else if(oldIndexPath.Compare(Operation.Target)==0)
+                            {
+                                return NSIndexPath.FromRowSection(oldIndexPath.Row + 1, oldIndexPath.Section);
+                            }
+                            else
+                            {
+                                return oldIndexPath;
+                            }
+                        }
+                        else if(oldIndexPath.Section == Operation.Target.Section)
+                        {
+                            return NSIndexPath.FromRowSection(oldIndexPath.Row + 1, oldIndexPath.Section);
+                        }
+                        else
+                        {
+                            return oldIndexPath;
+                        }
+                    }
+                }
+                else if (Operation.Source.Compare(Operation.Target) > 0)
+                {
+                    /*
+                     * 0*****1*T***S*2
+                     */
+                    if (Operation.Source.Section == Operation.Target.Section)
+                    {
+                        if (oldIndexPath.IsInRange(Operation.Target, Operation.Source))
+                        {
+                            return NSIndexPath.FromRowSection(oldIndexPath.Row + 1, oldIndexPath.Section);
+                        }
+                        else
+                        {
+                            return oldIndexPath;
+                        }
+                    }
+                    else
+                    {
+                        /*
+                         * 0***T**1*****2**S***3
+                         */
+                        if (oldIndexPath.IsInRange(Operation.Target, Operation.Source))
+                        {
+                            if (oldIndexPath.Section == Operation.Source.Section)
+                                return oldIndexPath;
+                            else if (oldIndexPath.Compare(Operation.Target) == 0)
+                            {
+                                return NSIndexPath.FromRowSection(oldIndexPath.Row + 1, oldIndexPath.Section);
+                            }
+                            else
+                            {
+                                return oldIndexPath;
+                            }
+                        }
+                        else if (oldIndexPath.Section == Operation.Source.Section)
+                        {
+                            return NSIndexPath.FromRowSection(oldIndexPath.Row - 1, oldIndexPath.Section);
+                        }
+                        else
+                        {
+                            return oldIndexPath;
+                        }
                     }
                 }
                 else
@@ -233,7 +336,7 @@
                                 emitateLastIndexPath = CollectionView.NextItem(item.Key, Operation.OperateCount);
 
                                 var bounds = CollectionView.ItemsLayout.RectForItem(emitateLastIndexPath);
-                                if (bounds == viewHolder.BoundsInLayout && 
+                                if (bounds == viewHolder.BoundsInLayout &&
                                     viewHolder.OldBoundsInLayout != Rect.Zero)//if have have data(in extend items), pass
                                     continue;
                                 viewHolder.OldBoundsInLayout = viewHolder.BoundsInLayout;

@@ -293,7 +293,8 @@ namespace MauiUICollectionView.Layouts
              */
             foreach (var item in CollectionView.PreparedItems)
             {
-                item.Value.Selected = CollectionView.SelectedItems.Contains(item.Key);
+                if (CollectionView.SelectedItems.Contains(item.Key))
+                    item.Value.Selected = true;
             }
 
 
