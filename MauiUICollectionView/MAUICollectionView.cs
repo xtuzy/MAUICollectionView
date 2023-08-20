@@ -615,7 +615,7 @@ namespace MauiUICollectionView
             ItemsLayout.Updates = (operation, diff);
 
             //when remove, maybe need change baseline for better animation.
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            var layout = ItemsLayout;
             diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
             if (layout != null)
             {
@@ -734,7 +734,7 @@ namespace MauiUICollectionView
             ItemsLayout.Updates = (operation, diff);
 
             //when insert, maybe need change baseline for better animation.
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            var layout = ItemsLayout;
             diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
 
             if (layout != null)
@@ -798,7 +798,7 @@ namespace MauiUICollectionView
             ItemsLayout.Updates = (operation, diff);
 
             //when insert, maybe need change baseline for better animation.
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            var layout = ItemsLayout;
             diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
             if (layout != null)
             {
@@ -832,7 +832,7 @@ namespace MauiUICollectionView
             var Updates = ItemsLayout.Updates;
             if (Updates != null)
                 ItemsLayout.AnimationManager.StopOperateAnim();
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            var layout = ItemsLayout;
             if (layout != null)
             {
                 var firstVisibleItem = PreparedItems.FirstOrDefault();

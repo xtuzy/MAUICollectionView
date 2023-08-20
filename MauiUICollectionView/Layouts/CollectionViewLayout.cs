@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using MauiUICollectionView.Layouts;
+using System.Diagnostics;
 
 namespace MauiUICollectionView.Layouts
 {
@@ -115,6 +116,11 @@ namespace MauiUICollectionView.Layouts
         /// Cache height of item that have same Id, it be use for predict height.
         /// </summary>
         public Dictionary<string, double> MeasuredSelfHeightCacheForReuse = new Dictionary<string, double>();
+
+        /// <summary>
+        /// it contain information about item and bounds, we layout item according to it. it's IndexPath is latest.
+        /// </summary>
+        public LayoutInfor BaseLineItemUsually;
 
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.

@@ -102,11 +102,6 @@
         }
 
         /// <summary>
-        /// it contain information about item and bounds, we layout item according to it. it's IndexPath is latest.
-        /// </summary>
-        public LayoutInfor BaseLineItemUsually;
-
-        /// <summary>
         /// When not touch scrolling, we use it to remeasure all prepared items.
         /// </summary>
         /// <param name="inRect"></param>
