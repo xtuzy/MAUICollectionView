@@ -4,4 +4,6 @@
         android:title="Delete" />
   <item android:id="@+id/insert_item"
         android:title="Insert" />
+  <item android:id="@+id/insert_after_item"
+        android:title="InsertAfter" />
 </menu>
