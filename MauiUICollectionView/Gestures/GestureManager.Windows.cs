@@ -34,7 +34,7 @@ namespace MauiUICollectionView.Gestures
 
             detector.Dragging += (sender, args) =>
             {
-                //Debug.WriteLine("drag");
+                Debug.WriteLine("drag");
                 if (!IsSupportDrag)
                     return;
                 var gestureStatus = args.DraggingState switch
@@ -140,6 +140,7 @@ namespace MauiUICollectionView.Gestures
         }
 
         SelectStatus selectStatus = SelectStatus.CancelWillSelect;
+        Point selectPressPoint;
         private void ControlOnPointerPressed(object sender, PointerRoutedEventArgs pointerRoutedEventArgs)
         {
             view.CapturePointer(pointerRoutedEventArgs.Pointer);
@@ -152,8 +153,9 @@ namespace MauiUICollectionView.Gestures
             }
             else
             {
+                selectPressPoint = new Point(point.Position.X, point.Position.Y);
                 selectStatus = SelectStatus.WillSelect;
-                TriggerCommand(SelectPointCommand, new SelectEventArgs(selectStatus, new Point(point.Position.X, point.Position.Y)));
+                TriggerCommand(SelectPointCommand, new SelectEventArgs(selectStatus, selectPressPoint));
             }
             detector.ProcessDownEvent(point);
             pointerRoutedEventArgs.Handled = true;
@@ -161,7 +163,6 @@ namespace MauiUICollectionView.Gestures
 
         private void ControlOnPointerMoved(object sender, PointerRoutedEventArgs pointerRoutedEventArgs)
         {
-            //Debug.WriteLine("move");
             var point = pointerRoutedEventArgs.GetCurrentPoint(view);
             if (point.Properties.IsRightButtonPressed)// not use right mouse button
             {
@@ -170,8 +171,13 @@ namespace MauiUICollectionView.Gestures
             //if move, it is not selection
             if (selectStatus == SelectStatus.WillSelect)
             {
-                selectStatus = SelectStatus.CancelWillSelect;
-                TriggerCommand(SelectPointCommand, new SelectEventArgs(selectStatus, new Point(point.Position.X, point.Position.Y)));
+                Debug.WriteLine("move");
+                if (Math.Abs(point.Position.X - selectPressPoint.X) > 2
+                    || Math.Abs(point.Position.Y - selectPressPoint.Y) > 2)//mouse maybe have a little move event, even you think you don't move mouse.
+                {
+                    selectStatus = SelectStatus.CancelWillSelect;
+                    TriggerCommand(SelectPointCommand, new SelectEventArgs(selectStatus, new Point(point.Position.X, point.Position.Y)));
+                }
             }
 
             var points = pointerRoutedEventArgs.GetIntermediatePoints(view);
@@ -197,7 +203,7 @@ namespace MauiUICollectionView.Gestures
 
         private void ControlOnPointerReleased(object sender, PointerRoutedEventArgs args)
         {
-            //Debug.WriteLine("up");
+            Debug.WriteLine("up");
             var point = args.GetCurrentPoint(view);
             
             if (selectStatus == SelectStatus.WillSelect)

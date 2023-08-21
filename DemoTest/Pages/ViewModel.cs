@@ -75,7 +75,7 @@ namespace DemoTest.Pages
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
-            var modelsList = testModel.Generate(1000);
+            var modelsList = testModel.Generate(10000);
             var itenmCountInSection = 20;
             models = new List<List<Model>>();
             for (var index = 0; index < modelsList.Count / itenmCountInSection; index++)
@@ -470,18 +470,18 @@ namespace DemoTest.Pages
         {
             base.PrepareForReuse();
             TextView.Text = string.Empty;
-            UpdateSelectionState(false);
+            UpdateSelectionState(SelectStatus.CancelWillSelect);
         }
 
         Color DefaultColor = Colors.LightYellow;
-        public override void UpdateSelectionState(bool shouldHighlight)
+        public override void UpdateSelectionState(SelectStatus status)
         {
             if (DefaultColor == Colors.LightYellow)
             {
                 DefaultColor = Content.BackgroundColor;
             }
-            base.UpdateSelectionState(shouldHighlight);
-            if (shouldHighlight)
+            base.UpdateSelectionState(status);
+            if (status == SelectStatus.Selected)
                 Content.BackgroundColor = Colors.LightGrey;
             else
                 Content.BackgroundColor = DefaultColor;
@@ -505,18 +505,18 @@ namespace DemoTest.Pages
             ModelView.PersonImageBlog.Source = null;
             //ModelView.CommentIcon.Source = null;
             //ModelView.ShareIcon.Source = null;
-            UpdateSelectionState(false);
+            UpdateSelectionState(SelectStatus.CancelWillSelect);
         }
 
         Color DefaultColor = Colors.LightYellow;
-        public override void UpdateSelectionState(bool shouldHighlight)
+        public override void UpdateSelectionState(SelectStatus status)
         {
             if (DefaultColor == Colors.LightYellow)
             {
                 DefaultColor = Content.BackgroundColor;
             }
-            base.UpdateSelectionState(shouldHighlight);
-            if (shouldHighlight)
+            base.UpdateSelectionState(status);
+            if (status == SelectStatus.Selected)
                 Content.BackgroundColor = Colors.Grey.WithAlpha(100);
             else
                 Content.BackgroundColor = DefaultColor;
@@ -603,7 +603,7 @@ namespace DemoTest.Pages
             };
             var insertAfterMenuItem = new MenuFlyoutItem()
             {
-                Text = "Insert",
+                Text = "InsertAfter",
                 // = insertCommand,
                 CommandParameter = this
             };

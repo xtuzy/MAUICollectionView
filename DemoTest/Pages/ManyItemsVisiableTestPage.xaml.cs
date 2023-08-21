@@ -189,12 +189,15 @@ public partial class ManyItemsVisiableTestPage : ContentPage
 #endif
             }
 
-            public override void UpdateSelectionState(bool shouldHighlight)
+            public override void UpdateSelectionState(SelectStatus status)
             {
-                base.UpdateSelectionState(shouldHighlight);
-                if(shouldHighlight)
+                base.UpdateSelectionState(status);
+                if(status == SelectStatus.Selected)
                 {
                     BackgroundColor = Colors.Gray;
+                }else if(status == SelectStatus.WillSelect)
+                {
+                    BackgroundColor = Colors.AliceBlue;
                 }
                 else
                 {
@@ -207,7 +210,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 base.PrepareForReuse();
                 Name.Text = string.Empty;
                 Phone.Text = string.Empty;
-                UpdateSelectionState(false);
+                UpdateSelectionState(SelectStatus.CancelWillSelect);
             }
         }
     }
