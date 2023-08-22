@@ -1,7 +1,7 @@
 # MAUICollectionView
 [![NuGet version(Yang.MAUICollectionView)](https://img.shields.io/nuget/v/Yang.MAUICollectionView?label=Yang.MAUICollectionView)](https://www.nuget.org/packages/Yang.MAUICollectionView)
 
-This is an custom CollectionView. It base on ScrollView, like FlatList in ReactNative, not use native UICollectionView/RecyclerView, it have high performance by recycle view.
+This is a custom CollectionView based on ScrollView, similar to FlatList in ReactNative. It does not use native UICollectionView/RecyclerView and has high performance by recycling views
 
 Demo:
 - Android
