@@ -1,8 +1,7 @@
 # MAUICollectionView
-- This is an experiment with a custom CollectionView, which does not use the native UICollectionView/RecyclerView, but is based on Maui's ScrollView. This idea from FlatList in ReactNative and iOS's TableView, they are base on ScrollView.
+[![NuGet version(Yang.MAUICollectionView)](https://img.shields.io/nuget/v/Yang.MAUICollectionView?label=Yang.MAUICollectionView)](https://www.nuget.org/packages/Yang.MAUICollectionView)
 
-- We know UICollectionView/RecyclerView is a high performance way to show list, they get high performance by recycle view. In this library, i also do it.
-- And most importantly, we can control all detail about CollectionView, you can custom a layout to get best performance to show your data.
+This is an custom CollectionView. It base on ScrollView, like FlatList in ReactNative, not use native UICollectionView/RecyclerView, it have high performance by recycle view.
 
 Demo:
 - Android
@@ -14,7 +13,7 @@ https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-
 
 
 ## Features
-- Cross Platform is very easy, beacause it base on ScrollView
+- Cross Platform, iOS/Android/Windows/Maccatalyst
 - Support custom layout
 - Support operation(Insert, Remove, ~Move~, Update) animation
 - Support load more
@@ -25,6 +24,9 @@ https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-
 *Features of Demo*
 - RefreshView
 - Context Menu
+
+## Principle of high performance
+When scrolling, there are three situations where the item needs to be set, visible becomes invisible, always visible, invisible becomes visible. We recycle the invisible item, the visible item reuses the recycled item to measure, and the always visible item does not need to be re-measured, so that we only need to measure a few items when scrolling.
 
 ## Awesome Resources
 - [Chameleon](https://github.com/BigZaphod/Chameleon)
