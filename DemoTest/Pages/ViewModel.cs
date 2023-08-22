@@ -731,7 +731,7 @@ namespace DemoTest.Pages
             likeContainer.Add(LikeCountLabel);
             var commentContainer = new HorizontalStackLayout() { HorizontalOptions = LayoutOptions.Center, BackgroundColor = Colors.Red };
             CommentIcon = new Image() { WidthRequest = 30, HeightRequest = 30, BackgroundColor = Colors.AliceBlue };
-            CommentCountLabel = new Label { Text = "1000", VerticalOptions = LayoutOptions.Center, TextColor = Colors.AliceBlue };
+            CommentCountLabel = new Label { Text = "1000", VerticalOptions = LayoutOptions.Center, TextColor = Colors.Black,Padding=new Thickness(5,0,5,0) };
             commentContainer.Add(CommentIcon);
             commentContainer.Add(CommentCountLabel);
             var shareContaner = new HorizontalStackLayout() { HorizontalOptions = LayoutOptions.Center };
