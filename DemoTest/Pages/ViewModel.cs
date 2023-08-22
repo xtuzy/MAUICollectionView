@@ -75,7 +75,7 @@ namespace DemoTest.Pages
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
                 ;
-            var modelsList = testModel.Generate(1000);
+            var modelsList = testModel.Generate(10000);
             var itenmCountInSection = 20;
             models = new List<List<Model>>();
             for (var index = 0; index < modelsList.Count / itenmCountInSection; index++)
@@ -316,7 +316,14 @@ namespace DemoTest.Pages
                             tableView.NotifyItemRangeInserted(arg, count);
                             tableView.ReMeasure();
                         });
-                        simpleCell.InitMenu(deleteCommand, insertCommand);
+                        var insertAfterCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 2;
+                            InsertData(arg.Section, arg.Row, count);//section header occupy a row
+                            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection( arg.Row+1, arg.Section), count);
+                            tableView.ReMeasure();
+                        });
+                        simpleCell.InitMenu(deleteCommand, insertCommand, insertAfterCommand);
                         simpleCell.ModelView.TestButton.Clicked += async (sender, e) =>
                         {
                             await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={simpleCell.IndexPath.Section} Row={simpleCell.IndexPath.Row}", "OK");
@@ -396,7 +403,14 @@ namespace DemoTest.Pages
                             tableView.NotifyItemRangeInserted(arg, count);
                             tableView.ReMeasure();
                         });
-                        simpleCell.InitMenu(deleteCommand, insertCommand);
+                        var insertAfterCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 2;
+                            InsertData(arg.Section, arg.Row, count);//section header occupy a row
+                            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(arg.Row+1,arg.Section), count);
+                            tableView.ReMeasure();
+                        });
+                        simpleCell.InitMenu(deleteCommand, insertCommand, insertAfterCommand);
                         simpleCell.ModelView.TestButton.Clicked += async (sender, e) =>
                         {
                             await Shell.Current.CurrentPage?.DisplayAlert("Alert", $"Section={simpleCell.IndexPath.Section} Row={simpleCell.IndexPath.Row}", "OK");
@@ -456,18 +470,18 @@ namespace DemoTest.Pages
         {
             base.PrepareForReuse();
             TextView.Text = string.Empty;
-            UpdateSelectionState(false);
+            UpdateSelectionState(SelectStatus.CancelWillSelect);
         }
 
         Color DefaultColor = Colors.LightYellow;
-        public override void UpdateSelectionState(bool shouldHighlight)
+        public override void UpdateSelectionState(SelectStatus status)
         {
             if (DefaultColor == Colors.LightYellow)
             {
                 DefaultColor = Content.BackgroundColor;
             }
-            base.UpdateSelectionState(shouldHighlight);
-            if (shouldHighlight)
+            base.UpdateSelectionState(status);
+            if (status == SelectStatus.Selected)
                 Content.BackgroundColor = Colors.LightGrey;
             else
                 Content.BackgroundColor = DefaultColor;
@@ -491,18 +505,18 @@ namespace DemoTest.Pages
             ModelView.PersonImageBlog.Source = null;
             //ModelView.CommentIcon.Source = null;
             //ModelView.ShareIcon.Source = null;
-            UpdateSelectionState(false);
+            UpdateSelectionState(SelectStatus.CancelWillSelect);
         }
 
         Color DefaultColor = Colors.LightYellow;
-        public override void UpdateSelectionState(bool shouldHighlight)
+        public override void UpdateSelectionState(SelectStatus status)
         {
             if (DefaultColor == Colors.LightYellow)
             {
                 DefaultColor = Content.BackgroundColor;
             }
-            base.UpdateSelectionState(shouldHighlight);
-            if (shouldHighlight)
+            base.UpdateSelectionState(status);
+            if (status == SelectStatus.Selected)
                 Content.BackgroundColor = Colors.Grey.WithAlpha(100);
             else
                 Content.BackgroundColor = DefaultColor;
@@ -528,6 +542,9 @@ namespace DemoTest.Pages
                     case Resource.Id.insert_item:
                         InsertMenuCommand.Execute(IndexPath);
                         break;
+                    case Resource.Id.insert_after_item:
+                        InsertAfterMenuCommand.Execute(IndexPath);
+                        break;
                 }
             };
             ContextMenu = aContextMenu;
@@ -537,10 +554,12 @@ namespace DemoTest.Pages
 
         public Command DeleteMenuCommand;
         public Command InsertMenuCommand;
-        public void InitMenu(Command deleteCommand, Command insertCommand)
+        public Command InsertAfterMenuCommand;
+        public void InitMenu(Command deleteCommand, Command insertCommand, Command insertAfterCommand)
         {
             DeleteMenuCommand = deleteCommand;
             InsertMenuCommand = insertCommand;
+            InsertAfterMenuCommand = insertAfterCommand;
 #if IOS
             var menu = new Menu();
             var deleteMenuItem = new The49.Maui.ContextMenu.Action()
@@ -553,12 +572,19 @@ namespace DemoTest.Pages
                 Title = "Insert",
                 Command = insertCommand,
             };
+            var insertAfterMenuItem = new The49.Maui.ContextMenu.Action()
+            {
+                Title = "InsertAfter",
+                Command = insertAfterCommand,
+            };
             deleteMenuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             insertMenuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            insertAfterMenuItem.SetBinding(The49.Maui.ContextMenu.Action.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             menu.Children = new System.Collections.ObjectModel.ObservableCollection<MenuElement>()
             {
                 deleteMenuItem,
-                insertMenuItem
+                insertMenuItem,
+                insertAfterMenuItem
             };
             ContextMenu = new MauiUICollectionView.Gestures.iOSContextMenu(this, menu);
 #elif WINDOWS || MACCATALYST
@@ -575,12 +601,21 @@ namespace DemoTest.Pages
                 // = insertCommand,
                 CommandParameter = this
             };
+            var insertAfterMenuItem = new MenuFlyoutItem()
+            {
+                Text = "InsertAfter",
+                // = insertCommand,
+                CommandParameter = this
+            };
             deleteMenuItem.Clicked += DeleteMenuItem_Clicked;
             insertMenuItem.Clicked += InsertMenuItem_Clicked;
+            insertAfterMenuItem.Clicked += InsertAfterMenuItem_Clicked;
             deleteMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             insertMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+            insertAfterMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             menu.Add(deleteMenuItem);
             menu.Add(insertMenuItem);
+            menu.Add(insertAfterMenuItem);
             ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #elif ANDROID
             ContextMenu = new MauiUICollectionView.Gestures.AndroidContextMenu();
@@ -599,6 +634,13 @@ namespace DemoTest.Pages
             MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
             var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
             InsertMenuCommand.Execute(repo.IndexPath);
+        }
+        
+        private void InsertAfterMenuItem_Clicked(object sender, EventArgs e)
+        {
+            MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
+            var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
+            InsertAfterMenuCommand.Execute(repo.IndexPath);
         }
     }
 
@@ -689,7 +731,7 @@ namespace DemoTest.Pages
             likeContainer.Add(LikeCountLabel);
             var commentContainer = new HorizontalStackLayout() { HorizontalOptions = LayoutOptions.Center, BackgroundColor = Colors.Red };
             CommentIcon = new Image() { WidthRequest = 30, HeightRequest = 30, BackgroundColor = Colors.AliceBlue };
-            CommentCountLabel = new Label { Text = "1000", VerticalOptions = LayoutOptions.Center, TextColor = Colors.AliceBlue };
+            CommentCountLabel = new Label { Text = "1000", VerticalOptions = LayoutOptions.Center, TextColor = Colors.Black,Padding=new Thickness(5,0,5,0) };
             commentContainer.Add(CommentIcon);
             commentContainer.Add(CommentCountLabel);
             var shareContaner = new HorizontalStackLayout() { HorizontalOptions = LayoutOptions.Center };

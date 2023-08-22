@@ -615,7 +615,7 @@ namespace MauiUICollectionView
             ItemsLayout.Updates = (operation, diff);
 
             //when remove, maybe need change baseline for better animation.
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            var layout = ItemsLayout;
             diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
             if (layout != null)
             {
@@ -734,7 +734,7 @@ namespace MauiUICollectionView
             ItemsLayout.Updates = (operation, diff);
 
             //when insert, maybe need change baseline for better animation.
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            var layout = ItemsLayout;
             diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
 
             if (layout != null)
@@ -783,68 +783,43 @@ namespace MauiUICollectionView
             this.ReMeasure();
         }
 
-        private void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
+        public void MoveItem(NSIndexPath indexPath, NSIndexPath toIndexPath)
         {
             var Updates = ItemsLayout.Updates;
             if (Updates != null)
                 ItemsLayout.AnimationManager.StopOperateAnim();
-            /*Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = indexPath, target = toIndexPath });
-
-            //如果同Section, Move影响的只是之间的
-            if (indexPath.Section == toIndexPath.Section)
+            var operation = new DiffAnimation.Operate()
             {
-                var isUpMove = indexPath.Row > toIndexPath.Row;
-                //先移除
-                foreach (var visiableItem in PreparedItems)
-                {
-                    if (visiableItem.Key.Section == indexPath.Section)//同一section的item才变化
-                    {
-                        if (isUpMove)//从底部向上移动, 目标位置下面的都需要向下移动
-                        {
-                            if (visiableItem.Key.Row >= toIndexPath.Row && visiableItem.Key.Row < indexPath.Row)
-                            {
-                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
-                            }
-                        }
-                        else
-                        {
-                            if (visiableItem.Key.Row > indexPath.Row && visiableItem.Key.Row <= toIndexPath.Row)
-                            {
-                                Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
-                            }
-                        }
+                OperateType = OperateItem.OperateType.Move,
+                Source = indexPath,
+                Target = toIndexPath,
+            };
+            var diff = new DiffAnimation(operation, this);
+            ItemsLayout.Updates = (operation, diff);
 
-                    }
-                }
+            //when insert, maybe need change baseline for better animation.
+            var layout = ItemsLayout;
+            diff.RecordLastViewHolder(PreparedItems, layout.VisibleIndexPath);
+            if (layout != null)
+            {
+                var firstVisibleItem = layout.VisibleIndexPath.StartItem;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+
+                NSIndexPath baselineLastIndexPath = firstVisibleItem;
+                NSIndexPath baselineCurrentIndexPath = firstVisibleItem;
+                bool moved = false;
+                layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                {
+                    StartItem = baselineCurrentIndexPath,
+                    StartBounds = firstVisibleItemBounds
+                };
+
+                operation.BaselineItem = (baselineLastIndexPath, baselineCurrentIndexPath, moved);
+
+                diff.Analysis(true);
             }
-            //如果不同Section, 则影响不同的section后面的
-            else
-            {
-                //先移除, 移除的Item后面的Item需要向前移动
-                foreach (var visiableItem in PreparedItems)
-                {
-                    if (visiableItem.Key.Section == indexPath.Section)
-                    {
-                        if (visiableItem.Key.Row > indexPath.Row)
-                        {
-                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row - 1, visiableItem.Key.Section) });
-                        }
-                    }
-                }
-                //后插入, 后面的需要向后移动
-                foreach (var visiableItem in PreparedItems)
-                {
-                    if (visiableItem.Key.Section == toIndexPath.Section)
-                    {
-                        if (visiableItem.Key.Row >= toIndexPath.Row)
-                        {
-                            Updates.Add(new OperateItem() { operateType = OperateItem.OperateType.Move, source = visiableItem.Key, target = NSIndexPath.FromRowSection(visiableItem.Key.Row + 1, visiableItem.Key.Section) });
-                        }
-                    }
-                }
-            }*/
             ReloadDataCount();
-            //updatSelectedIndexPathWhenOperate(diff);
+            updatSelectedIndexPathWhenOperate(diff);
             this.ReMeasure();
         }
 
@@ -857,7 +832,7 @@ namespace MauiUICollectionView
             var Updates = ItemsLayout.Updates;
             if (Updates != null)
                 ItemsLayout.AnimationManager.StopOperateAnim();
-            var layout = (ItemsLayout as CollectionViewFlatListLayout);
+            var layout = ItemsLayout;
             if (layout != null)
             {
                 var firstVisibleItem = PreparedItems.FirstOrDefault();
@@ -876,6 +851,7 @@ namespace MauiUICollectionView
                     RecycleViewHolder(item.Value);
                 }
             }
+            ReloadDataCount();
             this.ReMeasure();
         }
 

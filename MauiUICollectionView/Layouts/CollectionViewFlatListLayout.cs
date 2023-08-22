@@ -6,12 +6,8 @@
         {
         }
 
-        double lastItemsHeight = -1;
-        double lastScrollY = -1;
         protected override double MeasureItems(double top, Rect inRect, Rect visiableRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
-            lastScrollY = CollectionView.ScrollY;
-
             if (CollectionView.IsScrolling &&
                 isScrollToDirectly == false &&
                 !HasOperation)
@@ -70,7 +66,7 @@
             {
                 itemsHeight += CollectionView.ItemCountInRange(lastPreparedItem, lastItem) * StartBoundsCache[StartBoundsCache.Count - 1].Height;
             }
-            lastItemsHeight = itemsHeight;
+
             return itemsHeight;
         }
 
@@ -100,11 +96,6 @@
                 }, availablePreparedItems);
             }
         }
-
-        /// <summary>
-        /// it contain information about item and bounds, we layout item according to it. it's IndexPath is latest.
-        /// </summary>
-        public LayoutInfor BaseLineItemUsually;
 
         /// <summary>
         /// When not touch scrolling, we use it to remeasure all prepared items.

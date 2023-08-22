@@ -19,8 +19,7 @@ namespace MauiUICollectionView
 
         #region https://github.com/BigZaphod/Chameleon/blob/master/UIKit/Classes/UITableViewCell.h
 
-        SelectionStyle _selectionStyle;
-        bool _selected;
+        SelectStatus _selected = SelectStatus.CancelWillSelect;
 
         string _reuseIdentifier;
         public string ReuseIdentifier => _reuseIdentifier;
@@ -29,7 +28,6 @@ namespace MauiUICollectionView
         public MAUICollectionViewViewHolder(View itemView)
         {
             Content = itemView;
-            _selectionStyle = SelectionStyle.Blue;
         }
 
         public MAUICollectionViewViewHolder(View itemView, string reuseIdentifier) : this(itemView)
@@ -37,33 +35,27 @@ namespace MauiUICollectionView
             _reuseIdentifier = reuseIdentifier;
         }
 
-        void _updateSelectionState()
-        {
-            bool shouldHighlight = _selected;
-            UpdateSelectionState(shouldHighlight);
-        }
-
         /// <summary>
         /// The subclass implements it to set how it is displayed when selected.
         /// </summary>
         /// <param name="shouldHighlight"></param>
-        public virtual void UpdateSelectionState(bool shouldHighlight)
+        public virtual void UpdateSelectionState(SelectStatus status)
         {
 
         }
 
-        public void SetSelected(bool selected, bool animated)
+        public void SetSelected(SelectStatus status)
         {
-            if (selected != _selected && _selectionStyle != SelectionStyle.None)
+            if (status != _selected)
             {
-                _selected = selected;
-                this._updateSelectionState();
+                _selected = status;
+                this.UpdateSelectionState(status);
             }
         }
 
         public bool Selected
         {
-            set => this.SetSelected(value, false);
+            set => this.SetSelected(value == true? SelectStatus.Selected: SelectStatus.CancelWillSelect);
         }
 
         /// <summary>

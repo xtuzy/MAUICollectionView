@@ -165,6 +165,21 @@ namespace MauiUICollectionView
                             }
                         }
                     }
+                } 
+                else
+                {
+                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
+                    this._reloadDataIfNeeded();
+
+                    if (!SelectedItems.Contains(indexPath))
+                    {
+                        var cell = this.ViewHolderForItem(indexPath);
+                        if (cell != null)//TODO:不知道为什么有时候为空
+                        {
+                            Debug.WriteLine($"{args.status} {indexPath}");
+                            cell.SetSelected(args.status);
+                        }
+                    }
                 }
             }
         }
@@ -293,7 +308,8 @@ namespace MauiUICollectionView
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
                     DragedItem.Scale = 1;
-                    if (!DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath.StartItem, ItemsLayout.VisibleIndexPath.EndItem))
+                    if (DragedItem.IndexPath == null ||
+                        !DragedItem.IndexPath.IsInRange(ItemsLayout.VisibleIndexPath.StartItem, ItemsLayout.VisibleIndexPath.EndItem))
                     {
                         RecycleViewHolder(DragedItem);
                     }

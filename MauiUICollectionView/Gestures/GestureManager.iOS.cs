@@ -41,7 +41,7 @@ namespace MauiUICollectionView.Gestures
                     var control = view as UIScrollView;
                     var point = recognizer.LocationInView(control);
                     var parameters = new SelectEventArgs(SelectStatus.Selected, new Point(point.X, point.Y - control.ContentOffset.Y));
-                    //Debug.WriteLine(SelectStatus.Selected);
+                    Debug.WriteLine("tab");
                     if (selectPointCommand?.CanExecute(parameters) == true)
                         selectPointCommand.Execute(parameters);
                 }
@@ -252,6 +252,7 @@ namespace MauiUICollectionView.Gestures
             SelectStatus selectStatus = SelectStatus.CancelWillSelect;
             public override void TouchesBegan(NSSet touches, UIEvent evt)
             {
+                Debug.WriteLine("down");
                 var touch = touches.AnyObject as UITouch;
                 selectStatus = SelectStatus.WillSelect;
                 SelectAction?.Invoke(touch, selectStatus);
@@ -262,11 +263,24 @@ namespace MauiUICollectionView.Gestures
             {
                 if (selectStatus == SelectStatus.WillSelect)
                 {
+                    Debug.WriteLine("move");
                     selectStatus = SelectStatus.CancelWillSelect;
                     var touch = touches.AnyObject as UITouch;
                     SelectAction?.Invoke(touch, selectStatus);
                 }
                 base.TouchesMoved(touches, evt);
+            }
+
+            public override void TouchesCancelled(NSSet touches, UIEvent evt)
+            {
+                Debug.WriteLine("cancel");
+                base.TouchesCancelled(touches, evt);
+            }
+
+            public override void TouchesEnded(NSSet touches, UIEvent evt)
+            {
+                Debug.WriteLine("end");
+                base.TouchesEnded(touches, evt);
             }
         }
 

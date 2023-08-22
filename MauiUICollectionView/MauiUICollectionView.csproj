@@ -15,6 +15,17 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
+		<PackageId>Yang.MAUICollectionView</PackageId>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Version>0.0.1-pre</Version>
+		<RepositoryUrl>https://github.com/xtuzy/MAUICollectionView</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/xtuzy/MAUICollectionView</PackageProjectUrl>
+		<PackageTags>maui collectionview listview</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<Description>An alternative to CollectionView, which is based on ScrollView and does not use native RecyclerView or UICollectionvVew.</Description>
+		<Copyright></Copyright>
+		<PackageReleaseNotes>first version, it should be ok for simple list</PackageReleaseNotes>
 	</PropertyGroup>
 
   <ItemGroup Condition="$(TargetFramework.Contains('ios')) == false and $(TargetFramework.Contains('maccatalyst'))==false">
