@@ -28,6 +28,10 @@ https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-
 ## Principle of high performance
 When scrolling, there are three situations where the item needs to be set, visible becomes invisible, always visible, invisible becomes visible. We recycle the invisible item, the visible item reuses the recycled item to measure, and the always visible item does not need to be re-measured, so that we only need to measure a few items when scrolling.
 
+## Changelog
+- 0.0.1
+  Show simple list should be ok.
+  
 ## Awesome Resources
 - [Chameleon](https://github.com/BigZaphod/Chameleon)
 - [CollectionView](https://github.com/TheNounProject/CollectionView)
