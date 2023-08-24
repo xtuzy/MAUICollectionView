@@ -56,6 +56,8 @@ namespace MauiUICollectionView
                     ContentView.Insert(0, _backgroundView);//插入到底部
                 }
             }
+
+            get => _backgroundView;
         }
 
         View _emptyView;
@@ -78,6 +80,8 @@ namespace MauiUICollectionView
                     ContentView.Insert(1, _emptyView);//插入到底部
                 }
             }
+
+            get => _emptyView;
         }
         #endregion
 
@@ -508,7 +512,10 @@ namespace MauiUICollectionView
                     var remainCount = count - itemCount;
                     if (remainCount <= 0)
                     {
-                        return NSIndexPath.FromRowSection(itemStartIndex + count, section);
+                        if (section == indexPath.Section)
+                            return NSIndexPath.FromRowSection(itemStartIndex + count, section);
+                        else
+                            return NSIndexPath.FromRowSection(itemStartIndex + count - 1, section);
                     }
                     else
                         count = remainCount;
@@ -520,7 +527,7 @@ namespace MauiUICollectionView
                 for (var section = indexPath.Section; section >= 0; section--)
                 {
                     var itemCount = NumberOfItemsInSection(section);
-                    var itemStartIndex = itemCount;
+                    var itemStartIndex = itemCount  - 1;
                     if (section == indexPath.Section)
                     {
                         itemCount = indexPath.Row + 1;
@@ -546,6 +553,7 @@ namespace MauiUICollectionView
         /// <returns></returns>
         public int ItemCountInRange(NSIndexPath start, NSIndexPath end)
         {
+            if(start.Compare(end) > 0) throw new ArgumentException("Index of start is bigger than end.");
             if (start.Section == end.Section)
             {
                 return end.Row - start.Row - 1;
@@ -556,12 +564,17 @@ namespace MauiUICollectionView
                 for (var section = start.Section; section <= end.Section; section++)
                 {
                     int numberOfRows = NumberOfItemsInSection(section);
-                    int row = 0;
-                    if (section == start.Section) { row = start.Row; }
-                    if (section == end.Section) { numberOfRows = end.Row; }
-                    for (; row < numberOfRows; row++)
+                    if (section == start.Section) 
+                    { 
+                        count += (numberOfRows - start.Row -1); //start item is not counted
+                    }
+                    else if (section == end.Section) 
                     {
-                        count++;
+                        count += end.Row;//end item is not counted
+                    }
+                    else
+                    {
+                        count += numberOfRows;
                     }
                 }
                 return count;
@@ -571,25 +584,6 @@ namespace MauiUICollectionView
         #endregion
 
         #region 操作
-
-        NSIndexPath GetNextItem(NSIndexPath indexPath)
-        {
-            if (indexPath.Row < NumberOfItemsInSection(indexPath.Section) - 1) // have next item in same section
-            {
-                return NSIndexPath.FromRowSection(indexPath.Row + 1, indexPath.Section);
-            }
-            else // find next item from next section
-            {
-                if (indexPath.Section < NumberOfSections() - 1)
-                {
-                    return NSIndexPath.FromRowSection(0, indexPath.Section + 1);
-                }
-                else //don't have next section
-                {
-                    return null;
-                }
-            }
-        }
 
         /// <summary>
         /// Notifies the CollectionView that some items have been removed from data set and that changes need to be made.

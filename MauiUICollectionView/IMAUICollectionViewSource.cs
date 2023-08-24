@@ -25,14 +25,16 @@
         /// If item is section's header or footer, item's Row of IndexPath must be 0 or last one, <see cref="Layouts.CollectionViewLayout"/> can layout according to it.
         /// </summary>
         Func<MAUICollectionView, NSIndexPath, bool> IsSectionItem { get; }
+
+        public Action<MAUICollectionView, NSIndexPath> OnDragStart { get; }
         /// <summary>
         /// When running Drag operate, will still load it.
         /// </summary>
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> OnDragOver { get; }
         /// <summary>
         /// When finish Drag operate, will load it.
         /// </summary>
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDropTo { get; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> OnDrop { get; }
 
         /// <summary>
         /// prepared items, will show, now you can modify some action of items

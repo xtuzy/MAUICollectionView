@@ -26,7 +26,7 @@
             // store some bounds
             if (StartBoundsCache.Count == 0)
             {
-                var rowCountInFirstSection = CollectionView.NumberOfItemsInSection(0);
+                var rowCountInFirstSection = 2;//CollectionView.NumberOfItemsInSection(0);
                 for (var index = 0; index < rowCountInFirstSection; index++)
                 {
                     var indexPath = NSIndexPath.FromRowSection(index, 0);
@@ -77,24 +77,7 @@
         /// <param name="availablePreparedItems"></param>
         void MeasureItemsWhenScroll(Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
-            double baseLine = 0;
-
-            if (CollectionView.scrollOffset < 0)//加载上面的
-            {
-                ScrollByOffset(CollectionView.scrollOffset, inRect, new LayoutInfor()
-                {
-                    EndBounds = new Rect(0, 0, 0, OldPreparedItems.StartBounds.Top),
-                    EndItem = NSIndexPath.FromRowSection(OldPreparedItems.StartItem.Row - 1, OldPreparedItems.StartItem.Section)
-                }, availablePreparedItems);
-            }
-            else//加载下面的
-            {
-                ScrollByOffset(CollectionView.scrollOffset, inRect, new LayoutInfor()
-                {
-                    StartBounds = new Rect(0, OldPreparedItems.EndBounds.Bottom, 0, 0),
-                    StartItem = NSIndexPath.FromRowSection(OldPreparedItems.EndItem.Row + 1, OldPreparedItems.EndItem.Section)
-                }, availablePreparedItems);
-            }
+             ScrollByOffset(CollectionView.scrollOffset, inRect, availablePreparedItems);
         }
 
         /// <summary>
@@ -278,26 +261,47 @@
         /// <param name="baselineInfor">布局items的第一项或者最后一项信息</param>
         /// <param name="availablePreparedItems"></param>
         /// <returns></returns>
-        double ScrollByOffset(double delta, Rect inRect, LayoutInfor baselineInfor, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
+        double ScrollByOffset(double delta, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
-            if (delta == 0)
-                return 0;
             var absDelta = Math.Abs(delta);
 
             var numberOfSections = CollectionView.NumberOfSections();
             var availableHeight = absDelta;
-            if (delta > 0)//加载下面的
+            if (delta >= 0)//加载下面的
             {
+                /*
+                 * ^
+                 * | 
+                 */
+                double nextItemTop = 0;
                 foreach (var item in availablePreparedItems)
+                {
+                    //here we can change item's size
+                    CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value);
+                    if(nextItemTop == 0)
+                    {
+                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                    }
+                    else
+                    {
+                        item.Value.BoundsInLayout.Top = nextItemTop;
+                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                    }
                     CollectionView.PreparedItems.Add(item.Key, item.Value);
+                }
                 availablePreparedItems.Clear();
 
-                if (OldPreparedItems.EndBounds.Bottom >= inRect.Bottom)// 上一次布局的是否依旧填满
+                if (nextItemTop >= inRect.Bottom)// 上一次布局的是否依旧填满
                 {
                     return absDelta;
                 }
 
-                var top = baselineInfor.StartBounds.Top;
+                LayoutInfor baselineInfor = new LayoutInfor()
+                {
+                    StartBounds = new Rect(0, nextItemTop, 0, 0),
+                    StartItem = NSIndexPath.FromRowSection(OldPreparedItems.EndItem.Row + 1, OldPreparedItems.EndItem.Section)
+                };
+                var top = nextItemTop;
                 for (var section = baselineInfor.StartItem.Section; section < numberOfSections && availableHeight >= 0; section++)
                 {
                     int numberOfRows = CollectionView.NumberOfItemsInSection(section);
@@ -308,7 +312,13 @@
                     {
                         var indexPath = NSIndexPath.FromRowSection(row, section);
                         var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, top, Edge.Top, indexPath, availablePreparedItems);
-                        if (viewHolder != null) CollectionView.PreparedItems.Add(indexPath, viewHolder);
+                        if (viewHolder != null)
+                        {
+                            //here we can change item's size
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder);
+                            bounds = viewHolder.BoundsInLayout;
+                            CollectionView.PreparedItems.Add(indexPath, viewHolder);
+                        }
                         availableHeight -= bounds.Height;
                         top += bounds.Height;
                     }
@@ -316,13 +326,37 @@
             }
             else//加载上面的
             {
+                /*
+                 * |
+                 * v 
+                 */
                 if (OldPreparedItems.StartBounds.Top <= inRect.Top)
                 {
+                    double nextItemTop = 0;
                     foreach (var item in availablePreparedItems)
+                    {
+                        //here we can change item's size
+                        CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value);
+                        if (nextItemTop == 0)
+                        {
+                            nextItemTop = item.Value.BoundsInLayout.Bottom;
+                        }
+                        else
+                        {
+                            item.Value.BoundsInLayout.Top = nextItemTop;
+                            nextItemTop = item.Value.BoundsInLayout.Bottom;
+                        }
                         CollectionView.PreparedItems.Add(item.Key, item.Value);
+                    }
                     availablePreparedItems.Clear();
                     return absDelta;
                 }
+
+                LayoutInfor baselineInfor = new LayoutInfor()
+                {
+                    EndBounds = new Rect(0, 0, 0, OldPreparedItems.StartBounds.Top),
+                    EndItem = NSIndexPath.FromRowSection(OldPreparedItems.StartItem.Row - 1, OldPreparedItems.StartItem.Section)
+                };
 
                 List<KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>> tempOrderedPreparedItems = new();
                 var bottom = baselineInfor.EndBounds.Bottom;
@@ -336,7 +370,13 @@
                     {
                         var indexPath = NSIndexPath.FromRowSection(row, section);
                         var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availablePreparedItems);
-                        if (viewHolder != null) tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
+                        if (viewHolder != null)
+                        {
+                            //here we can change item's size
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder);
+                            bounds = viewHolder.BoundsInLayout;
+                            tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
+                        }
                         availableHeight -= bounds.Height;
                         bottom -= bounds.Height;
                     }
@@ -348,7 +388,21 @@
                     CollectionView.PreparedItems.Add(item.Key, item.Value);
                 }
                 foreach (var item in availablePreparedItems)
+                {
+                    double nextItemTop = 0;
+                    //here we can change item's size
+                    CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value);
+                    if (nextItemTop == 0)
+                    {
+                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                    }
+                    else
+                    {
+                        item.Value.BoundsInLayout.Top = nextItemTop;
+                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                    }
                     CollectionView.PreparedItems.Add(item.Key, item.Value);
+                }
                 availablePreparedItems.Clear();
             }
             return absDelta - availableHeight;
@@ -387,7 +441,7 @@
                 Size measureSize;
 
                 var rowHeightWant = CollectionView.Source.HeightForItem(CollectionView, indexPath);
-
+                viewHolder.WidthRequest = -1;
                 if (rowHeightWant != MAUICollectionViewViewHolder.AutoSize)//fixed value
                 {
                     viewHolder.HeightRequest = rowHeightWant;
@@ -395,6 +449,7 @@
                 }
                 else//need measure
                 {
+                    viewHolder.HeightRequest = -1;
                     measureSize = viewHolder.MeasureSelf(constrainedWidth, double.PositiveInfinity).Request;
                 }
                 viewHolder.IndexPath = indexPath;
@@ -459,13 +514,16 @@
             }
             else if (targetIndexPath < firstPreparedItem.Key)//往上加载, 目标Item在可见区域顶部, 由顶部向下布局
             {
-                itemsOffset += (CollectionView.ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1) * firstPreparedItem.Value.BoundsInLayout.Height;
+                //Using proportional calculations is more reasonable than calculating based on individual item heights, avoid negative numbers.
+                var itemsCountFromTargetToFirstPrepared = CollectionView.ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1;
+                var itemsCountFromFirstToFirstPrepared = CollectionView.ItemCountInRange(NSIndexPath.FromRowSection(0,0), firstPreparedItem.Key) + 1;
+                var distanceFromTargetToFirstPrepared = (firstPreparedItem.Value.BoundsInLayout.Top - StartBoundsCache[0].Top) * itemsCountFromTargetToFirstPrepared / itemsCountFromFirstToFirstPrepared + (CollectionView.ScrollY - firstPreparedItem.Value.BoundsInLayout.Top);
                 BaseLineItemUsually = new LayoutInfor()
                 {
-                    StartBounds = new Rect(0, CollectionView.ScrollY - itemsOffset, 0, 0),
+                    StartBounds = new Rect(0, CollectionView.ScrollY - distanceFromTargetToFirstPrepared, 0, 0),
                     StartItem = targetIndexPath
                 };
-                CollectionView.ScrollToAsync(0, CollectionView.ScrollY - itemsOffset, false);
+                CollectionView.ScrollToAsync(0, CollectionView.ScrollY - distanceFromTargetToFirstPrepared, false);
             }
             isScrollToDirectly = true;
         }
@@ -589,11 +647,15 @@
                 var first = CollectionView.PreparedItems.First().Key;
                 var last = CollectionView.PreparedItems.Last().Key;
                 var end = 0;
-                if (first > indexPath) end = -CollectionView.ItemCountInRange(indexPath, first);
-                else if (last < indexPath) end = CollectionView.ItemCountInRange(indexPath, first);
+                if (first > indexPath) end = -(CollectionView.ItemCountInRange(indexPath, first)+1);
+                else if (last < indexPath) end = CollectionView.ItemCountInRange(first, indexPath)+1;
                 var anim = new Animation((v) =>
                 {
-                    var target = CollectionView.NextItem(last, (int)v);
+                    var target = CollectionView.NextItem(first, (int)v);
+                    if(target.Row < 0)
+                    {
+
+                    }
                     ScrollToItem(target);
                 }, 0, end);
                 anim.Commit(CollectionView, "ScrollTo", 16, 250, null, (v, b) =>

@@ -216,7 +216,7 @@
             if (Operation.OperateType == OperateItem.OperateType.Remove)
             {
                 var startRemovedItem = Operation.Source;
-                var endRemovedItem = CollectionView.NextItem(Operation.Source, Operation.OperateCount - 1);
+                var endRemovedItem = NSIndexPath.FromRowSection(Operation.Source.Row + Operation.OperateCount - 1, Operation.Source.Section);//CollectionView.NextItem(Operation.Source, Operation.OperateCount - 1);
                 if (endRemovedItem < LastViewHolders.First().Key ||
                     startRemovedItem > LastViewHolders.Last().Key)
                 {

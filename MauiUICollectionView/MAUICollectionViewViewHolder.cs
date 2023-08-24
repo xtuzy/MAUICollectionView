@@ -73,7 +73,7 @@ namespace MauiUICollectionView
             this.TranslationY = 0;
             this.Scale = 1;
             this.Opacity = 0;
-            this.ZIndex = 1;
+            this.ZIndex = 0;//https://github.com/dotnet/maui/pull/3635 it say default 0
             Operation = -1;
         }
 

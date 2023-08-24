@@ -231,6 +231,7 @@ namespace MauiUICollectionView
                         DragedItem.Scale = 0.9;
                         DragedItem.DragBoundsInLayout = DragedItem.BoundsInLayout;
                         lastDragPosition = args.point;
+                        Source?.OnDragStart?.Invoke(this, indexPath);
                         if (args.Device == GestureDevice.Touch)//触摸时滑动不滚动, 不然与拖动冲突
                             stopScroll = true;
                     }
@@ -290,7 +291,7 @@ namespace MauiUICollectionView
                         if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
-                            Source?.WantDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                            Source?.OnDragOver?.Invoke(this, DragedItem.IndexPath, indexPath);
                         }
                     }
 
@@ -303,7 +304,7 @@ namespace MauiUICollectionView
                         return;
 
                     var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
-                    Source?.WantDropTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                    Source?.OnDrop?.Invoke(this, DragedItem.IndexPath, indexPath);
                     
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
@@ -355,6 +356,8 @@ namespace MauiUICollectionView
                 }
             });
         }
+
+        public Rect VisibleBounds => new Rect(ScrollX, ScrollY, Width, Height);
 
         /// <summary>
         /// 记录上一次ScrollY

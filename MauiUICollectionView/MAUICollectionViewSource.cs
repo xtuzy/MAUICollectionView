@@ -22,9 +22,11 @@
 
         public Func<MAUICollectionView, NSIndexPath, bool> IsSectionItem { get; set; }
         
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDragTo { get; set; }
+        public Action<MAUICollectionView, NSIndexPath> OnDragStart { get; set; }
 
-        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> WantDropTo { get; set; }
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> OnDragOver { get; set; }
+
+        public Action<MAUICollectionView, NSIndexPath, NSIndexPath> OnDrop { get; set; }
 
         public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder> DidPrepareItem { get; set; }
 

@@ -44,8 +44,8 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             ViewHolderForItem += cellForRowAtIndexPathMethod;
             NumberOfSections += numberOfSectionsInTableViewMethod;
             ReuseIdForItem += reuseIdentifierForRowAtIndexPathMethod;
-            WantDragTo += DragTo;
-            WantDropTo += DropTo;
+            OnDragOver += DragTo;
+            OnDrop += DropTo;
         }
 
         private void DropTo(MAUICollectionView view, NSIndexPath path1, NSIndexPath path2)

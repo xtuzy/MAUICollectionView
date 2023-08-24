@@ -1,6 +1,5 @@
 ﻿using Bogus;
 using MauiUICollectionView;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 using System.Collections.ObjectModel;
@@ -121,7 +120,8 @@ namespace DemoTest.Pages
             ViewHolderForItem += BindingItemMethod;
             NumberOfSections += NumberOfSectionsMethod;
             ReuseIdForItem += ReuseIdForItemMethod;
-            WantDragTo += WillDragToMethod;
+            OnDragStart += OnDragStartMethod;
+            OnDragOver += OnDragOverMethod;
             DidPrepareItem += DidPrepareItemMethod;
             IsSectionItem += IsSectionItemMethod;
         }
@@ -143,15 +143,27 @@ namespace DemoTest.Pages
         /// <param name="viewHolder"></param>
         private void DidPrepareItemMethod(MAUICollectionView view, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder)
         {
-
+            //if(top)
         }
 
-        private void WillDragToMethod(MAUICollectionView collectionView, NSIndexPath path1, NSIndexPath path2)
+        private void OnDragStartMethod(MAUICollectionView collectionView, NSIndexPath path1)
+        {
+            if (path1.Row == 0)//not drag section item
+            {
+                collectionView.DragedItem.ZIndex = 0;
+                collectionView.DragedItem.Scale = 1;
+                collectionView.DragedItem.DragBoundsInLayout = Rect.Zero;
+                collectionView.DragedItem = null;
+            }
+        }
+
+        private void OnDragOverMethod(MAUICollectionView collectionView, NSIndexPath path1, NSIndexPath path2)
         {
             if (path1.Row == 0 || path2.Row == 0)//section的header不处理, 不然会出错
                 return;
             //collectionView.MoveItem(path1, path2);
-            MoveData(path1.Row, path2.Row);
+            //MoveData(path1.Row, path2.Row);
+            Debug.WriteLine("dragto");
         }
 
         public void RemoveData(int section, int dataRow, int count = 3)
@@ -287,6 +299,7 @@ namespace DemoTest.Pages
                     textCell.TextView.Text = $"Section={indexPath.Section} Row={indexPath.Row}";
 
                     cell = textCell;
+                    cell.ZIndex = 3;
                 }
                 else if (type == itemCellSimple)
                 {
@@ -320,7 +333,7 @@ namespace DemoTest.Pages
                         {
                             var count = 2;
                             InsertData(arg.Section, arg.Row, count);//section header occupy a row
-                            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection( arg.Row+1, arg.Section), count);
+                            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(arg.Row + 1, arg.Section), count);
                             tableView.ReMeasure();
                         });
                         simpleCell.InitMenu(deleteCommand, insertCommand, insertAfterCommand);
@@ -351,7 +364,7 @@ namespace DemoTest.Pages
         {
             //从tableView的一个队列里获取一个cell
             var type = ReuseIdForItemMethod(tableView, indexPath);
-            MAUICollectionViewViewHolder cell ;
+            MAUICollectionViewViewHolder cell;
             if (oldViewHolder != null)//只需局部刷新
             {
                 cell = oldViewHolder;
@@ -407,7 +420,7 @@ namespace DemoTest.Pages
                         {
                             var count = 2;
                             InsertData(arg.Section, arg.Row, count);//section header occupy a row
-                            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(arg.Row+1,arg.Section), count);
+                            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(arg.Row + 1, arg.Section), count);
                             tableView.ReMeasure();
                         });
                         simpleCell.InitMenu(deleteCommand, insertCommand, insertAfterCommand);
@@ -635,7 +648,7 @@ namespace DemoTest.Pages
             var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
             InsertMenuCommand.Execute(repo.IndexPath);
         }
-        
+
         private void InsertAfterMenuItem_Clicked(object sender, EventArgs e)
         {
             MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
@@ -731,7 +744,7 @@ namespace DemoTest.Pages
             likeContainer.Add(LikeCountLabel);
             var commentContainer = new HorizontalStackLayout() { HorizontalOptions = LayoutOptions.Center, BackgroundColor = Colors.Red };
             CommentIcon = new Image() { WidthRequest = 30, HeightRequest = 30, BackgroundColor = Colors.AliceBlue };
-            CommentCountLabel = new Label { Text = "1000", VerticalOptions = LayoutOptions.Center, TextColor = Colors.Black,Padding=new Thickness(5,0,5,0) };
+            CommentCountLabel = new Label { Text = "1000", VerticalOptions = LayoutOptions.Center, TextColor = Colors.Black, Padding = new Thickness(5, 0, 5, 0) };
             commentContainer.Add(CommentIcon);
             commentContainer.Add(CommentCountLabel);
             var shareContaner = new HorizontalStackLayout() { HorizontalOptions = LayoutOptions.Center };
