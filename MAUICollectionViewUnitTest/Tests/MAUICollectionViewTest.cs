@@ -1,11 +1,19 @@
 ﻿using MauiUICollectionView;
 using MauiUICollectionView.Layouts;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace MAUICollectionViewUnitTest.Tests
 {
     public class MAUICollectionViewTest
     {
+        readonly ITestOutputHelper _output;
+
+        public MAUICollectionViewTest(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         static MAUICollectionView collectionView;
         static MAUICollectionView CollectionView
         {
@@ -24,8 +32,11 @@ namespace MAUICollectionViewUnitTest.Tests
 
         [Theory]
         [InlineData(0, 1, 10, 0, 11)]
+        [InlineData(0, 11, -10, 0, 1)]
         [InlineData(0, 5, 15, 0, 20)]
+        [InlineData(0, 20, -15, 0, 5)]
         [InlineData(0, 5, 15+21, 1, 20)]
+        [InlineData(1, 20, -(15+21), 0, 5)]
         public void NextItemTest(int sourceSection, int sourceRow, int count, int targetSection, int targetRow)
         {
             CollectionView.ReloadDataCount();
@@ -42,6 +53,8 @@ namespace MAUICollectionViewUnitTest.Tests
             CollectionView.ReloadDataCount();
             var target = CollectionView.NextItem(NSIndexPath.FromRowSection(sourceRow, sourceSection), count);
             Assert.True(target.Row <= 20);
+            _output.WriteLine($"Result is {target}");
+            
         }
 
         [Theory]
