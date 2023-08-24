@@ -37,6 +37,7 @@ namespace MAUICollectionViewUnitTest.Tests
         [InlineData(0, 20, -15, 0, 5)]
         [InlineData(0, 5, 15+21, 1, 20)]
         [InlineData(1, 20, -(15+21), 0, 5)]
+        [InlineData(0, 0, 10489, 499, 10)]
         public void NextItemTest(int sourceSection, int sourceRow, int count, int targetSection, int targetRow)
         {
             CollectionView.ReloadDataCount();
@@ -48,13 +49,38 @@ namespace MAUICollectionViewUnitTest.Tests
         [Theory]
         [InlineData(0, 5, 4866)]
         [InlineData(0, 5, 5244)]
-        public void NextItemTest1(int sourceSection, int sourceRow, int count)
+        [InlineData(0, 0, 10488)]
+        [InlineData(0, 5, 10000+500-6)]
+        public void NextItemTest_WhenLargeCount(int sourceSection, int sourceRow, int count)
         {
             CollectionView.ReloadDataCount();
             var target = CollectionView.NextItem(NSIndexPath.FromRowSection(sourceRow, sourceSection), count);
+            var targetCount = CollectionView.ItemCountInRange(NSIndexPath.FromRowSection(sourceRow, sourceSection), target);
             Assert.True(target.Row <= 20);
-            _output.WriteLine($"Result is {target}");
-            
+            _output.WriteLine($"NextItem of {sourceSection}-{sourceRow} is {target}");
+            _output.WriteLine($"ItemCountInRange of {sourceSection}-{sourceRow} and {target} is {targetCount}");
+            Assert.Equal(count, targetCount + 1);
+        }
+
+        [Theory]
+        [InlineData(0, 5, 15 + 21 -2 , 1, 20)]
+        [InlineData(0, 0, 10487 , 499, 10)]
+        public void NextItemTest_WhenRemove(int sourceSection, int sourceRow, int count, int targetSection, int targetRow)
+        {
+            var collectionView = new MAUICollectionView();
+            var viewModel = new ViewModel();
+            viewModel.models[0].RemoveRange(3, 2);
+            viewModel.models[viewModel.models.Count-1].RemoveRange(3, 2);
+            collectionView.Source = new Source(viewModel);
+            collectionView.ReloadDataCount();
+            var sourceIndex = NSIndexPath.FromRowSection(sourceRow, sourceSection);
+            var targetIndex = NSIndexPath.FromRowSection(targetRow, targetSection);
+            var resultIndex = collectionView.NextItem(sourceIndex, count);
+            var resultCount = collectionView.ItemCountInRange(sourceIndex, targetIndex);
+            _output.WriteLine($"NextItem of {sourceIndex} is {resultIndex}");
+            _output.WriteLine($"ItemCountInRange of {sourceIndex} and {targetIndex} is {resultCount}");
+            Assert.True(targetRow == resultIndex.Row && targetSection== resultIndex.Section);
+            Assert.Equal(count, resultCount+1);
         }
 
         [Theory]
