@@ -37,10 +37,7 @@ namespace MauiUICollectionView.Gestures
                 {
                     if (SelectPointCommand != null)
                     {
-                        var x = motionEvent.GetX();
-                        var y = motionEvent.GetY();
-
-                        var point = PxToDp(new Point(x, y));
+                        var point = PxToDp(motionEvent);
                         var parameter = new SelectEventArgs(status, point);
                         if (SelectPointCommand.CanExecute(parameter))
                             SelectPointCommand.Execute(parameter);
@@ -185,18 +182,19 @@ namespace MauiUICollectionView.Gestures
 
             public Func<MotionEvent, MotionEvent?, bool>? DragAction { get; set; }
             public Action<MotionEvent?>? LongPressAction { get; set; }
-            public Action<MotionEvent?, SelectStatus>? SelectAction { get; set; }
+            public Action<Point, SelectStatus>? SelectAction { get; set; }
 
             public float Density { get; set; }
 
             bool startDrag = false;
             SelectStatus selectStatus = SelectStatus.CancelWillSelect;
+            Point selectPressPoint;
             public override void OnLongPress(MotionEvent? e)
             {
                 if (selectStatus == SelectStatus.WillSelect)
                 {
                     selectStatus = SelectStatus.CancelWillSelect;
-                    SelectAction.Invoke(e, selectStatus);//长按代表不选择
+                    SelectAction.Invoke(new Point(e.GetX(), e.GetY()), selectStatus);//长按代表不选择
                 }
 
                 if (!IsSupportDrag)
@@ -211,11 +209,13 @@ namespace MauiUICollectionView.Gestures
                 }
             }
 
+
             public override bool OnDown(MotionEvent? e)
             {
+                selectPressPoint = new Point(e.GetX(), e.GetY());
                 //不管怎么样, Down都代表可能Select, 在CollectionView里如果作用在Item上需要显示动画
                 selectStatus = SelectStatus.WillSelect;
-                SelectAction.Invoke(e, selectStatus);
+                SelectAction.Invoke(selectPressPoint, selectStatus);
 
                 return false;
             }
@@ -225,7 +225,7 @@ namespace MauiUICollectionView.Gestures
                 if (selectStatus == SelectStatus.WillSelect)
                 {
                     selectStatus = SelectStatus.Selected;
-                    SelectAction.Invoke(e, selectStatus);//没有取消时, Tab代表确认选择
+                    SelectAction.Invoke(new Point(e.GetX(), e.GetY()), selectStatus);//没有取消时, Tab代表确认选择
                 }
                 return base.OnSingleTapConfirmed(e);
             }
@@ -234,8 +234,13 @@ namespace MauiUICollectionView.Gestures
             {
                 if (selectStatus == SelectStatus.WillSelect)
                 {
-                    selectStatus = SelectStatus.CancelWillSelect;
-                    SelectAction.Invoke(e, selectStatus);//没有确认选择时Move代表取消选择
+                    Debug.WriteLine("move");
+                    if (Math.Abs(e.GetX() - selectPressPoint.X) > 2
+                    || Math.Abs(e.GetY() - selectPressPoint.Y) > 2)//after down maybe have a little move event, even you think you don't move hand.
+                    {
+                        selectStatus = SelectStatus.CancelWillSelect;
+                        SelectAction.Invoke(selectPressPoint, selectStatus);//没有确认选择时Move代表取消选择;use old position avoid get other indexpath
+                    }
                 }
 
                 if (e != null && IsSupportDrag && startDrag)
@@ -249,7 +254,7 @@ namespace MauiUICollectionView.Gestures
                 if (selectStatus == SelectStatus.WillSelect)
                 {
                     selectStatus = SelectStatus.Selected;
-                    SelectAction.Invoke(e, selectStatus);//没有取消时, Up代表确认选择
+                    SelectAction.Invoke(selectPressPoint, selectStatus);//没有取消时, Up代表确认选择
                 }
 
                 if (e != null && IsSupportDrag && startDrag)
