@@ -35,9 +35,15 @@ namespace MAUICollectionViewUnitTest.Tests
         [InlineData(0, 11, -10, 0, 1)]
         [InlineData(0, 5, 15, 0, 20)]
         [InlineData(0, 20, -15, 0, 5)]
+        [InlineData(1, 0, -16, 0, 5)]
+        [InlineData(1, 1, -17, 0, 5)]
         [InlineData(0, 5, 15+21, 1, 20)]
         [InlineData(1, 20, -(15+21), 0, 5)]
+        [InlineData(2, 0, -(15+21+1), 0, 5)]
+        [InlineData(2, 1, -(15+21+2), 0, 5)]
         [InlineData(0, 0, 10489, 499, 10)]
+        [InlineData(499, 10, -10489, 0, 0 )]
+        [InlineData(499, 14, (int)(-3186.832), 347, 20)]
         public void NextItemTest(int sourceSection, int sourceRow, int count, int targetSection, int targetRow)
         {
             CollectionView.ReloadDataCount();

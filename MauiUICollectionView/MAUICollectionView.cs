@@ -313,8 +313,8 @@ namespace MauiUICollectionView
         /// </summary>
         void MeasureNowAfterScroll()
         {
-            if (ItemsLayout != null && Source != null)
-                MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
+                if (ItemsLayout != null && Source != null)
+                    MeasuredContentSize = ItemsLayout.MeasureContents(CollectionViewConstraintSize.Width, CollectionViewConstraintSize.Height);
         }
 
         /// <summary>
@@ -527,10 +527,10 @@ namespace MauiUICollectionView
                 for (var section = indexPath.Section; section >= 0; section--)
                 {
                     var itemCount = NumberOfItemsInSection(section);
-                    var itemStartIndex = itemCount  - 1;
-                    if (section == indexPath.Section)
+                    var itemStartIndex = itemCount;
+                    if (section == indexPath.Section)//need pass indexPath, so use row
                     {
-                        itemCount = indexPath.Row + 1;
+                        itemCount = indexPath.Row;
                         itemStartIndex = indexPath.Row;
                     }
                     var remainCount = count - itemCount;
@@ -564,11 +564,11 @@ namespace MauiUICollectionView
                 for (var section = start.Section; section <= end.Section; section++)
                 {
                     int numberOfRows = NumberOfItemsInSection(section);
-                    if (section == start.Section) 
-                    { 
-                        count += (numberOfRows - start.Row -1); //start item is not counted
+                    if (section == start.Section)
+                    {
+                        count += (numberOfRows - start.Row - 1); //start item is not counted
                     }
-                    else if (section == end.Section) 
+                    else if (section == end.Section)
                     {
                         count += end.Row;//end item is not counted
                     }

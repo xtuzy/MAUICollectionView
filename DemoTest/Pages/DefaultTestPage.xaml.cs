@@ -41,7 +41,7 @@ public partial class DefaultTestPage : ContentPage
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
         };
-#if WINDOWS || ANDROID
+#if WINDOWS || ANDROID || IOS
         content.Content = tableView;
 #else
         content.Content = refreshview;
