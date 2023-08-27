@@ -32,7 +32,8 @@
         }
 
         /// <summary>
-        /// no change return old, remove return null, move return current
+        /// no change return old, remove return null, move return current.
+        /// Notice, it need be used after call <see cref="MAUICollectionView.ReloadDataCount"/>.
         /// </summary>
         /// <param name="oldIndexPath"></param>
         /// <returns></returns>
@@ -91,7 +92,7 @@
                     {
                         if (oldIndexPath.IsInRange(Operation.Source, Operation.Target))
                         {
-                            return NSIndexPath.FromRowSection(oldIndexPath.Row-1, oldIndexPath.Section);
+                            return NSIndexPath.FromRowSection(oldIndexPath.Row - 1, oldIndexPath.Section);
                         }
                         else
                         {
@@ -105,9 +106,9 @@
                          */
                         if (oldIndexPath.IsInRange(Operation.Source, Operation.Target))
                         {
-                            if(oldIndexPath.Section == Operation.Source.Section)
+                            if (oldIndexPath.Section == Operation.Source.Section)
                                 return NSIndexPath.FromRowSection(oldIndexPath.Row - 1, oldIndexPath.Section);
-                            else if(oldIndexPath.Compare(Operation.Target)==0)
+                            else if (oldIndexPath.Compare(Operation.Target) == 0)
                             {
                                 return NSIndexPath.FromRowSection(oldIndexPath.Row + 1, oldIndexPath.Section);
                             }
@@ -116,7 +117,7 @@
                                 return oldIndexPath;
                             }
                         }
-                        else if(oldIndexPath.Section == Operation.Target.Section)
+                        else if (oldIndexPath.Section == Operation.Target.Section)
                         {
                             return NSIndexPath.FromRowSection(oldIndexPath.Row + 1, oldIndexPath.Section);
                         }
@@ -211,6 +212,11 @@
             CollectionView = collectionView;
         }
 
+        /// <summary>
+        /// when delete, maybe some invisible items become visible, we need get bounds of they before remeasure, because we maybe can't get it after measure.
+        /// </summary>
+        public List<CollectionViewLayout.LayoutInfor> LastInvisibleItemsInfor;
+
         public void Analysis(bool isBeforeMeasure)
         {
             if (Operation.OperateType == OperateItem.OperateType.Remove)
@@ -258,9 +264,34 @@
                                 }
                             }
                         }
+
+                        var count = Operation.OperateCount;
+                        LastInvisibleItemsInfor = new List<CollectionViewLayout.LayoutInfor> { };
+                        for (var index = 1; count >= 0; index++)
+                        {
+                            var item = CollectionView.NextItem(endRemovedItem, index);
+                            if (item == null)//if no next
+                            {
+                                break;
+                            }
+
+                            if (!LastViewHolders.ContainsKey(item))
+                            {
+                                LastInvisibleItemsInfor.Add(new CollectionViewLayout.LayoutInfor()
+                                {
+                                    StartItem = item,
+                                    StartBounds = CollectionView.ItemsLayout.RectForItem(item)
+                                });
+                            }
+                        }
                     }
                     else
                     {
+                        foreach(var item in LastInvisibleItemsInfor)
+                        {
+                            item.EndItem = TryGetCurrentIndexPath(item.StartItem);
+                        }
+
                         foreach (var item in CurrentViewHolders)
                         {
                             // invisible to visible
@@ -278,10 +309,27 @@
                                 {
                                     emitateLastIndexPath = CollectionView.NextItem(item.Key, Operation.OperateCount);
                                 }
-                                var bounds = CollectionView.ItemsLayout.RectForItem(emitateLastIndexPath);//if delete other section's item
-                                viewHolder.OldBoundsInLayout = new Rect(bounds.X, bounds.Y, viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
 
-                                AnimationManager.AddOperatedItem(viewHolder);
+                                var bounds = Rect.Zero;
+                                //NextItem maybe return null when delete item
+                                if (emitateLastIndexPath == null)
+                                {
+                                    foreach(var oldInvisibleItem in LastInvisibleItemsInfor)
+                                    {
+                                        if (oldInvisibleItem.EndItem.Compare(item.Key) == 0)
+                                        {
+                                            bounds = oldInvisibleItem.StartBounds; break;
+                                        }
+                                    }
+                                }else
+                                    bounds = CollectionView.ItemsLayout.RectForItem(emitateLastIndexPath);//if delete other section's item
+                               
+                                if (bounds != Rect.Zero)
+                                {
+                                    viewHolder.OldBoundsInLayout = new Rect(bounds.X, bounds.Y, viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
+
+                                    AnimationManager.AddOperatedItem(viewHolder);
+                                }
                             }
                         }
                     }
