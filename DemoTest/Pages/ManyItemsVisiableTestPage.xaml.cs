@@ -16,7 +16,6 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             SelectionMode = SelectionMode.Multiple,
             CanDrag = true,
-            CanContextMenu = true,
         };
         content.Content = tableView;
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
@@ -161,7 +160,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 }
             }
             if (cell.ContextMenu != null)
-                cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+                cell.ContextMenu.IsEnable = true;
             if (cell is ItemViewHolder)
             {
                 (cell as ItemViewHolder).Id.Text = indexPath.ToString();

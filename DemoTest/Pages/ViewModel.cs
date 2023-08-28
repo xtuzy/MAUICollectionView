@@ -381,7 +381,7 @@ namespace DemoTest.Pages
                 }
             }
             if (cell.ContextMenu != null)
-                cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+                cell.ContextMenu.IsEnable = true;
             return cell;
         }
 
@@ -465,7 +465,7 @@ namespace DemoTest.Pages
                 (cell as ItemViewHolderSimple).ModelView.TestButton.Text = indexPath.ToString();
             }
             if (cell.ContextMenu != null)
-                cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+                cell.ContextMenu.IsEnable = true;
 
             return cell;
         }
@@ -586,6 +586,8 @@ namespace DemoTest.Pages
                 }
             };
             ContextMenu = aContextMenu;
+
+            av.LongClick+=(sender, e)=> { ContextMenu.Show(); };
 #endif
         }
 

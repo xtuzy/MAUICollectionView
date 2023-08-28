@@ -36,7 +36,6 @@ public partial class DefaultTestPage : ContentPage
             HeightExpansionFactor = OperatingSystem.IsIOS()? 0:1,
             SelectionMode = SelectionMode.Multiple,
             //CanDrag = true,
-            CanContextMenu = true,
         };
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
