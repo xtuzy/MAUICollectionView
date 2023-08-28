@@ -75,7 +75,7 @@ public partial class DefaultTestPage : ContentPage
         var headerButton = new Button() { Text = "Header GoTo End", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, viewModel.models.Count-1), ScrollPosition.Top, true);
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, ViewModel.Instance.models.Count - 1), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Header");
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");

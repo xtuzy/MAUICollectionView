@@ -124,6 +124,31 @@ namespace DemoTest.Pages
             OnDragOver += OnDragOverMethod;
             DidPrepareItem += DidPrepareItemMethod;
             IsSectionItem += IsSectionItemMethod;
+            WillArrange += WillArrangeMethod;
+        }
+
+        NSIndexPath preLastIndexPath;
+        private void WillArrangeMethod(MAUICollectionView collectionView)
+        {
+            var lastSection = NumberOfSectionsMethod(collectionView) - 1;
+            var lastItem = NSIndexPath.FromRowSection(NumberOfItemsMethod(collectionView, lastSection) - 1, lastSection);
+
+            if (lastItem.IsInRange(collectionView.ItemsLayout.VisibleIndexPath.StartItem, collectionView.ItemsLayout.VisibleIndexPath.EndItem))
+            {
+                if (preLastIndexPath != null)
+                {
+                    if (lastItem.Compare(preLastIndexPath) != 0)
+                    {
+                        preLastIndexPath = lastItem;
+                        lastItemWillShowMethod(collectionView, lastItem);
+                    }
+                }
+                else
+                {
+                    preLastIndexPath = lastItem;
+                    lastItemWillShowMethod(collectionView, lastItem);
+                }
+            }
         }
 
         bool IsSectionItemMethod(MAUICollectionView view, NSIndexPath indexPath)
@@ -211,7 +236,7 @@ namespace DemoTest.Pages
                         loading.IsRunning = true;
                     });
                 }
-                await Task.Delay(2000);
+                await Task.Delay(5000);
                 var models = ViewModel.Generate(20);
                 ViewModel.models[ViewModel.models.Count - 1].AddRange(models);
 
