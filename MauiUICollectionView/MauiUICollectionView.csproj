@@ -67,6 +67,10 @@
 
   <ItemGroup>
     <PackageReference Include="M.BindableProperty.Generator" Version="0.10.0" />
+    <PackageReference Include="MemoryAnalyzers" Version="0.1.0-beta.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="The49.Maui.ContextMenu" Version="1.0.0-alpha1" />
   </ItemGroup>
 </Project>

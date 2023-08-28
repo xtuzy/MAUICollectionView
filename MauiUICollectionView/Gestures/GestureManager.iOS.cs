@@ -50,7 +50,7 @@ namespace MauiUICollectionView.Gestures
                 Enabled = false,
                 ShouldRecognizeSimultaneously = (recognizer, gestureRecognizer) => true,
                 ShouldReceiveTouch = ShouldReceiveTouch,
-                SelectAction = (touch, statue) =>
+                SelectAction =new WeakReference<Action<UITouch, SelectStatus>?>((touch, statue) =>
                 {
                     var control = view as UIScrollView;
                     var point = touch.LocationInView(view);//���صĻ��������content��
@@ -58,7 +58,7 @@ namespace MauiUICollectionView.Gestures
                     var parameters = new SelectEventArgs(statue, new Point(point.X, point.Y - control.ContentOffset.Y));
                     if (SelectPointCommand?.CanExecute(parameters) == true)
                         SelectPointCommand.Execute(parameters);
-                }
+                })
             };
         }
 
@@ -230,7 +230,7 @@ namespace MauiUICollectionView.Gestures
 
         internal class UISelectGestureRecognizer : UITapGestureRecognizer
         {
-            public Action<UITouch, SelectStatus>? SelectAction { get; set; }
+            public WeakReference<Action<UITouch, SelectStatus>?> SelectAction { get; set; }
 
             public UISelectGestureRecognizer()
             {
@@ -255,7 +255,8 @@ namespace MauiUICollectionView.Gestures
                 Debug.WriteLine("down");
                 var touch = touches.AnyObject as UITouch;
                 selectStatus = SelectStatus.WillSelect;
-                SelectAction?.Invoke(touch, selectStatus);
+                var exist = SelectAction.TryGetTarget(out var selectAction);
+                if(exist) selectAction.Invoke(touch, selectStatus);
                 base.TouchesBegan(touches, evt);
             }
 
@@ -266,7 +267,8 @@ namespace MauiUICollectionView.Gestures
                     Debug.WriteLine("move");
                     selectStatus = SelectStatus.CancelWillSelect;
                     var touch = touches.AnyObject as UITouch;
-                    SelectAction?.Invoke(touch, selectStatus);
+                    var exist = SelectAction.TryGetTarget(out var selectAction);
+                    if (exist) selectAction.Invoke(touch, selectStatus);
                 }
                 base.TouchesMoved(touches, evt);
             }
