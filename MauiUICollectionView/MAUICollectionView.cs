@@ -149,9 +149,9 @@ namespace MauiUICollectionView
                     _sourceHas.numberOfItemsInSection = _source.NumberOfItems != null;
 
                     _sourceHas.heightForRowAtIndexPath = _source.HeightForItem != null;
-                    _sourceHas.willSelectRowAtIndexPath = _source.WillSelectItem != null;
+                    //_sourceHas.willSelectRowAtIndexPath = _source.WillSelectItem != null;
                     _sourceHas.didSelectRowAtIndexPath = _source.DidSelectItem != null;
-                    _sourceHas.willDeselectRowAtIndexPath = _source.WillDeselectItem != null;
+                    //_sourceHas.willDeselectRowAtIndexPath = _source.WillDeselectItem != null;
                     _sourceHas.didDeselectRowAtIndexPath = _source.DidDeselectItem != null;
                 }
                 else

@@ -8,9 +8,9 @@
 
         public Func<MAUICollectionView, int> NumberOfSections { get; set; }
 
-        public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillSelectItem { get; set; }
+        //public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillSelectItem { get; set; }
 
-        public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillDeselectItem { get; set; }
+        //public Func<MAUICollectionView, NSIndexPath, NSIndexPath> WillDeselectItem { get; set; }
 
         public Action<MAUICollectionView, NSIndexPath> DidSelectItem { get; set; }
 
