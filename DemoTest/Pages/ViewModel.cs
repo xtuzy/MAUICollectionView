@@ -228,16 +228,19 @@ namespace DemoTest.Pages
                 {
                     loading = (collectionView.FooterView.Content as VerticalStackLayout)?.Children[0] as ActivityIndicator;
                 }
+                await Task.Delay(100);//on android, load more be load when arrange, set state of ActivityIndicator maybe not work. try wait finish arrange.
                 if (loading != null)
                 {
                     collectionView.Dispatcher.Dispatch(() =>
                     {
+                        Debug.WriteLine("loadMore start");
                         loading.IsVisible = true;
                         loading.IsRunning = true;
+                        collectionView.ReMeasure();//on android, maybe set state of ActivityIndicator maybe not remeasure, so force remeasure.
                     });
                 }
                 await Task.Delay(5000);
-                var models = ViewModel.Generate(20);
+                var models = ViewModel.Generate(5);
                 ViewModel.models[ViewModel.models.Count - 1].AddRange(models);
 
                 collectionView.ReloadDataCount();
@@ -245,8 +248,10 @@ namespace DemoTest.Pages
                 {
                     collectionView.Dispatcher.Dispatch(() =>
                     {
+                        Debug.WriteLine("loadMore end");
                         loading.IsVisible = false;
                         loading.IsRunning = false;
+                        collectionView.ReMeasure();
                     });
                 }
             });
