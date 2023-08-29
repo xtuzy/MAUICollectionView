@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using MauiUICollectionView;
+using MauiUICollectionView.Layouts;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 using System.Collections.ObjectModel;
@@ -166,9 +167,24 @@ namespace DemoTest.Pages
         /// <param name="view"></param>
         /// <param name="indexPath"></param>
         /// <param name="viewHolder"></param>
-        private void DidPrepareItemMethod(MAUICollectionView view, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder)
+        private void DidPrepareItemMethod(MAUICollectionView collectionView, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder, Edge baselines)
         {
-            //if(top)
+            var collectionViewCenter = collectionView.VisibleBounds.Center;
+            if (viewHolder.BoundsInLayout.Top <= collectionViewCenter.Y &&
+                viewHolder.BoundsInLayout.Bottom >= collectionViewCenter.Y)
+            {
+                if (viewHolder is ItemViewHolderSimple)
+                {
+                    viewHolder.Margin = new Thickness(0, 0, Math.Abs(collectionViewCenter.Y - viewHolder.BoundsInLayout.Center.Y) / (viewHolder.BoundsInLayout.Height / 2) * 50, 0);
+                }
+            }
+            else
+            {
+                if (viewHolder is ItemViewHolderSimple)
+                {
+                    viewHolder.Margin = new Thickness(0, 0, 50, 0);
+                }
+            }
         }
 
         private void OnDragStartMethod(MAUICollectionView collectionView, NSIndexPath path1)
@@ -228,7 +244,7 @@ namespace DemoTest.Pages
                 {
                     loading = (collectionView.FooterView.Content as VerticalStackLayout)?.Children[0] as ActivityIndicator;
                 }
-                await Task.Delay(100);//on android, load more be load when arrange, set state of ActivityIndicator maybe not work. try wait finish arrange.
+                await Task.Delay(200);//on android, load more be load when arrange, set state of ActivityIndicator maybe not work. try wait finish arrange.
                 if (loading != null)
                 {
                     collectionView.Dispatcher.Dispatch(() =>
@@ -387,6 +403,10 @@ namespace DemoTest.Pages
             }
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = true;
+            if (cell is ItemViewHolderSimple)
+            {
+                cell.Margin = new Thickness(0, 0, 20, 0);
+            }
             return cell;
         }
 
@@ -471,7 +491,10 @@ namespace DemoTest.Pages
             }
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = true;
-
+            if (cell is ItemViewHolderSimple)
+            {
+                cell.Margin = new Thickness(0, 0, 50, 0);
+            }
             return cell;
         }
     }
@@ -592,7 +615,7 @@ namespace DemoTest.Pages
             };
             ContextMenu = aContextMenu;
 
-            av.LongClick+=(sender, e)=> { ContextMenu.Show(); };
+            av.LongClick += (sender, e) => { ContextMenu.Show(); };
 #endif
         }
 

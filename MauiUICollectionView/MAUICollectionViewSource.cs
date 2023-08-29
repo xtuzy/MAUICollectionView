@@ -1,4 +1,6 @@
-﻿namespace MauiUICollectionView
+﻿using MauiUICollectionView.Layouts;
+
+namespace MauiUICollectionView
 {
     public class MAUICollectionViewSource : IMAUICollectionViewSource
     {
@@ -28,7 +30,7 @@
 
         public Action<MAUICollectionView, NSIndexPath, NSIndexPath> OnDrop { get; set; }
 
-        public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder> DidPrepareItem { get; set; }
+        public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder, Edge> DidPrepareItem { get; set; }
 
         public Action<MAUICollectionView> WillArrange { get; set; }
     }

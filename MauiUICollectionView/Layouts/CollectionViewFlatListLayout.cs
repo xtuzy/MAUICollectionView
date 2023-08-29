@@ -194,8 +194,14 @@
                     for (; row < numberOfRows; row++)
                     {
                         indexPath = NSIndexPath.FromRowSection(row, section);
-                        var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, top, Edge.Top, indexPath, availableCells);
-                        if (viewHolder != null) CollectionView.PreparedItems.Add(indexPath, viewHolder);
+                        var (viewHolder, bounds) = MeasureItem(inRect, inRect.Width, top, Edge.Top, indexPath, availableCells);
+                        if (viewHolder != null)
+                        {
+                            //here we can change item's size
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Top);
+                            bounds = viewHolder.BoundsInLayout;
+                            CollectionView.PreparedItems.Add(indexPath, viewHolder);
+                        }
                         if (bounds.Bottom >= inRect.Bottom)
                             return;
                         top += bounds.Height;
@@ -221,8 +227,14 @@
                     for (; row >= 0; row--)
                     {
                         indexPath = NSIndexPath.FromRowSection(row, section);
-                        var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availableCells);
-                        if (viewHolder != null) tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
+                        var (viewHolder, bounds) = MeasureItem(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availableCells);
+                        if (viewHolder != null)
+                        {
+                            //here we can change item's size
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Bottom);
+                            bounds = viewHolder.BoundsInLayout;
+                            tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
+                        }
                         if (bounds.Top <= inRect.Top)
                             goto FinishLoop;
                         bottom -= bounds.Height;
@@ -277,7 +289,7 @@
                 foreach (var item in availablePreparedItems)
                 {
                     //here we can change item's size
-                    CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value);
+                    CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value, Edge.Top);
                     if(nextItemTop == 0)
                     {
                         nextItemTop = item.Value.BoundsInLayout.Bottom;
@@ -311,11 +323,11 @@
                     for (; row < numberOfRows && availableHeight >= 0; row++)
                     {
                         var indexPath = NSIndexPath.FromRowSection(row, section);
-                        var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, top, Edge.Top, indexPath, availablePreparedItems);
+                        var (viewHolder, bounds) = MeasureItem(inRect, inRect.Width, top, Edge.Top, indexPath, availablePreparedItems);
                         if (viewHolder != null)
                         {
                             //here we can change item's size
-                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder);
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Top);
                             bounds = viewHolder.BoundsInLayout;
                             CollectionView.PreparedItems.Add(indexPath, viewHolder);
                         }
@@ -336,7 +348,7 @@
                     foreach (var item in availablePreparedItems)
                     {
                         //here we can change item's size
-                        CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value);
+                        CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value, Edge.Top);
                         if (nextItemTop == 0)
                         {
                             nextItemTop = item.Value.BoundsInLayout.Bottom;
@@ -369,11 +381,11 @@
                     for (; row >= 0 && availableHeight >= 0; row--)
                     {
                         var indexPath = NSIndexPath.FromRowSection(row, section);
-                        var (viewHolder, bounds) = layoutChunk(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availablePreparedItems);
+                        var (viewHolder, bounds) = MeasureItem(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availablePreparedItems);
                         if (viewHolder != null)
                         {
                             //here we can change item's size
-                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder);
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Bottom);
                             bounds = viewHolder.BoundsInLayout;
                             tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
                         }
@@ -391,7 +403,7 @@
                 {
                     double nextItemTop = 0;
                     //here we can change item's size
-                    CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value);
+                    CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value, Edge.Top);
                     if (nextItemTop == 0)
                     {
                         nextItemTop = item.Value.BoundsInLayout.Bottom;
@@ -408,12 +420,7 @@
             return absDelta - availableHeight;
         }
 
-        public enum Edge
-        {
-            Top, Bottom, Left, Right
-        }
-
-        (MAUICollectionViewViewHolder viewHolder, Rect bounds) layoutChunk(Rect inRect, double constrainedWidth, double baseline, Edge edge, NSIndexPath indexPath, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableViewHolders)
+        (MAUICollectionViewViewHolder viewHolder, Rect bounds) MeasureItem(Rect inRect, double constrainedWidth, double baseline, Edge edge, NSIndexPath indexPath, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableViewHolders)
         {
             //获取Cell, 优先获取之前已经被显示的, 这里假定已显示的数据没有变化
             MAUICollectionViewViewHolder viewHolder = null;
@@ -693,7 +700,7 @@
                     var itemHeight = CollectionView.Source.HeightForItem(CollectionView, indexPath);
                     if (itemHeight == MAUICollectionViewViewHolder.AutoSize)
                     {
-                        var (v, bounds) = layoutChunk(CollectionView.Bounds, CollectionView.Bounds.Width, 5000, Edge.Top, indexPath, new());
+                        var (v, bounds) = MeasureItem(CollectionView.Bounds, CollectionView.Bounds.Width, 5000, Edge.Top, indexPath, new());
                         itemHeight = bounds.Height;
                     }
                     return itemHeight;
