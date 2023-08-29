@@ -35,7 +35,7 @@ namespace MauiUICollectionView
             //选择Item
             GestureManager.SelectPointCommand = new Command(SelectItemCommand);
             //长按弹出Popmenu
-            GestureManager.LongPressPointCommand = new Command(ShowContextMenuCommand);
+            GestureManager.LongPressPointCommand = new Command(LongPressedCommand);
             //拖拽排序
             GestureManager.DragPointCommand = new Command(DragCommand);
 
@@ -185,21 +185,11 @@ namespace MauiUICollectionView
         }
 
         /// <summary>
-        /// 长按手势弹出ContextMenu. 桌面上使用右键, 不需执行该方法; iOS上默认长按, 不能通过自定义的长按手势触发.
         /// </summary>
         /// <param name="t"></param>
-        void ShowContextMenuCommand(object t)
+        void LongPressedCommand(object t)
         {
-            if (CanContextMenu)
-            {
-                var args = (Point)t;
-                var indexPath = this.ItemsLayout.ItemAtPoint(args, false);
-                if (PreparedItems.ContainsKey(indexPath))
-                {
-                    var item = PreparedItems[indexPath];
-                    item.ContextMenu?.Show();
-                }
-            }
+
         }
 
         Point lastDragPosition = Point.Zero;
@@ -231,6 +221,7 @@ namespace MauiUICollectionView
                         DragedItem.Scale = 0.9;
                         DragedItem.DragBoundsInLayout = DragedItem.BoundsInLayout;
                         lastDragPosition = args.point;
+                        Source?.OnDragStart?.Invoke(this, indexPath);
                         if (args.Device == GestureDevice.Touch)//触摸时滑动不滚动, 不然与拖动冲突
                             stopScroll = true;
                     }
@@ -290,7 +281,7 @@ namespace MauiUICollectionView
                         if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
-                            Source?.WantDragTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                            Source?.OnDragOver?.Invoke(this, DragedItem.IndexPath, indexPath);
                         }
                     }
 
@@ -303,7 +294,7 @@ namespace MauiUICollectionView
                         return;
 
                     var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
-                    Source?.WantDropTo?.Invoke(this, DragedItem.IndexPath, indexPath);
+                    Source?.OnDrop?.Invoke(this, DragedItem.IndexPath, indexPath);
                     
                     DragedItem.DragBoundsInLayout = Rect.Zero;
                     DragedItem.ZIndex = 1;
@@ -355,6 +346,8 @@ namespace MauiUICollectionView
                 }
             });
         }
+
+        public Rect VisibleBounds => new Rect(ScrollX, ScrollY, Width, Height);
 
         /// <summary>
         /// 记录上一次ScrollY
@@ -445,22 +438,6 @@ namespace MauiUICollectionView
                 GestureManager.SetCanDrag(value);
             }
             get { return canDrag; }
-        }
-
-        bool canContextMenu = false;
-        /// <summary>
-        /// Set whether show ContextMenu after long press. 
-        /// </summary>
-        public bool CanContextMenu
-        {
-            set
-            {
-                canContextMenu = value;
-            }
-            get
-            {
-                return canContextMenu;
-            }
         }
 
         #endregion

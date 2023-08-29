@@ -16,7 +16,6 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             SelectionMode = SelectionMode.Multiple,
             CanDrag = true,
-            CanContextMenu = true,
         };
         content.Content = tableView;
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
@@ -35,6 +34,17 @@ public partial class ManyItemsVisiableTestPage : ContentPage
     class Source : MAUICollectionViewSource
     {
         ViewModel ViewModel;
+
+        public void RemoveData(int section, int dataRow, int count = 3)
+        {
+            ViewModel.models[section].RemoveRange(dataRow, count);
+        }
+
+        public void InsertData(int section, int dataRow, int count = 3)
+        {
+            ViewModel.models[section].InsertRange(dataRow, ViewModel.Generate(count));
+        }
+
         public Source(ViewModel viewModel)
         {
             ViewModel = viewModel;
@@ -44,8 +54,8 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             ViewHolderForItem += cellForRowAtIndexPathMethod;
             NumberOfSections += numberOfSectionsInTableViewMethod;
             ReuseIdForItem += reuseIdentifierForRowAtIndexPathMethod;
-            WantDragTo += DragTo;
-            WantDropTo += DropTo;
+            OnDragOver += DragTo;
+            OnDrop += DropTo;
         }
 
         private void DropTo(MAUICollectionView view, NSIndexPath path1, NSIndexPath path2)
@@ -115,13 +125,42 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                     {
                         //没有,创建一个
                         textCell = new ItemViewHolder(new Grid(), type) { };
+                        var deleteCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 2;
+                            var distance = arg.Row - 1 + count - ViewModel.models[arg.Section].Count;
+                            if (distance < 0)
+                                RemoveData(arg.Section, arg.Row - 1, count);
+                            else
+                            {
+                                count = ViewModel.models[arg.Section].Count - (arg.Row - 1);
+                                RemoveData(arg.Section, arg.Row - 1, count);
+                            }
+                            tableView.NotifyItemRangeRemoved(arg, count);
+                            tableView.ReMeasure();
+                        });
+                        var insertCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 2;
+                            InsertData(arg.Section, arg.Row - 1, count);//section header occupy a row
+                            tableView.NotifyItemRangeInserted(arg, count);
+                            tableView.ReMeasure();
+                        });
+                        var insertAfterCommand = new Command<NSIndexPath>(execute: (NSIndexPath arg) =>
+                        {
+                            var count = 2;
+                            InsertData(arg.Section, arg.Row, count);//section header occupy a row
+                            tableView.NotifyItemRangeInserted(NSIndexPath.FromRowSection(arg.Row + 1, arg.Section), count);
+                            tableView.ReMeasure();
+                        });
+                        //textCell.InitMenu(deleteCommand, insertCommand, insertAfterCommand);
                     }
 
                     cell = textCell;
                 }
             }
             if (cell.ContextMenu != null)
-                cell.ContextMenu.IsEnable = tableView.CanContextMenu;
+                cell.ContextMenu.IsEnable = true;
             if (cell is ItemViewHolder)
             {
                 (cell as ItemViewHolder).Id.Text = indexPath.ToString();
@@ -174,19 +213,6 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 Grid.SetColumn(Id, 2);
 
                 //Id.SetBinding(Label.TextProperty, new Binding(nameof(IndexPath), source: this));
-
-#if WINDOWS || MACCATALYST
-                var menu = new MenuFlyout();
-                var menuItem = new MenuFlyoutItem()
-                {
-                    Text = "Delete",
-                    Command = new Command(() => { }),
-                    CommandParameter = IndexPath
-                };
-                menuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
-                menu.Add(menuItem);
-                //ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
-#endif
             }
 
             public override void UpdateSelectionState(SelectStatus status)
@@ -211,6 +237,56 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 Name.Text = string.Empty;
                 Phone.Text = string.Empty;
                 UpdateSelectionState(SelectStatus.CancelWillSelect);
+            }
+
+            internal void InitMenu(Command deleteCommand, Command insertCommand, Command insertAfterCommand)
+            {
+#if WINDOWS || MACCATALYST
+                var menu = new MenuFlyout();
+                var deleteMenuItem = new MenuFlyoutItem()
+                {
+                    Text = "Delete",
+                    //Command = deleteCommand,
+                    CommandParameter = this
+                };
+                var insertMenuItem = new MenuFlyoutItem()
+                {
+                    Text = "Insert",
+                    // = insertCommand,
+                    CommandParameter = this
+                };
+                var insertAfterMenuItem = new MenuFlyoutItem()
+                {
+                    Text = "InsertAfter",
+                    // = insertCommand,
+                    CommandParameter = this
+                };
+                deleteMenuItem.Clicked += (sender ,e)=>
+                {
+                    MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
+                    var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
+                    deleteCommand.Execute(repo.IndexPath);
+                };
+                insertMenuItem.Clicked += (sender, e) =>
+                {
+                    MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
+                    var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
+                    insertCommand.Execute(repo.IndexPath);
+                };
+                insertAfterMenuItem.Clicked += (sender, e) =>
+                {
+                    MenuFlyoutItem menuItem = sender as MenuFlyoutItem;
+                    var repo = menuItem.CommandParameter as MAUICollectionViewViewHolder;
+                    insertAfterCommand.Execute(repo.IndexPath);
+                };
+                deleteMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+                insertMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+                insertAfterMenuItem.SetBinding(MenuFlyoutItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
+                menu.Add(deleteMenuItem);
+                menu.Add(insertMenuItem);
+                menu.Add(insertAfterMenuItem);
+                ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+#endif
             }
         }
     }

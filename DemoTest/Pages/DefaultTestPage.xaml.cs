@@ -36,12 +36,11 @@ public partial class DefaultTestPage : ContentPage
             HeightExpansionFactor = OperatingSystem.IsIOS()? 0:1,
             SelectionMode = SelectionMode.Multiple,
             //CanDrag = true,
-            CanContextMenu = true,
         };
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
         };
-#if WINDOWS || ANDROID
+#if WINDOWS || ANDROID || IOS
         content.Content = tableView;
 #else
         content.Content = refreshview;
@@ -72,10 +71,10 @@ public partial class DefaultTestPage : ContentPage
         //tableView.Content.GestureRecognizers.Add(click);
 
         //Header
-        var headerButton = new Button() { Text = "Header GoTo 49-10", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var headerButton = new Button() { Text = "Header GoTo End", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         headerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, 49), ScrollPosition.Top, true);
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, ViewModel.Instance.models.Count - 1), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Header");
         };
         var headerView = new MAUICollectionViewViewHolder(headerButton, "Header");
@@ -83,10 +82,10 @@ public partial class DefaultTestPage : ContentPage
 
         //Footer
         var footer = new VerticalStackLayout();
-        var footerButton = new Button() { Text = "Footer GoTo 1-9", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
+        var footerButton = new Button() { Text = "Footer GoTo Start", VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };
         footerButton.Clicked += (s, e) =>
         {
-            tableView.ScrollToItem(NSIndexPath.FromRowSection(9, 1), ScrollPosition.Top, true);
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, 0), ScrollPosition.Top, true);
             Debug.WriteLine("Clicked Footer");
         };
         var footActivityIndicator = new ActivityIndicator() { Color = Colors.Red, IsVisible = false, IsRunning = false, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center };

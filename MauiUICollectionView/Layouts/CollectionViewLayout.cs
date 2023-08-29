@@ -390,7 +390,7 @@ namespace MauiUICollectionView.Layouts
             tableHeight += MeasureFooter(tableHeight, layoutItemsInRect.Width);
 
             HasOperation = false;
-            //Debug.WriteLine($"ChildCount={CollectionView.ContentView.Children.Count} PreparedItem={CollectionView.PreparedItems.Count} RecycleCount={CollectionView.ReusableViewHolders.Count}");
+            Debug.WriteLine($"ChildCount={CollectionView.ContentView.Children.Count} PreparedItem={CollectionView.PreparedItems.Count} RecycleCount={CollectionView.ReusableViewHolders.Count}");
             //Debug.WriteLine("TableView Content Height:" + tableHeight);
             return new Size(tableViewBoundsSize.Width, tableHeight);
         }

@@ -420,6 +420,34 @@
             {
                 item.Value.Operation = -1;
             }
+
+            //this is a ugly temporary fix: when remove, i find it don't recycle some item sometimes.
+            foreach (var view in CollectionView.ContentView.Children)
+            {
+                if (view is MAUICollectionViewViewHolder)
+                {
+                    var viewHolder = view as MAUICollectionViewViewHolder;
+                    if (viewHolder == CollectionView.HeaderView ||
+                    viewHolder == CollectionView.FooterView ||
+                    viewHolder == CollectionView.EmptyView ||
+                    viewHolder == CollectionView.BackgroundView)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (CollectionView.PreparedItems.ContainsValue(viewHolder) ||
+                            CollectionView.ReusableViewHolders.Contains(viewHolder))
+                        {
+
+                        }
+                        else
+                        {
+                            CollectionView.RecycleViewHolder(viewHolder);
+                        }
+                    }
+                }
+            }
         }
 
         public void Dispose()

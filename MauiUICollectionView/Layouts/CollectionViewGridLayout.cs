@@ -69,7 +69,7 @@
                         }
 
                         //here have a chance to change appearance of this item
-                        CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, cell);
+                        CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, cell, Edge.Top | Edge.Left);
 
                         cell.IndexPath = indexPath;
 
