@@ -12,11 +12,12 @@
                 isScrollToDirectly == false &&
                 !HasOperation)
             {
-                MeasureItemsWhenScroll(inRect, availablePreparedItems);
+                //MeasureItemsWhenScroll(inRect, availablePreparedItems);
+                MeasureItems(top, inRect, availablePreparedItems, false);
             }
             else
             {
-                MeasureItemsUsually(inRect, top, availablePreparedItems);
+                MeasureItems(top, inRect, availablePreparedItems);
                 if (isScrollToDirectly)
                     isScrollToDirectly = false;
                 if (BaseLineItemUsually != null)
@@ -71,13 +72,14 @@
         }
 
         /// <summary>
-        /// Use it when touch scrolling or scrolling a small offset. It only measures items in the offset, not remeasuring all prepared items like <see cref="MeasureItemsUsually"/> does, which makes the scrolling performance better
+        /// Use it when touch scrolling or scrolling a small offset. It only measures items in the offset, not remeasuring all prepared items like <see cref="MeasureItems"/> does, which makes the scrolling performance better
         /// </summary>
         /// <param name="inRect"></param>
         /// <param name="availablePreparedItems"></param>
+        [Obsolete]
         void MeasureItemsWhenScroll(Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
-             ScrollByOffset(CollectionView.scrollOffset, inRect, availablePreparedItems);
+            ScrollByOffset(CollectionView.scrollOffset, inRect, availablePreparedItems);
         }
 
         /// <summary>
@@ -86,11 +88,11 @@
         /// <param name="inRect"></param>
         /// <param name="top"></param>
         /// <param name="availablePreparedItems"></param>
-        void MeasureItemsUsually(Rect inRect, double top, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
+        void MeasureItems(double top, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems, bool isRemeasureAll = true)
         {
             if (BaseLineItemUsually != null)// use specify baseline to layout
             {
-                OnLayoutChildren(inRect, BaseLineItemUsually.Copy(), availablePreparedItems);
+                OnLayoutChildren(inRect, BaseLineItemUsually.Copy(), availablePreparedItems, isRemeasureAll);
             }
             else if (OldPreparedItems.StartItem != null)// use last layout item as baseline to layout
             {
@@ -98,7 +100,7 @@
                 {
                     StartItem = OldPreparedItems.StartItem,
                     StartBounds = OldPreparedItems.StartBounds
-                }, availablePreparedItems);
+                }, availablePreparedItems, isRemeasureAll);
             }
             else //use header's bottom as baseline to layout
             {
@@ -116,7 +118,7 @@
                                 {
                                     StartItem = NSIndexPath.FromRowSection(i, 0),
                                     StartBounds = new Rect(0, rect.Top, 0, 0),
-                                }, availablePreparedItems);
+                                }, availablePreparedItems, isRemeasureAll);
                             }
                         }
                     }
@@ -126,7 +128,7 @@
                         {
                             StartItem = EstimateItem(CollectionView.ScrollY),
                             StartBounds = new Rect(0, CollectionView.ScrollY, 0, 0),
-                        }, availablePreparedItems);
+                        }, availablePreparedItems, isRemeasureAll);
                     }
                 }
                 else
@@ -135,7 +137,7 @@
                     {
                         StartItem = NSIndexPath.FromRowSection(0, 0),
                         StartBounds = new Rect(0, top, 0, 0),
-                    }, availablePreparedItems);
+                    }, availablePreparedItems, isRemeasureAll);
                 }
             }
         }
@@ -175,7 +177,7 @@
         /// <param name="baselineInfor">according to it to layout other items</param>
         /// <param name="availableCells"></param>
         /// <exception cref="NotImplementedException"></exception>
-        void OnLayoutChildren(Rect inRect, LayoutInfor baselineInfor, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells)
+        void OnLayoutChildren(Rect inRect, LayoutInfor baselineInfor, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells, bool isRemeasureAll = true)
         {
             void LayoutFromTopToBottom(LayoutInfor topBaselineInfor)
             {
@@ -194,17 +196,25 @@
                     for (; row < numberOfRows; row++)
                     {
                         indexPath = NSIndexPath.FromRowSection(row, section);
-                        var (viewHolder, bounds) = MeasureItem(inRect, inRect.Width, top, Edge.Top, indexPath, availableCells);
-                        if (viewHolder != null)
+                        (MAUICollectionViewViewHolder viewHolder, Rect bounds) result;
+                        if (availableCells.ContainsKey(indexPath) &&
+                            !isRemeasureAll)
+                        {
+                            result = (availableCells[indexPath], availableCells[indexPath].ItemBounds);
+                            availableCells.Remove(indexPath);
+                        }
+                        else
+                            result = MeasureItem(inRect, inRect.Width, top, Edge.Top, indexPath, availableCells);
+                        if (result.viewHolder != null)
                         {
                             //here we can change item's size
-                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Top);
-                            bounds = viewHolder.ItemBounds;
-                            CollectionView.PreparedItems.Add(indexPath, viewHolder);
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, result.viewHolder, Edge.Top);
+                            result.bounds = result.viewHolder.ItemBounds;
+                            CollectionView.PreparedItems.Add(indexPath, result.viewHolder);
                         }
-                        if (bounds.Bottom >= inRect.Bottom)
+                        if (result.bounds.Bottom >= inRect.Bottom)
                             return;
-                        top += bounds.Height;
+                        top += result.bounds.Height;
                     }
                 }
             }
@@ -227,17 +237,25 @@
                     for (; row >= 0; row--)
                     {
                         indexPath = NSIndexPath.FromRowSection(row, section);
-                        var (viewHolder, bounds) = MeasureItem(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availableCells);
-                        if (viewHolder != null)
+                        (MAUICollectionViewViewHolder viewHolder, Rect bounds) result;
+                        if (availableCells.ContainsKey(indexPath) &&
+                            !isRemeasureAll)
+                        {
+                            result = (availableCells[indexPath], availableCells[indexPath].ItemBounds);
+                            availableCells.Remove(indexPath);
+                        }
+                        else
+                            result = MeasureItem(inRect, inRect.Width, bottom, Edge.Bottom, indexPath, availableCells);
+                        if (result.viewHolder != null)
                         {
                             //here we can change item's size
-                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Bottom);
-                            bounds = viewHolder.ItemBounds;
-                            tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
+                            CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, result.viewHolder, Edge.Bottom);
+                            result.bounds = result.viewHolder.ItemBounds;
+                            tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, result.viewHolder));
                         }
-                        if (bounds.Top <= inRect.Top)
+                        if (result.bounds.Top <= inRect.Top)
                             goto FinishLoop;
-                        bottom -= bounds.Height;
+                        bottom -= result.bounds.Height;
                     }
                 }
 
@@ -262,7 +280,6 @@
                 if (baselineInfor.EndBounds.Bottom < inRect.Bottom)
                     LayoutFromTopToBottom(new LayoutInfor() { StartItem = CollectionView.NextItem(baselineInfor.EndItem, 1), StartBounds = new Rect(0, baselineInfor.EndBounds.Bottom, 0, 0) });
             }
-
         }
 
         /// <summary>
@@ -273,6 +290,7 @@
         /// <param name="baselineInfor">布局items的第一项或者最后一项信息</param>
         /// <param name="availablePreparedItems"></param>
         /// <returns></returns>
+        [Obsolete]
         double ScrollByOffset(double delta, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
             var absDelta = Math.Abs(delta);
@@ -290,7 +308,7 @@
                 {
                     //here we can change item's size
                     CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value, Edge.Top);
-                    if(nextItemTop == 0)
+                    if (nextItemTop == 0)
                     {
                         nextItemTop = item.Value.ItemBounds.Bottom;
                     }
@@ -523,7 +541,7 @@
             {
                 //Using proportional calculations is more reasonable than calculating based on individual item heights, avoid negative numbers.
                 var itemsCountFromTargetToFirstPrepared = CollectionView.ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1;
-                var itemsCountFromFirstToFirstPrepared = CollectionView.ItemCountInRange(NSIndexPath.FromRowSection(0,0), firstPreparedItem.Key) + 1;
+                var itemsCountFromFirstToFirstPrepared = CollectionView.ItemCountInRange(NSIndexPath.FromRowSection(0, 0), firstPreparedItem.Key) + 1;
                 var distanceFromTargetToFirstPrepared = (firstPreparedItem.Value.ItemBounds.Top - StartBoundsCache[0].Top) * itemsCountFromTargetToFirstPrepared / itemsCountFromFirstToFirstPrepared + (CollectionView.ScrollY - firstPreparedItem.Value.ItemBounds.Top);
                 BaseLineItemUsually = new LayoutInfor()
                 {
@@ -654,12 +672,12 @@
                 var first = CollectionView.PreparedItems.First().Key;
                 var last = CollectionView.PreparedItems.Last().Key;
                 var end = 0;
-                if (first > indexPath) end = -(CollectionView.ItemCountInRange(indexPath, first)+1);
-                else if (last < indexPath) end = CollectionView.ItemCountInRange(first, indexPath)+1;
+                if (first > indexPath) end = -(CollectionView.ItemCountInRange(indexPath, first) + 1);
+                else if (last < indexPath) end = CollectionView.ItemCountInRange(first, indexPath) + 1;
                 var anim = new Animation((v) =>
                 {
                     var target = CollectionView.NextItem(first, (int)v);
-                    if(target.Row < 0)
+                    if (target.Row < 0)
                     {
 
                     }
