@@ -39,11 +39,11 @@
             ItemAppearAnimAction = (view, value) =>
             {
                 view.Opacity = value;
-                view.TranslationX = view.BoundsInLayout.Width * (1 - value);
+                view.TranslationX = view.ItemBounds.Width * (1 - value);
             };
             ItemDisappearAnimAction = (view, value) =>
             {
-                view.TranslationX = view.BoundsInLayout.Width * value;
+                view.TranslationX = view.ItemBounds.Width * value;
                 view.Opacity = 1 - value;
             };
             InsertItemAppearAnimAction = (view, value) =>
@@ -129,7 +129,7 @@
                     {
                         if (item.Operation == -1)//Operate item have seft anim
                         {
-                            item.TranslationX = item.BoundsInLayout.Width * 1;
+                            item.TranslationX = item.ItemBounds.Width * 1;
                             InScrollAnimItem.Add(item.IndexPath);
                             var animation = new Animation(v =>
                             {
@@ -206,7 +206,7 @@
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.Move)
                 {
-                    listMoveViewHolder.Add((item, item.OldBoundsInLayout, item.BoundsInLayout));
+                    listMoveViewHolder.Add((item, item.OldItemBounds, item.ItemBounds));
                 }
                 else if (item.Operation == (int)OperateItem.OperateType.Update)
                 {
@@ -241,9 +241,9 @@
             SnapShot = new CollectionViewLayout.LayoutInfor()
             {
                 StartItem = firstPreparedItem.Key,
-                StartBounds = firstPreparedItem.Value.BoundsInLayout,
+                StartBounds = firstPreparedItem.Value.ItemBounds,
                 EndItem = lastPreparedItem.Key,
-                EndBounds = lastPreparedItem.Value.BoundsInLayout,
+                EndBounds = lastPreparedItem.Value.ItemBounds,
             };
             if (listMoveViewHolder.Count > 0)
             {
@@ -403,8 +403,8 @@
                         item.TranslationX = 0;
                         item.TranslationY = 0;
 
-                        if (item.BoundsInLayout.Bottom <= SnapShot.StartBounds.Top ||
-                            item.BoundsInLayout.Top >= SnapShot.EndBounds.Bottom ||
+                        if (item.ItemBounds.Bottom <= SnapShot.StartBounds.Top ||
+                            item.ItemBounds.Top >= SnapShot.EndBounds.Bottom ||
                             (SnapShot.StartItem != null && item.IndexPath < SnapShot.StartItem) ||
                             item.IndexPath > SnapShot.EndItem)//when item is invisible, bounds maybe be estimated, use it maybe have bug, so add more limit, we must recycle invisible item.
                         {

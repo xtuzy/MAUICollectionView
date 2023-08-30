@@ -32,7 +32,7 @@
                     var indexPath = NSIndexPath.FromRowSection(index, 0);
                     if (CollectionView.PreparedItems.ContainsKey(indexPath))
                     {
-                        StartBoundsCache.Add(CollectionView.PreparedItems[indexPath].BoundsInLayout);
+                        StartBoundsCache.Add(CollectionView.PreparedItems[indexPath].ItemBounds);
                     }
                     else
                     {
@@ -44,7 +44,7 @@
             LayoutInfor visibleItems = new LayoutInfor();
             foreach (var item in CollectionView.PreparedItems)
             {
-                if (item.Value.BoundsInLayout.IntersectsWith(visiableRect))
+                if (item.Value.ItemBounds.IntersectsWith(visiableRect))
                 {
                     if (visibleItems.StartItem == null)
                         visibleItems.StartItem = item.Key;
@@ -58,7 +58,7 @@
             var numberOfSections = CollectionView.NumberOfSections();
             var (lastPreparedItem, lastPreparedItemViewHolder) = CollectionView.PreparedItems.LastOrDefault();
             if (lastPreparedItemViewHolder != null)
-                itemsHeight += (lastPreparedItemViewHolder.BoundsInLayout.Bottom - top);
+                itemsHeight += (lastPreparedItemViewHolder.ItemBounds.Bottom - top);
             var lastItem = NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections - 1) - 1, numberOfSections - 1);
             if (lastPreparedItem == null)
                 lastPreparedItem = NSIndexPath.FromRowSection(0, 0);
@@ -199,7 +199,7 @@
                         {
                             //here we can change item's size
                             CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Top);
-                            bounds = viewHolder.BoundsInLayout;
+                            bounds = viewHolder.ItemBounds;
                             CollectionView.PreparedItems.Add(indexPath, viewHolder);
                         }
                         if (bounds.Bottom >= inRect.Bottom)
@@ -232,7 +232,7 @@
                         {
                             //here we can change item's size
                             CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Bottom);
-                            bounds = viewHolder.BoundsInLayout;
+                            bounds = viewHolder.ItemBounds;
                             tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
                         }
                         if (bounds.Top <= inRect.Top)
@@ -292,12 +292,12 @@
                     CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value, Edge.Top);
                     if(nextItemTop == 0)
                     {
-                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                        nextItemTop = item.Value.ItemBounds.Bottom;
                     }
                     else
                     {
-                        item.Value.BoundsInLayout.Top = nextItemTop;
-                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                        item.Value.ItemBounds.Top = nextItemTop;
+                        nextItemTop = item.Value.ItemBounds.Bottom;
                     }
                     CollectionView.PreparedItems.Add(item.Key, item.Value);
                 }
@@ -328,7 +328,7 @@
                         {
                             //here we can change item's size
                             CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Top);
-                            bounds = viewHolder.BoundsInLayout;
+                            bounds = viewHolder.ItemBounds;
                             CollectionView.PreparedItems.Add(indexPath, viewHolder);
                         }
                         availableHeight -= bounds.Height;
@@ -351,12 +351,12 @@
                         CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value, Edge.Top);
                         if (nextItemTop == 0)
                         {
-                            nextItemTop = item.Value.BoundsInLayout.Bottom;
+                            nextItemTop = item.Value.ItemBounds.Bottom;
                         }
                         else
                         {
-                            item.Value.BoundsInLayout.Top = nextItemTop;
-                            nextItemTop = item.Value.BoundsInLayout.Bottom;
+                            item.Value.ItemBounds.Top = nextItemTop;
+                            nextItemTop = item.Value.ItemBounds.Bottom;
                         }
                         CollectionView.PreparedItems.Add(item.Key, item.Value);
                     }
@@ -386,7 +386,7 @@
                         {
                             //here we can change item's size
                             CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, indexPath, viewHolder, Edge.Bottom);
-                            bounds = viewHolder.BoundsInLayout;
+                            bounds = viewHolder.ItemBounds;
                             tempOrderedPreparedItems.Add(new KeyValuePair<NSIndexPath, MAUICollectionViewViewHolder>(indexPath, viewHolder));
                         }
                         availableHeight -= bounds.Height;
@@ -406,12 +406,12 @@
                     CollectionView.Source?.DidPrepareItem?.Invoke(CollectionView, item.Key, item.Value, Edge.Top);
                     if (nextItemTop == 0)
                     {
-                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                        nextItemTop = item.Value.ItemBounds.Bottom;
                     }
                     else
                     {
-                        item.Value.BoundsInLayout.Top = nextItemTop;
-                        nextItemTop = item.Value.BoundsInLayout.Bottom;
+                        item.Value.ItemBounds.Top = nextItemTop;
+                        nextItemTop = item.Value.ItemBounds.Bottom;
                     }
                     CollectionView.PreparedItems.Add(item.Key, item.Value);
                 }
@@ -467,18 +467,18 @@
                 if (viewHolder.Operation == (int)OperateItem.OperateType.Move &&
                     HasOperation)//move + anim + diff bounds
                 {
-                    if (bounds != viewHolder.BoundsInLayout)
-                        viewHolder.OldBoundsInLayout = viewHolder.BoundsInLayout;//move operate need old position to make animation
+                    if (bounds != viewHolder.ItemBounds)
+                        viewHolder.OldItemBounds = viewHolder.ItemBounds;//move operate need old position to make animation
                     else
-                        viewHolder.OldBoundsInLayout = Rect.Zero;
-                    viewHolder.BoundsInLayout = bounds;
+                        viewHolder.OldItemBounds = Rect.Zero;
+                    viewHolder.ItemBounds = bounds;
                 }
                 else
                 {
-                    viewHolder.BoundsInLayout = bounds;
+                    viewHolder.ItemBounds = bounds;
                 }
 
-                if (!viewHolder.BoundsInLayout.IntersectsWith(inRect))
+                if (!viewHolder.ItemBounds.IntersectsWith(inRect))
                 {
                     CollectionView.RecycleViewHolder(viewHolder);
                     viewHolder = null;
@@ -511,7 +511,7 @@
             var numberOfSections = CollectionView.NumberOfSections();
             if (targetIndexPath > lastPreparedItem.Key)//往下加载, 目标Item在可见区域底部, 由底部向上布局
             {
-                itemsOffset += CollectionView.ItemCountInRange(lastPreparedItem.Key, targetIndexPath) * lastPreparedItem.Value.BoundsInLayout.Height;
+                itemsOffset += CollectionView.ItemCountInRange(lastPreparedItem.Key, targetIndexPath) * lastPreparedItem.Value.ItemBounds.Height;
                 BaseLineItemUsually = new LayoutInfor()
                 {
                     EndBounds = new Rect(0, 0, 0, CollectionView.ScrollY + itemsOffset + CollectionView.Bounds.Height),
@@ -524,7 +524,7 @@
                 //Using proportional calculations is more reasonable than calculating based on individual item heights, avoid negative numbers.
                 var itemsCountFromTargetToFirstPrepared = CollectionView.ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1;
                 var itemsCountFromFirstToFirstPrepared = CollectionView.ItemCountInRange(NSIndexPath.FromRowSection(0,0), firstPreparedItem.Key) + 1;
-                var distanceFromTargetToFirstPrepared = (firstPreparedItem.Value.BoundsInLayout.Top - StartBoundsCache[0].Top) * itemsCountFromTargetToFirstPrepared / itemsCountFromFirstToFirstPrepared + (CollectionView.ScrollY - firstPreparedItem.Value.BoundsInLayout.Top);
+                var distanceFromTargetToFirstPrepared = (firstPreparedItem.Value.ItemBounds.Top - StartBoundsCache[0].Top) * itemsCountFromTargetToFirstPrepared / itemsCountFromFirstToFirstPrepared + (CollectionView.ScrollY - firstPreparedItem.Value.ItemBounds.Top);
                 BaseLineItemUsually = new LayoutInfor()
                 {
                     StartBounds = new Rect(0, CollectionView.ScrollY - distanceFromTargetToFirstPrepared, 0, 0),
@@ -599,7 +599,7 @@
                         if (lastCache.Compare(visibleFirst) >= 0)
                         {
                             var targetBounds = StartBoundsCache[visibleFirst.Row];
-                            if (CollectionView.PreparedItems[visibleFirst].BoundsInLayout != targetBounds)
+                            if (CollectionView.PreparedItems[visibleFirst].ItemBounds != targetBounds)
                             {
                                 BaseLineItemUsually = new LayoutInfor()
                                 {
@@ -612,7 +612,7 @@
                         }
                         else
                         {
-                            var targetTop = CollectionView.PreparedItems[visibleFirst].BoundsInLayout.Bottom + CollectionView.ItemCountInRange(lastCache, visibleFirst) * EstimateAverageHeight();
+                            var targetTop = CollectionView.PreparedItems[visibleFirst].ItemBounds.Bottom + CollectionView.ItemCountInRange(lastCache, visibleFirst) * EstimateAverageHeight();
 
                             BaseLineItemUsually = new LayoutInfor()
                             {
@@ -629,7 +629,7 @@
                  */
                 if (visibleFirst.Compare(firstItem) == 0)
                 {
-                    var firstItemRect = CollectionView.PreparedItems[visibleFirst].BoundsInLayout;
+                    var firstItemRect = CollectionView.PreparedItems[visibleFirst].ItemBounds;
                     if (firstItemRect.Top > StartBoundsCache[0].Top && //There is space  
                         CollectionView.ScrollY < (firstItemRect.Bottom - firstItemRect.Height * 4 / 5))//when close to first item top
                     {
@@ -691,7 +691,7 @@
             {
                 if (CollectionView.PreparedItems.ContainsKey(indexPath))
                 {
-                    return CollectionView.PreparedItems[indexPath].BoundsInLayout.Height;
+                    return CollectionView.PreparedItems[indexPath].ItemBounds.Height;
                 }
                 else
                 {
@@ -724,7 +724,7 @@
                         var count = CollectionView.ItemCountInRange(indexPath, itemIndexPath) + 1;
                         double averageHeight = EstimateAverageHeight();
                         var allItemHeight = count * averageHeight;
-                        return new Rect(0, itemViewHolder.BoundsInLayout.Top - allItemHeight, itemViewHolder.BoundsInLayout.Width, averageHeight);
+                        return new Rect(0, itemViewHolder.ItemBounds.Top - allItemHeight, itemViewHolder.ItemBounds.Width, averageHeight);
                     }
 
                     item = CollectionView.PreparedItems.Last();
@@ -735,7 +735,7 @@
                         var count = CollectionView.ItemCountInRange(itemIndexPath, indexPath);
                         double averageHeight = EstimateAverageHeight();
                         var allItemHeight = count * averageHeight;
-                        return new Rect(0, itemViewHolder.BoundsInLayout.Bottom + allItemHeight, itemViewHolder.BoundsInLayout.Width, averageHeight);
+                        return new Rect(0, itemViewHolder.ItemBounds.Bottom + allItemHeight, itemViewHolder.ItemBounds.Width, averageHeight);
                     }
                 }
             }

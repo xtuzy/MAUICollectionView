@@ -219,7 +219,7 @@ namespace MauiUICollectionView
                         DragedItem = PreparedItems[indexPath];
                         DragedItem.ZIndex = 3;
                         DragedItem.Scale = 0.9;
-                        DragedItem.DragBoundsInLayout = DragedItem.BoundsInLayout;
+                        DragedItem.DragItemBounds = DragedItem.ItemBounds;
                         lastDragPosition = args.point;
                         Source?.OnDragStart?.Invoke(this, indexPath);
                         if (args.Device == GestureDevice.Touch)//触摸时滑动不滚动, 不然与拖动冲突
@@ -265,11 +265,11 @@ namespace MauiUICollectionView
                             autoScrolling = false;
                             enableAutoScroll = false;//默认不自动滑动
                         }
-                        DragedItem.DragBoundsInLayout = new Rect(0, DragedItem.DragBoundsInLayout.Y + (args.point.Y - lastDragPosition.Y) + (ScrollY - lastScrollY), DragedItem.BoundsInLayout.Width, DragedItem.BoundsInLayout.Height);
+                        DragedItem.DragItemBounds = new Rect(0, DragedItem.DragItemBounds.Y + (args.point.Y - lastDragPosition.Y) + (ScrollY - lastScrollY), DragedItem.ItemBounds.Width, DragedItem.ItemBounds.Height);
                     }
                     else
                     {
-                        DragedItem.DragBoundsInLayout = new Rect(0, DragedItem.DragBoundsInLayout.Y + (args.point.Y - lastDragPosition.Y) + (ScrollY - lastScrollY), DragedItem.BoundsInLayout.Width, DragedItem.BoundsInLayout.Height);
+                        DragedItem.DragItemBounds = new Rect(0, DragedItem.DragItemBounds.Y + (args.point.Y - lastDragPosition.Y) + (ScrollY - lastScrollY), DragedItem.ItemBounds.Width, DragedItem.ItemBounds.Height);
                     }
 
                     lastDragPosition = args.point;
@@ -277,7 +277,7 @@ namespace MauiUICollectionView
                         !indexPath.Equals(DragedItem?.IndexPath)//不是同一个
                         )
                     {
-                        var targetViewHolder = PreparedItems[indexPath].BoundsInLayout;
+                        var targetViewHolder = PreparedItems[indexPath].ItemBounds;
                         if ((indexPath < DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)) || //在DragItem的上面, 需要到目标Item的上半部分才交换
                             (indexPath > DragedItem?.IndexPath && new Rect(targetViewHolder.X, targetViewHolder.Y - ScrollY + targetViewHolder.Height / 2, targetViewHolder.Width, targetViewHolder.Height / 2).Contains(args.point)))
                         {
@@ -296,7 +296,7 @@ namespace MauiUICollectionView
                     var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
                     Source?.OnDrop?.Invoke(this, DragedItem.IndexPath, indexPath);
                     
-                    DragedItem.DragBoundsInLayout = Rect.Zero;
+                    DragedItem.DragItemBounds = Rect.Zero;
                     DragedItem.ZIndex = 1;
                     DragedItem.Scale = 1;
                     if (DragedItem.IndexPath == null ||

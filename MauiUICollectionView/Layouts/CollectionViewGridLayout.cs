@@ -55,17 +55,17 @@
 
                         if (cell.Operation == (int)OperateItem.OperateType.Move && // move
                             HasOperation && // anim
-                            bounds != cell.BoundsInLayout) // diff bounds
+                            bounds != cell.ItemBounds) // diff bounds
                         {
-                            cell.OldBoundsInLayout = cell.BoundsInLayout;
-                            cell.BoundsInLayout = bounds;
+                            cell.OldItemBounds = cell.ItemBounds;
+                            cell.ItemBounds = bounds;
                         }
                         else
                         {
                             if (cell.Operation == (int)OperateItem.OperateType.Move &&
                                 HasOperation)
-                                cell.OldBoundsInLayout = Rect.Zero;
-                            cell.BoundsInLayout = bounds;
+                                cell.OldItemBounds = Rect.Zero;
+                            cell.ItemBounds = bounds;
                         }
 
                         //here have a chance to change appearance of this item
@@ -73,7 +73,7 @@
 
                         cell.IndexPath = indexPath;
 
-                        return cell.BoundsInLayout.Height;
+                        return cell.ItemBounds.Height;
                     }
                     else
                     {
@@ -88,14 +88,14 @@
 
                         if (cell.Operation == (int)OperateItem.OperateType.Move
                             && HasOperation
-                            && itemRect != cell.BoundsInLayout)//move + anim + diff bounds
+                            && itemRect != cell.ItemBounds)//move + anim + diff bounds
                         {
-                            cell.OldBoundsInLayout = cell.BoundsInLayout;//move operate need old position to make animation
-                            cell.BoundsInLayout = itemRect;
+                            cell.OldItemBounds = cell.ItemBounds;//move operate need old position to make animation
+                            cell.ItemBounds = itemRect;
                         }
                         else
                         {
-                            cell.BoundsInLayout = itemRect;
+                            cell.ItemBounds = itemRect;
                         }
                     }
 
@@ -264,7 +264,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, firstItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, firstItem);
-                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     var firstItemRect = new Rect(0, itemsHeight + top, contentWidth, firstItemHeight);
                     var firstItemIsTarget = firstItemRect.Contains(point);
                     if (firstItemIsTarget)
@@ -306,7 +306,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, lastItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, lastItem);
-                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     var lastItemRect = new Rect(0, top + itemsHeight + firstItemHeight + sectionAllDataItemsHeight, contentWidth, lastItemHeight);
                     var lastItemIsTarget = lastItemRect.Contains(point);
                     if (lastItemIsTarget)
@@ -353,7 +353,7 @@
 
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, firstItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, firstItem);
-                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     if (firstItem.Equals(indexPathTarget))
                     {
                         return new Rect(0, itemsHeight + top, contentWidth, firstItemHeight);
@@ -378,7 +378,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, lastItem);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, lastItem);
-                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     if (lastItem.Equals(indexPathTarget))
                     {
                         return new Rect(0, top + itemsHeight + firstItemHeight + sectionAllDataItemsHeight, contentWidth, lastItemHeight);
@@ -408,7 +408,7 @@
                 {
                     var id = CollectionView.Source.ReuseIdForItem(CollectionView, item);
                     var wantHeight = CollectionView.Source.HeightForItem(CollectionView, item);
-                    var sectionItemHeight = CollectionView.PreparedItems.ContainsKey(item) ? CollectionView.PreparedItems[item].BoundsInLayout.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
+                    var sectionItemHeight = CollectionView.PreparedItems.ContainsKey(item) ? CollectionView.PreparedItems[item].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? (MeasuredSelfHeightCacheForReuse.ContainsKey(id) ? MeasuredSelfHeightCacheForReuse[id] : 0) : wantHeight;
                     totleHeight += sectionItemHeight;
                 }
                 else

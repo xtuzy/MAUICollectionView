@@ -326,7 +326,7 @@
                                
                                 if (bounds != Rect.Zero)
                                 {
-                                    viewHolder.OldBoundsInLayout = new Rect(bounds.X, bounds.Y, viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
+                                    viewHolder.OldItemBounds = new Rect(bounds.X, bounds.Y, viewHolder.ItemBounds.Width, viewHolder.ItemBounds.Height);
 
                                     AnimationManager.AddOperatedItem(viewHolder);
                                 }
@@ -384,11 +384,11 @@
                                 emitateLastIndexPath = CollectionView.NextItem(item.Key, Operation.OperateCount);
 
                                 var bounds = CollectionView.ItemsLayout.RectForItem(emitateLastIndexPath);
-                                if (bounds == viewHolder.BoundsInLayout &&
-                                    viewHolder.OldBoundsInLayout != Rect.Zero)//if have have data(in extend items), pass
+                                if (bounds == viewHolder.ItemBounds &&
+                                    viewHolder.OldItemBounds != Rect.Zero)//if have have data(in extend items), pass
                                     continue;
-                                viewHolder.OldBoundsInLayout = viewHolder.BoundsInLayout;
-                                viewHolder.BoundsInLayout = new Rect(bounds.X, bounds.Y, viewHolder.OldBoundsInLayout.Width, viewHolder.OldBoundsInLayout.Height);
+                                viewHolder.OldItemBounds = viewHolder.ItemBounds;
+                                viewHolder.ItemBounds = new Rect(bounds.X, bounds.Y, viewHolder.OldItemBounds.Width, viewHolder.OldItemBounds.Height);
                             }
                         }
                     }

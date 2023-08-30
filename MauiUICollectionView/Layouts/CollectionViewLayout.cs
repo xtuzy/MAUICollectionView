@@ -48,7 +48,7 @@ namespace MauiUICollectionView.Layouts
         public bool RunOperateAnimation = false;
 
         /// <summary>
-        /// Arrange Header, Items and Footer. They will be arranged according to <see cref="MAUICollectionViewViewHolder.BoundsInLayout"/>
+        /// Arrange Header, Items and Footer. They will be arranged according to <see cref="MAUICollectionViewViewHolder.ItemBounds"/>
         /// </summary>
         public virtual void ArrangeContents()
         {
@@ -60,16 +60,16 @@ namespace MauiUICollectionView.Layouts
 
             if (CollectionView.HeaderView != null)
             {
-                CollectionView.HeaderView.ArrangeSelf(CollectionView.HeaderView.BoundsInLayout);
+                CollectionView.HeaderView.ArrangeSelf(CollectionView.HeaderView.ItemBounds);
             }
 
             // layout sections and rows
             foreach (var cell in CollectionView.PreparedItems)
             {
                 if (cell.Value == CollectionView.DragedItem)
-                    cell.Value.ArrangeSelf(cell.Value.DragBoundsInLayout);
+                    cell.Value.ArrangeSelf(cell.Value.DragItemBounds);
                 else
-                    cell.Value.ArrangeSelf(cell.Value.BoundsInLayout);
+                    cell.Value.ArrangeSelf(cell.Value.ItemBounds);
 
                 //避免Measure时处理错误回收了可见的Item
                 if (CollectionView.ReusableViewHolders.Contains(cell.Value))
@@ -87,7 +87,7 @@ namespace MauiUICollectionView.Layouts
 
             if (CollectionView.FooterView != null)
             {
-                CollectionView.FooterView.ArrangeSelf(CollectionView.FooterView.BoundsInLayout);
+                CollectionView.FooterView.ArrangeSelf(CollectionView.FooterView.ItemBounds);
             }
         }
 
@@ -174,10 +174,10 @@ namespace MauiUICollectionView.Layouts
             {
                 var start = tempOrderedCells[0];
                 OldPreparedItems.StartItem = start.Key;
-                OldPreparedItems.StartBounds = start.Value.BoundsInLayout;
+                OldPreparedItems.StartBounds = start.Value.ItemBounds;
                 var end = tempOrderedCells[tempOrderedCells.Count - 1];
                 OldPreparedItems.EndItem = end.Key;
-                OldPreparedItems.EndBounds = end.Value.BoundsInLayout;
+                OldPreparedItems.EndBounds = end.Value.ItemBounds;
                 //Debug.WriteLine($"last start={start.Key} end={end.Key}");
             }
 
@@ -190,7 +190,7 @@ namespace MauiUICollectionView.Layouts
             {
                 foreach (var cell in tempOrderedCells)
                 {
-                    if (cell.Value.BoundsInLayout.Bottom < layoutItemsInRect.Top)
+                    if (cell.Value.ItemBounds.Bottom < layoutItemsInRect.Top)
                     {
                         needRecycleCell.Add(cell.Key);
                     }
@@ -205,7 +205,7 @@ namespace MauiUICollectionView.Layouts
                 for (int i = tempOrderedCells.Count - 1; i >= 0; i--)
                 {
                     var cell = tempOrderedCells[i];
-                    if (cell.Value.BoundsInLayout.Top > layoutItemsInRect.Bottom)
+                    if (cell.Value.ItemBounds.Top > layoutItemsInRect.Bottom)
                     {
                         needRecycleCell.Add(cell.Key);
                     }
@@ -286,7 +286,7 @@ namespace MauiUICollectionView.Layouts
              */
             foreach (var item in CollectionView.PreparedItems)
             {
-                if (item.Value.BoundsInLayout.IntersectsWith(visibleBounds))
+                if (item.Value.ItemBounds.IntersectsWith(visibleBounds))
                 {
                     if (VisibleIndexPath.StartItem == null)
                         VisibleIndexPath.StartItem = item.Key;
@@ -401,7 +401,7 @@ namespace MauiUICollectionView.Layouts
             if (CollectionView.HeaderView != null)
             {
                 var measuredSize = CollectionView.HeaderView.MeasureSelf(widthConstraint, double.PositiveInfinity).Request;
-                CollectionView.HeaderView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
+                CollectionView.HeaderView.ItemBounds = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }
             return 0;
@@ -429,7 +429,7 @@ namespace MauiUICollectionView.Layouts
             if (CollectionView.FooterView != null)
             {
                 var measuredSize = CollectionView.FooterView.MeasureSelf(widthConstraint, double.PositiveInfinity).Request;
-                CollectionView.FooterView.BoundsInLayout = new Rect(0, top, widthConstraint, measuredSize.Height);
+                CollectionView.FooterView.ItemBounds = new Rect(0, top, widthConstraint, measuredSize.Height);
                 return measuredSize.Height;
             }
             return 0;
@@ -451,7 +451,7 @@ namespace MauiUICollectionView.Layouts
 
             foreach (var item in CollectionView.PreparedItems)
             {
-                if (item.Value.BoundsInLayout.Contains(point))
+                if (item.Value.ItemBounds.Contains(point))
                 {
                     return item.Key;
                 }
@@ -467,7 +467,7 @@ namespace MauiUICollectionView.Layouts
         {
             if (CollectionView.PreparedItems.ContainsKey(indexPath))
             {
-                return CollectionView.PreparedItems[indexPath].BoundsInLayout;
+                return CollectionView.PreparedItems[indexPath].ItemBounds;
             }
             return Rect.Zero;
         }

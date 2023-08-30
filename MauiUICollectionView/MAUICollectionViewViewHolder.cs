@@ -15,7 +15,7 @@ namespace MauiUICollectionView
         /// <summary>
         /// Store position and size of item. set it when Measure, and use it as the final parameter when Arrange
         /// </summary>
-        public Rect BoundsInLayout;
+        public Rect ItemBounds;
 
         #region https://github.com/BigZaphod/Chameleon/blob/master/UIKit/Classes/UITableViewCell.h
 
@@ -66,8 +66,8 @@ namespace MauiUICollectionView
             IndexPath = null;
             this.HeightRequest = -1; //Avoid having a fixed value be set
             this.WidthRequest = -1; 
-            OldBoundsInLayout = Rect.Zero;
-            BoundsInLayout = Rect.Zero;
+            OldItemBounds = Rect.Zero;
+            ItemBounds = Rect.Zero;
             Selected = false;
             this.TranslationX = 0;
             this.TranslationY = 0;
@@ -80,7 +80,7 @@ namespace MauiUICollectionView
         /// <summary>
         /// provide position for animation of item that be moved.
         /// </summary>
-        public Rect OldBoundsInLayout = Rect.Zero;
+        public Rect OldItemBounds = Rect.Zero;
         
         /// <summary>
         /// <see cref="OperateItem.OperateType"/>, if no operate, set to -1
@@ -92,7 +92,7 @@ namespace MauiUICollectionView
         /// <summary>
         /// store position and size for dragged item, it be arranged according to this.
         /// </summary>
-        public Rect DragBoundsInLayout = Rect.Zero;
+        public Rect DragItemBounds = Rect.Zero;
 
         public override string ToString()
         {

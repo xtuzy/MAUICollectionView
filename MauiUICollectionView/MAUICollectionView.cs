@@ -614,9 +614,9 @@ namespace MauiUICollectionView
             if (layout != null)
             {
                 var firstVisibleItem = layout.VisibleIndexPath.StartItem;
-                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].ItemBounds;
                 var lastVisibleItem = layout.VisibleIndexPath.EndItem;
-                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].BoundsInLayout;
+                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].ItemBounds;
                 var firstRemoved = indexPath;
                 var lastRemoved = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
 
@@ -734,9 +734,9 @@ namespace MauiUICollectionView
             if (layout != null)
             {
                 var firstVisibleItem = layout.VisibleIndexPath.StartItem;
-                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].ItemBounds;
                 var lastVisibleItem = layout.VisibleIndexPath.EndItem;
-                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].BoundsInLayout;
+                var lastVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.EndItem].ItemBounds;
 
                 var firstInsert = indexPath;
                 var lastInsert = NSIndexPath.FromRowSection(indexPath.Row + count - 1, indexPath.Section);
@@ -797,7 +797,7 @@ namespace MauiUICollectionView
             if (layout != null)
             {
                 var firstVisibleItem = layout.VisibleIndexPath.StartItem;
-                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].BoundsInLayout;
+                var firstVisibleItemBounds = PreparedItems[layout.VisibleIndexPath.StartItem].ItemBounds;
 
                 NSIndexPath baselineLastIndexPath = firstVisibleItem;
                 NSIndexPath baselineCurrentIndexPath = firstVisibleItem;
@@ -833,7 +833,7 @@ namespace MauiUICollectionView
                 layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
                 {
                     StartItem = firstVisibleItem.Key,
-                    StartBounds = firstVisibleItem.Value.BoundsInLayout
+                    StartBounds = firstVisibleItem.Value.ItemBounds
                 };
             }
             for (var index = PreparedItems.Count - 1; index >= 0; index--)

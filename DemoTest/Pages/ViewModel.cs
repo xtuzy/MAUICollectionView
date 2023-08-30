@@ -170,14 +170,14 @@ namespace DemoTest.Pages
         private void DidPrepareItemMethod(MAUICollectionView collectionView, NSIndexPath indexPath, MAUICollectionViewViewHolder viewHolder, Edge baselines)
         {
             var collectionViewCenter = collectionView.VisibleBounds.Center;
-            if (viewHolder.BoundsInLayout.Top <= collectionViewCenter.Y &&
-                viewHolder.BoundsInLayout.Bottom >= collectionViewCenter.Y)
+            if (viewHolder.ItemBounds.Top <= collectionViewCenter.Y &&
+                viewHolder.ItemBounds.Bottom >= collectionViewCenter.Y)
             {
                 if (viewHolder is ItemViewHolderSimple)
                 {
-                    var ratio = Math.Abs(collectionViewCenter.Y - viewHolder.BoundsInLayout.Center.Y) / (viewHolder.BoundsInLayout.Height / 2);
+                    var ratio = Math.Abs(collectionViewCenter.Y - viewHolder.ItemBounds.Center.Y) / (viewHolder.ItemBounds.Height / 2);
                     viewHolder.Margin = new Thickness(0, 0, ratio * 50, 0);
-                    viewHolder.MeasureSelf(viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
+                    viewHolder.MeasureSelf(viewHolder.ItemBounds.Width, viewHolder.ItemBounds.Height);
                 }
             }
             else
@@ -185,7 +185,7 @@ namespace DemoTest.Pages
                 if (viewHolder is ItemViewHolderSimple)
                 {
                     viewHolder.Margin = new Thickness(0, 0, 50, 0);
-                    viewHolder.MeasureSelf(viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
+                    viewHolder.MeasureSelf(viewHolder.ItemBounds.Width, viewHolder.ItemBounds.Height);
                 }
             }
         }
@@ -196,7 +196,7 @@ namespace DemoTest.Pages
             {
                 collectionView.DragedItem.ZIndex = 0;
                 collectionView.DragedItem.Scale = 1;
-                collectionView.DragedItem.DragBoundsInLayout = Rect.Zero;
+                collectionView.DragedItem.DragItemBounds = Rect.Zero;
                 collectionView.DragedItem = null;
             }
         }

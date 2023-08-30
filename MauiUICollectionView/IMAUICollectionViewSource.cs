@@ -57,8 +57,8 @@ namespace MauiUICollectionView
         public Action<MAUICollectionView, NSIndexPath, NSIndexPath> OnDrop { get; }
 
         /// <summary>
-        /// The default bounds has been calculated, it is stored in <see cref="MAUICollectionViewViewHolder.BoundsInLayout"/>, you can change size and remeasure it to implement some layout animation.
-        /// Notice if you want change size and remeasure, you need store new bounds to <see cref="MAUICollectionViewViewHolder.BoundsInLayout"/>, and position need base on baselines of old bounds.
+        /// The default bounds has been calculated, it is stored in <see cref="MAUICollectionViewViewHolder.ItemBounds"/>, you can change size and remeasure it to implement some layout animation.
+        /// Notice if you want change size and remeasure, you need store new bounds to <see cref="MAUICollectionViewViewHolder.ItemBounds"/>, and position need base on baselines of old bounds.
         /// </summary>
         public Action<MAUICollectionView, NSIndexPath, MAUICollectionViewViewHolder, Edge> DidPrepareItem { get; }
 
