@@ -63,13 +63,13 @@ namespace DemoTest.Pages
         {
             testModel = new Faker<Model>();
             testModel
-                //.RuleFor(m => m.PersonIconUrl, f => f.Person.Avatar)
+                .RuleFor(m => m.PersonIconUrl, f => f.Person.Avatar)
                 .RuleFor(m => m.PersonName, f => f.Person.FullName)
                 .RuleFor(m => m.PersonGender, f => f.Person.Gender.ToString())
                 .RuleFor(m => m.PersonPhone, f => f.Person.Phone)
                 .RuleFor(m => m.PersonTextBlogTitle, f => f.WaffleText(1, false))
                 .RuleFor(m => m.PersonTextBlog, f => f.WaffleText(1, false))
-                //.RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
+                .RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
                 .RuleFor(m => m.FirstComment, f => f.WaffleText(1, false))
                 //.RuleFor(m => m.LikeIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
@@ -117,8 +117,8 @@ namespace DemoTest.Pages
 
             HeightForItem += HeightForItemMethod;
             NumberOfItems += NumberOfItemsMethod;
-            //ViewHolderForItem += ViewHolderForItemMethod;
-            ViewHolderForItem += BindingItemMethod;
+            ViewHolderForItem += ViewHolderForItemMethod;
+            //ViewHolderForItem += BindingItemMethod;
             NumberOfSections += NumberOfSectionsMethod;
             ReuseIdForItem += ReuseIdForItemMethod;
             OnDragStart += OnDragStartMethod;
@@ -175,7 +175,9 @@ namespace DemoTest.Pages
             {
                 if (viewHolder is ItemViewHolderSimple)
                 {
-                    viewHolder.Margin = new Thickness(0, 0, Math.Abs(collectionViewCenter.Y - viewHolder.BoundsInLayout.Center.Y) / (viewHolder.BoundsInLayout.Height / 2) * 50, 0);
+                    var ratio = Math.Abs(collectionViewCenter.Y - viewHolder.BoundsInLayout.Center.Y) / (viewHolder.BoundsInLayout.Height / 2);
+                    viewHolder.Margin = new Thickness(0, 0, ratio * 50, 0);
+                    viewHolder.MeasureSelf(viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
                 }
             }
             else
@@ -183,6 +185,7 @@ namespace DemoTest.Pages
                 if (viewHolder is ItemViewHolderSimple)
                 {
                     viewHolder.Margin = new Thickness(0, 0, 50, 0);
+                    viewHolder.MeasureSelf(viewHolder.BoundsInLayout.Width, viewHolder.BoundsInLayout.Height);
                 }
             }
         }
@@ -403,10 +406,7 @@ namespace DemoTest.Pages
             }
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = true;
-            if (cell is ItemViewHolderSimple)
-            {
-                cell.Margin = new Thickness(0, 0, 20, 0);
-            }
+
             return cell;
         }
 
@@ -491,10 +491,7 @@ namespace DemoTest.Pages
             }
             if (cell.ContextMenu != null)
                 cell.ContextMenu.IsEnable = true;
-            if (cell is ItemViewHolderSimple)
-            {
-                cell.Margin = new Thickness(0, 0, 50, 0);
-            }
+
             return cell;
         }
     }
@@ -559,6 +556,7 @@ namespace DemoTest.Pages
         public ItemViewHolderSimple(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
             ModelView = itemView as ModelViewSimple;
+            this.IsClippedToBounds = true;
         }
 
         public ModelViewSimple ModelView;
