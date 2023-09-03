@@ -16,6 +16,9 @@ namespace MauiUICollectionView
         /// </summary>
         public ContentViewForScrollView ContentView { get; protected set; }
 
+        /// <summary>
+        /// Default gesture for drag and select. you can set null and directly call <see cref="DragCommand(object)"/> or <see cref="SelectItemCommand(object)"/> in your gesture.
+        /// </summary>
         public IGestureManager GestureManager;
 
         public MAUICollectionView()
@@ -32,10 +35,12 @@ namespace MauiUICollectionView
 
             if (GestureManager == null)
                 GestureManager = new MauiUICollectionView.Gestures.GestureManager();//set default gesturemanager
-            //选择Item
+                                                                                    //选择Item
+#if !ANDROID
             GestureManager.SelectPointCommand = new Command(SelectItemCommand);
+#endif
             //长按弹出Popmenu
-            GestureManager.LongPressPointCommand = new Command(LongPressedCommand);
+            //GestureManager.LongPressPointCommand = new Command(LongPressedCommand);
             //拖拽排序
             GestureManager.DragPointCommand = new Command(DragCommand);
 
@@ -118,10 +123,10 @@ namespace MauiUICollectionView
         #region 操作相关
 
         /// <summary>
-        /// 点击选择Item
+        /// Select item.
         /// </summary>
         /// <param name="t"></param>
-        void SelectItemCommand(object t)
+        public void SelectItemCommand(object t)
         {
             if (SelectionMode == SelectionMode.None)
                 return;
@@ -131,7 +136,7 @@ namespace MauiUICollectionView
             {
                 if (args.status == SelectStatus.Selected)
                 {
-                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
+                    var indexPath = args.item == null ? this.ItemsLayout.ItemAtPoint(args.point, false) : args.item;
 
                     if (SelectionMode == SelectionMode.Single)
                     {
@@ -168,7 +173,7 @@ namespace MauiUICollectionView
                 } 
                 else
                 {
-                    var indexPath = this.ItemsLayout.ItemAtPoint(args.point, false);
+                    var indexPath = args.item == null ? this.ItemsLayout.ItemAtPoint(args.point, false) : args.item;
                     this._reloadDataIfNeeded();
 
                     if (!SelectedItems.Contains(indexPath))
@@ -187,17 +192,18 @@ namespace MauiUICollectionView
         /// <summary>
         /// </summary>
         /// <param name="t"></param>
-        void LongPressedCommand(object t)
+        [Obsolete]
+        public void LongPressedCommand(object t)
         {
 
         }
 
         Point lastDragPosition = Point.Zero;
         /// <summary>
-        /// 拖拽时
+        /// Drag item.
         /// </summary>
         /// <param name="t"></param>
-        void DragCommand(object t)
+        public void DragCommand(object t)
         {
             if (CanDrag)
             {
@@ -439,6 +445,7 @@ namespace MauiUICollectionView
             }
             get { return canDrag; }
         }
+
 
         #endregion
         /// <summary>

@@ -4,7 +4,6 @@ using Android.Graphics;
 using Android.Runtime;
 using Android.Util;
 using Android.Views;
-using Android.Widget;
 using Microsoft.Maui.Platform;
 
 namespace MauiUICollectionView
@@ -45,6 +44,23 @@ namespace MauiUICollectionView
         protected override bool DrawChild(Canvas canvas, Android.Views.View child, long drawingTime)
         {
             return base.DrawChild(canvas, child, drawingTime);
+        }
+
+        public bool InterceptEvent = false;
+        public Action<MotionEvent> callback;
+        public override bool OnInterceptTouchEvent(MotionEvent ev)
+        {
+            System.Diagnostics.Debug.WriteLine($"MyScrollView OnInterceptTouchEvent Start {ev.Action}");
+
+            if (InterceptEvent)
+            {
+                if(ev.Action == MotionEventActions.Up)
+                {
+                    callback?.Invoke(ev);
+                }
+                return true;
+            }
+            return base.OnInterceptTouchEvent(ev);
         }
     }
 }

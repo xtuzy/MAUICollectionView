@@ -55,7 +55,7 @@ namespace MauiUICollectionView
 
         public bool Selected
         {
-            set => this.SetSelected(value == true? SelectStatus.Selected: SelectStatus.CancelWillSelect);
+            set => this.SetSelected(value == true ? SelectStatus.Selected : SelectStatus.CancelWillSelect);
         }
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace MauiUICollectionView
         {
             IndexPath = null;
             this.HeightRequest = -1; //Avoid having a fixed value be set
-            this.WidthRequest = -1; 
+            this.WidthRequest = -1;
             OldItemBounds = Rect.Zero;
             ItemBounds = Rect.Zero;
             Selected = false;
@@ -81,7 +81,7 @@ namespace MauiUICollectionView
         /// provide position for animation of item that be moved.
         /// </summary>
         public Rect OldItemBounds = Rect.Zero;
-        
+
         /// <summary>
         /// <see cref="OperateItem.OperateType"/>, if no operate, set to -1
         /// </summary>
@@ -101,5 +101,61 @@ namespace MauiUICollectionView
             else
                 return base.ToString();
         }
+
+        protected override void OnHandlerChanged()
+        {
+            base.OnHandlerChanged();
+#if ANDROID
+            androidGestureManager = new MauiUICollectionView.Gestures.GestureManager();
+            androidGestureManager.LongPressPointCommand = new Command(Av_LongClick);
+            androidGestureManager.SelectPointCommand = new Command(Av_Click);
+            androidGestureManager.SubscribeGesture(this);
+#endif
+        }
+
+        MauiUICollectionView.Gestures.GestureManager androidGestureManager;
+        protected override void OnHandlerChanging(HandlerChangingEventArgs args)
+        {
+            base.OnHandlerChanging(args);
+            if (args.OldHandler != null)
+            {
+#if ANDROID
+                androidGestureManager.CancleSubscribeGesture();
+#endif
+            }
+        }
+
+#if ANDROID
+        private void Av_LongClick(object obj)
+        {
+            if (ContextMenu != null)
+            {
+                if (ContextMenu.IsEnable)
+                {
+                    ContextMenu.Show();
+                    return;
+                }
+            }
+
+            var collectionView = Parent.Parent as MAUICollectionView;
+            if (collectionView.CanDrag)
+            {
+                var pointRelateToViewHolder = (Point)obj;
+                var av = this.Handler.PlatformView as Android.Views.View;
+                var pointRelateToContentView = new Point(av.GetX() / DeviceDisplay.Current.MainDisplayInfo.Density + pointRelateToViewHolder.X, av.GetY() / DeviceDisplay.Current.MainDisplayInfo.Density + pointRelateToViewHolder.Y);
+                var pointRelateToScrollView = new Point(pointRelateToContentView.X - collectionView.ScrollX, pointRelateToContentView.Y - collectionView.ScrollY);
+                var parameter = new DragEventArgs(GestureStatus.Started, pointRelateToScrollView);
+                parameter.Device = GestureDevice.Touch;
+                collectionView.DragCommand(parameter);
+                (collectionView.GestureManager as MauiUICollectionView.Gestures.GestureManager).SetScrollViewInterceptEventWhenViewHolderHandledLongPress();
+            }
+        }
+
+        private void Av_Click(object obj)
+        {
+            var collectionView = Parent.Parent as MAUICollectionView;
+            collectionView.SelectItemCommand(new SelectEventArgs((obj as SelectEventArgs).status, IndexPath));
+        }
+#endif
     }
 }

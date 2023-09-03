@@ -5,6 +5,7 @@ using Android.Views;
 using Microsoft.Maui.Controls;
 using System.Diagnostics;
 using System.Windows.Input;
+using static Android.Views.View;
 using AView = Android.Views.View;
 
 namespace MauiUICollectionView.Gestures
@@ -18,7 +19,7 @@ namespace MauiUICollectionView.Gestures
     {
         private GestureDetector? gestureRecognizer;
         private readonly InternalGestureDetector allInOneDetector;
-        private DisplayMetrics displayMetrics;
+        private double displayDensity;
         private object commandParameter;
 
         /// <summary>
@@ -74,6 +75,11 @@ namespace MauiUICollectionView.Gestures
                             DragPointCommand.Execute(parameter);
                         if (parameter.CancelGesture)
                             continueGesture = false;
+                        if(status == GestureStatus.Completed ||
+                            status == GestureStatus.Canceled)
+                        {
+                            SetScrollViewNotInterceptEventWhenDragFinish();
+                        }
                     }
 
                     //Debug.WriteLine("Drag");
@@ -91,15 +97,14 @@ namespace MauiUICollectionView.Gestures
                         if (LongPressPointCommand.CanExecute(point))
                             LongPressPointCommand.Execute(point);
                     }
-
                 },
             };
         }
 
         private Point PxToDp(Point point)
         {
-            point.X /= displayMetrics.Density;
-            point.Y /= displayMetrics.Density;
+            point.X /= displayDensity;
+            point.Y /= displayDensity;
             return point;
         }
 
@@ -111,8 +116,7 @@ namespace MauiUICollectionView.Gestures
             this.virtualView = view;
             this.view = platformView;
             var context = platformView.Context;
-            displayMetrics = context.Resources.DisplayMetrics;
-            allInOneDetector.Density = displayMetrics.Density;
+            displayDensity = DeviceDisplay.Current.MainDisplayInfo.Density;
 
             if (gestureRecognizer == null)
                 gestureRecognizer = new ExtendedGestureDetector(context, allInOneDetector);
@@ -128,6 +132,8 @@ namespace MauiUICollectionView.Gestures
 
         private void ControlOnTouch(object sender, AView.TouchEventArgs touchEventArgs)
         {
+            System.Diagnostics.Debug.WriteLine($"{sender} GestureManager OnTouch {touchEventArgs.Event.Action}");
+
             gestureRecognizer?.OnTouchEvent(touchEventArgs.Event);
             touchEventArgs.Handled = false;
         }
@@ -140,7 +146,37 @@ namespace MauiUICollectionView.Gestures
             var g = gestureRecognizer;
             gestureRecognizer = null;
             g?.Dispose();
-            displayMetrics = null;
+        }
+
+        /// <summary>
+        /// when longpress be handled by item, scrollview don't get event info, if we want handle drag in scrollview, we must intercept move/up event.
+        /// </summary>
+        public void SetScrollViewInterceptEventWhenViewHolderHandledLongPress()
+        {
+            System.Diagnostics.Debug.WriteLine($"Item LongPress");
+
+            //notify native scrollview intercept event
+            (view as MyScrollView).InterceptEvent = true;
+            (view as MyScrollView).callback += upEvent;
+            allInOneDetector.startDrag = true;
+        }
+
+        void upEvent(MotionEvent e)
+        {
+            allInOneDetector.DragAction(e, e);
+        }
+
+        /// <summary>
+        /// we notify native scrollview don't intercept event
+        /// </summary>
+        void SetScrollViewNotInterceptEventWhenDragFinish()
+        {
+            var scrollView = view as MyScrollView;
+            if (scrollView != null)
+            {
+                scrollView.InterceptEvent = false;
+                scrollView.callback -= upEvent;
+            }
         }
 
         sealed class ExtendedGestureDetector : GestureDetector
@@ -184,9 +220,7 @@ namespace MauiUICollectionView.Gestures
             public Action<MotionEvent?>? LongPressAction { get; set; }
             public Action<Point, SelectStatus>? SelectAction { get; set; }
 
-            public float Density { get; set; }
-
-            bool startDrag = false;
+            internal bool startDrag = false;
             SelectStatus selectStatus = SelectStatus.CancelWillSelect;
             Point selectPressPoint;
             public override void OnLongPress(MotionEvent? e)

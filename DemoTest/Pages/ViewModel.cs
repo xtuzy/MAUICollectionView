@@ -404,8 +404,8 @@ namespace DemoTest.Pages
                     cell = simpleCell;
                 }
             }
-            if (cell.ContextMenu != null)
-                cell.ContextMenu.IsEnable = true;
+            //if (cell.ContextMenu != null)
+                //cell.ContextMenu.IsEnable = true;
 
             return cell;
         }
@@ -612,8 +612,6 @@ namespace DemoTest.Pages
                 }
             };
             ContextMenu = aContextMenu;
-
-            av.LongClick += (sender, e) => { ContextMenu.Show(); };
 #endif
         }
 

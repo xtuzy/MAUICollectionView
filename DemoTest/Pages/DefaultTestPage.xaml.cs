@@ -35,7 +35,7 @@ public partial class DefaultTestPage : ContentPage
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
             HeightExpansionFactor = OperatingSystem.IsIOS()? 0:1,
             SelectionMode = SelectionMode.Multiple,
-            //CanDrag = true,
+            CanDrag = true,
         };
         tableView.ItemsLayout = new CollectionViewFlatListLayout(tableView)
         {
