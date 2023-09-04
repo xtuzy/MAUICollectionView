@@ -17,7 +17,7 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 		<PackageId>Yang.MAUICollectionView</PackageId>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>0.0.2-pre</Version>
+		<Version>0.0.3-pre</Version>
 		<RepositoryUrl>https://github.com/xtuzy/MAUICollectionView</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/xtuzy/MAUICollectionView</PackageProjectUrl>
 		<PackageTags>maui collectionview listview</PackageTags>
@@ -28,6 +28,7 @@
 		<PackageReleaseNotes>first version, fix some little bug</PackageReleaseNotes>
 		<Title>Yang.MAUICollectionView</Title>
 		<Authors>xtuzy</Authors>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	</PropertyGroup>
 
   <ItemGroup Condition="$(TargetFramework.Contains('ios')) == false and $(TargetFramework.Contains('maccatalyst'))==false">

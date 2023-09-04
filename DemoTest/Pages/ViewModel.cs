@@ -404,8 +404,8 @@ namespace DemoTest.Pages
                     cell = simpleCell;
                 }
             }
-            //if (cell.ContextMenu != null)
-                //cell.ContextMenu.IsEnable = true;
+            if (cell.ContextMenu != null)
+                cell.ContextMenu.IsEnable = !tableView.CanDrag;
 
             return cell;
         }
@@ -490,7 +490,7 @@ namespace DemoTest.Pages
                 (cell as ItemViewHolderSimple).ModelView.TestButton.Text = indexPath.ToString();
             }
             if (cell.ContextMenu != null)
-                cell.ContextMenu.IsEnable = true;
+                cell.ContextMenu.IsEnable = !tableView.CanDrag;
 
             return cell;
         }
