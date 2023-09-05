@@ -56,6 +56,7 @@ namespace MauiUICollectionView
         public bool Selected
         {
             set => this.SetSelected(value == true ? SelectStatus.Selected : SelectStatus.CancelWillSelect);
+            get => this._selected == SelectStatus.Selected;
         }
 
         /// <summary>

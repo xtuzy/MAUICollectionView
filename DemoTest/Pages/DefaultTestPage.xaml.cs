@@ -95,7 +95,9 @@ public partial class DefaultTestPage : ContentPage
         tableView.FooterView = new MAUICollectionViewViewHolder(footer, "foot");
 
         tableView.EmptyView = new Grid() { BackgroundColor = Colors.Yellow, Children = { new Label() { Text = "No data!", TextColor = Colors.Black, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center } } };
-        tableView.BackgroundView = new Grid() { BackgroundColor = Colors.LightPink };
+        tableView.BackgroundView = new Grid() {
+            //BackgroundColor = Colors.LightPink 
+        };
 
         this.Loaded += (sender, e) =>
         {

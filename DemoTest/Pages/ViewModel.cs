@@ -557,6 +557,7 @@ namespace DemoTest.Pages
         {
             ModelView = itemView as ModelViewSimple;
             this.IsClippedToBounds = true;
+            this.Effects.Add(new MauiUICollectionView.TouchEffects.TabEffect());
         }
 
         public ModelViewSimple ModelView;
@@ -572,16 +573,17 @@ namespace DemoTest.Pages
             UpdateSelectionState(SelectStatus.CancelWillSelect);
         }
 
-        Color DefaultColor = Colors.LightYellow;
+        Color DefaultColor = Colors.Red;//no designer will use red color on item.
         public override void UpdateSelectionState(SelectStatus status)
         {
-            if (DefaultColor == Colors.LightYellow)
+            if (DefaultColor == Colors.Red)
             {
                 DefaultColor = Content.BackgroundColor;
             }
             base.UpdateSelectionState(status);
-            if (status == SelectStatus.Selected)
-                Content.BackgroundColor = Colors.Grey.WithAlpha(100);
+            if (status == SelectStatus.Selected
+                || status == SelectStatus.WillSelect)
+                Content.BackgroundColor = new Color(31, 31, 31);
             else
                 Content.BackgroundColor = DefaultColor;
         }
@@ -732,7 +734,6 @@ namespace DemoTest.Pages
 
         public ModelViewSimple()
         {
-            this.BackgroundColor = new Color(30, 30, 30);
             var root = this;
             var layout = new Grid()
             {

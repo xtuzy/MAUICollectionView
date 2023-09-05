@@ -1,7 +1,5 @@
 using MauiUICollectionView;
 using MauiUICollectionView.Layouts;
-using Microsoft.Maui.Controls;
-using static System.Collections.Specialized.BitVector32;
 
 namespace DemoTest.Pages;
 
@@ -188,19 +186,19 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 };
                 Name = new Label()
                 {
-                    VerticalTextAlignment =TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
                     HorizontalOptions = LayoutOptions.Start,
                     VerticalOptions = LayoutOptions.Center
                 };
                 Phone = new Label()
                 {
-                    VerticalTextAlignment =TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
                     HorizontalOptions = LayoutOptions.Start,
                     VerticalOptions = LayoutOptions.Center
                 };
                 Id = new Label()
                 {
-                    VerticalTextAlignment =TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center,
                     HorizontalOptions = LayoutOptions.Start,
                     VerticalOptions = LayoutOptions.Center
                 };
@@ -213,17 +211,17 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 Grid.SetColumn(Id, 2);
 
                 //Id.SetBinding(Label.TextProperty, new Binding(nameof(IndexPath), source: this));
+
+                this.Effects.Add(new MauiUICollectionView.TouchEffects.TabEffect());
             }
 
             public override void UpdateSelectionState(SelectStatus status)
             {
                 base.UpdateSelectionState(status);
-                if(status == SelectStatus.Selected)
+                if (status == SelectStatus.Selected
+                    || status == SelectStatus.WillSelect)
                 {
-                    BackgroundColor = Colors.Gray;
-                }else if(status == SelectStatus.WillSelect)
-                {
-                    BackgroundColor = Colors.AliceBlue;
+                    BackgroundColor = new Color(31, 31, 31);
                 }
                 else
                 {

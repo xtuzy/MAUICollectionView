@@ -1,4 +1,6 @@
-﻿namespace MauiUICollectionView
+﻿using MauiUICollectionView.TouchEffects;
+
+namespace MauiUICollectionView
 {
     public static class AppHostBuilderExtensions
     {
@@ -12,7 +14,10 @@
                 handlers.AddHandler(typeof(MAUICollectionView), typeof(MyScrollViewHandler));
 #endif
             });
-
+            builder.ConfigureEffects(effects =>
+            {
+                effects.Add<TabEffect, TabPlatformEffect>();
+            });
             return builder;
         }
     }
