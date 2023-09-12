@@ -33,7 +33,7 @@ public partial class DefaultTestPage : ContentPage
         var tableView = new MAUICollectionView()
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Always,
-            HeightExpansionFactor = OperatingSystem.IsIOS()? 0:1,
+            HeightExpansionFactor = OperatingSystem.IsIOS()? 0:0,
             SelectionMode = SelectionMode.Multiple,
             CanDrag = true,
         };

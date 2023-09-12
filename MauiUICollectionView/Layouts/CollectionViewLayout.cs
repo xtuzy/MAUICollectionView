@@ -113,11 +113,6 @@ namespace MauiUICollectionView.Layouts
         }
 
         /// <summary>
-        /// Cache height of item that have same Id, it be use for predict height.
-        /// </summary>
-        public Dictionary<string, double> MeasuredSelfHeightCacheForReuse = new Dictionary<string, double>();
-
-        /// <summary>
         /// it contain information about item and bounds, we layout item according to it. it's IndexPath is latest.
         /// </summary>
         public LayoutInfor BaseLineItemUsually;
@@ -460,7 +455,7 @@ namespace MauiUICollectionView.Layouts
         }
 
         /// <summary>
-        /// Get rect of item. this method maybe be slow.
+        /// Get <see cref="MAUICollectionViewViewHolder.ItemBounds"/> of item. If it in <see cref="MAUICollectionView.PreparedItems"/>, will return bounds, if not, return <see cref="Rect.Zero"/>.
         /// </summary>
         /// <returns></returns>
         public virtual Rect RectForItem(NSIndexPath indexPath)
@@ -489,15 +484,6 @@ namespace MauiUICollectionView.Layouts
                     break;
             }
         }
-
-        /// <summary>
-        /// Get total height of items. we also measure invisible items after visible item, because it be used to adjust ScrollY for stay don't move visible items when Remove or Insert.
-        /// Notice, these items' section should be same.
-        /// </summary>
-        /// <param name="indexPath"></param>
-        /// <param name="count"></param>
-        /// <returns></returns>
-        public abstract double EstimateHeightForItems(NSIndexPath indexPath, int count);
 
         public void Dispose()
         {
