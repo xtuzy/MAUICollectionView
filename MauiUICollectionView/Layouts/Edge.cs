@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace MauiUICollectionView.Layouts
 {
-    [FlagsAttribute]
-    public enum Edge
+    [Flags] public enum Edge
     {
-        Top, Bottom, Left, Right
+        Top = 1, Bottom = 2, Left = 4, Right = 8
     }
 }
