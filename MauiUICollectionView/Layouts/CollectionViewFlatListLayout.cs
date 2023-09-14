@@ -28,16 +28,16 @@
                 isScrollingTo == false &&
                 !HasOperation)
             {
-                //MeasureItemsWhenScroll(inRect, availablePreparedItems);
-                MeasureItems(top, inRect, availablePreparedItems, false);
+                Fill(inRect, AnalysisBaseline(top), availablePreparedItems, false);
             }
             else
             {
-                MeasureItems(top, inRect, availablePreparedItems);
+                Fill(inRect, AnalysisBaseline(top), availablePreparedItems, true);
+
                 if (isScrollingTo)
                     isScrollingTo = false;
-                if (BaseLineItemUsually != null)
-                    BaseLineItemUsually = null;
+                if (ItemLayoutBaseline != null)
+                    ItemLayoutBaseline = null;
             }
 
             // store some bounds
@@ -90,22 +90,20 @@
         /// <summary>
         /// When not touch scrolling, we use it to remeasure all prepared items.
         /// </summary>
-        /// <param name="inRect"></param>
         /// <param name="top"></param>
-        /// <param name="availablePreparedItems"></param>
-        protected virtual void MeasureItems(double top, Rect inRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems, bool isRemeasureAll = true)
+        protected virtual LayoutInfor AnalysisBaseline(double top)
         {
-            if (BaseLineItemUsually != null)// use specify baseline to layout
+            if (ItemLayoutBaseline != null)// use specify baseline to layout
             {
-                OnLayoutChildren(inRect, BaseLineItemUsually.Copy(), availablePreparedItems, isRemeasureAll);
+                return ItemLayoutBaseline.Copy();
             }
             else if (OldPreparedItems.StartItem != null)// use last layout item as baseline to layout
             {
-                OnLayoutChildren(inRect, new LayoutInfor()
+                return new LayoutInfor()
                 {
                     StartItem = OldPreparedItems.StartItem,
                     StartBounds = OldPreparedItems.StartBounds
-                }, availablePreparedItems, isRemeasureAll);
+                };
             }
             else //use header's bottom as baseline to layout, this will be called when start a new collectionview or error(because fast scroll, scrollto, drag scrollbar)
             {
@@ -118,31 +116,30 @@
                             var rect = StartBoundsCache[i];
                             if (rect.Contains(0, CollectionView.ScrollY))
                             {
-                                OnLayoutChildren(inRect, new LayoutInfor()
+                                return new LayoutInfor()
                                 {
                                     StartItem = NSIndexPath.FromRowSection(i, 0),
                                     StartBounds = new Rect(0, rect.Top, 0, 0),
-                                }, availablePreparedItems, isRemeasureAll);
+                                };
                             }
                         }
                     }
                     else//estimate scrolly to fix 
                     {
-                        OnLayoutChildren(inRect, new LayoutInfor()
+                        return new LayoutInfor()
                         {
-                            StartItem = EstimateItem(0, CollectionView.ScrollY),
+                            StartItem = ItemAtPoint(new Point(0, CollectionView.ScrollY)),
                             StartBounds = new Rect(0, CollectionView.ScrollY, 0, 0),
-                        }, availablePreparedItems, isRemeasureAll);
+                        };
                     }
                 }
-                else// when header is visible, use first item
+
+                // if we can't easy solve error, try use first item
+                return new LayoutInfor()
                 {
-                    OnLayoutChildren(inRect, new LayoutInfor()
-                    {
-                        StartItem = NSIndexPath.FromRowSection(0, 0),
-                        StartBounds = new Rect(0, top, 0, 0),
-                    }, availablePreparedItems, isRemeasureAll);
-                }
+                    StartItem = NSIndexPath.FromRowSection(0, 0),
+                    StartBounds = new Rect(0, top, 0, 0),
+                };
             }
         }
 
@@ -156,41 +153,13 @@
         }
 
         /// <summary>
-        /// Estimate the item displayed when scrolling to a certain position.
-        /// </summary>
-        /// <param name="y"></param>
-        /// <returns></returns>
-        protected virtual NSIndexPath EstimateItem(double x, double y)
-        {
-            var firstItemBounds = StartBoundsCache.First();
-            double averageHeight = EstimateAverageHeight();
-
-            var numberOfSections = CollectionView.NumberOfSections();
-            double allHeight = 0;
-            for (var section = 0; section < numberOfSections; section++)
-            {
-                var rowsInSection = CollectionView.NumberOfItemsInSection(section);
-                if (y - firstItemBounds.Top < allHeight + rowsInSection * averageHeight)
-                {
-                    return NSIndexPath.FromRowSection((int)((y - firstItemBounds.Top - allHeight) / averageHeight), section);
-                }
-                else
-                {
-                    allHeight += rowsInSection * averageHeight;
-                }
-            }
-            //maybe scrolly is very big
-            return NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections - 1), numberOfSections - 1);
-        }
-
-        /// <summary>
         /// Arrange items from above or below to fill a given rectangle. 
         /// </summary>
         /// <param name="inRect"></param>
         /// <param name="baselineInfor">according to it to layout other items</param>
         /// <param name="availableCells"></param>
         /// <exception cref="NotImplementedException"></exception>
-        protected virtual void OnLayoutChildren(Rect inRect, LayoutInfor baselineInfor, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells, bool isRemeasureAll = true)
+        protected virtual void Fill(Rect inRect, LayoutInfor baselineInfor, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells, bool isRemeasureAll = true)
         {
             /*
              * from top to bottom, means we have a top value of item, we base on it to calculate bounds of items below.
@@ -393,7 +362,7 @@
             if (targetIndexPath > lastPreparedItem.Key)//The target item is at the bottom of the visible area, laid out from the bottom up.
             {
                 itemsOffset += CollectionView.ItemCountInRange(lastPreparedItem.Key, targetIndexPath) * lastPreparedItem.Value.ItemBounds.Height;
-                BaseLineItemUsually = new LayoutInfor()
+                ItemLayoutBaseline = new LayoutInfor()
                 {
                     EndBounds = new Rect(0, 0, 0, CollectionView.ScrollY + itemsOffset + CollectionView.Bounds.Height), //set this item at bottom of visible area.
                     EndItem = targetIndexPath
@@ -406,7 +375,7 @@
                 var itemsCountFromTargetToFirstPrepared = CollectionView.ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1;
                 var itemsCountFromFirstToFirstPrepared = CollectionView.ItemCountInRange(NSIndexPath.FromRowSection(0, 0), firstPreparedItem.Key) + 1;
                 var distanceFromTargetToFirstPrepared = (firstPreparedItem.Value.ItemBounds.Top - StartBoundsCache[0].Top) * itemsCountFromTargetToFirstPrepared / itemsCountFromFirstToFirstPrepared + (CollectionView.ScrollY - firstPreparedItem.Value.ItemBounds.Top);
-                BaseLineItemUsually = new LayoutInfor()
+                ItemLayoutBaseline = new LayoutInfor()
                 {
                     StartBounds = new Rect(0, CollectionView.ScrollY - distanceFromTargetToFirstPrepared, 0, 0),
                     StartItem = targetIndexPath
@@ -476,7 +445,7 @@
                             var targetBounds = StartBoundsCache[visibleFirst.Row];
                             if (CollectionView.PreparedItems[visibleFirst].ItemBounds != targetBounds)
                             {
-                                BaseLineItemUsually = new LayoutInfor()
+                                ItemLayoutBaseline = new LayoutInfor()
                                 {
                                     StartBounds = new Rect(0, targetBounds.Top, 0, 0),
                                     StartItem = visibleFirst
@@ -489,7 +458,7 @@
                         {
                             var targetTop = CollectionView.PreparedItems[visibleFirst].ItemBounds.Bottom + CollectionView.ItemCountInRange(lastCache, visibleFirst) * EstimateAverageHeight();
 
-                            BaseLineItemUsually = new LayoutInfor()
+                            ItemLayoutBaseline = new LayoutInfor()
                             {
                                 StartBounds = new Rect(0, targetTop, 0, 0),
                                 StartItem = visibleFirst
@@ -508,7 +477,7 @@
                     if (firstItemRect.Top > StartBoundsCache[0].Top && //There is space  
                         CollectionView.ScrollY < (firstItemRect.Bottom - firstItemRect.Height * 4 / 5))//when close to first item top
                     {
-                        BaseLineItemUsually = new LayoutInfor()
+                        ItemLayoutBaseline = new LayoutInfor()
                         {
                             StartBounds = new Rect(0, StartBoundsCache[0].Top, 0, 0),
                             StartItem = firstItem
@@ -593,6 +562,57 @@
             }
             return rect;
         }
+
+        #region ItemAtPoint
+
+        public override NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
+        {
+            if (!baseOnContent)
+            {
+                var contentOffset = CollectionView.ScrollY;
+                point.Y = point.Y + contentOffset;//convert to base on content
+            }
+
+            foreach (var item in CollectionView.PreparedItems)
+            {
+                if (item.Value.ItemBounds.Contains(point))
+                {
+                    return item.Key;
+                }
+            }
+
+            return EstimateItem(point.X, point.Y);
+        }
+
+        /// <summary>
+        /// Estimate the item displayed when scrolling to a certain position.
+        /// </summary>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        NSIndexPath EstimateItem(double x, double y)
+        {
+            var firstItemBounds = StartBoundsCache.First();
+            double averageHeight = EstimateAverageHeight();
+
+            var numberOfSections = CollectionView.NumberOfSections();
+            double allHeight = 0;
+            for (var section = 0; section < numberOfSections; section++)
+            {
+                var rowsInSection = CollectionView.NumberOfItemsInSection(section);
+                if (y - firstItemBounds.Top < allHeight + rowsInSection * averageHeight)
+                {
+                    return NSIndexPath.FromRowSection((int)((y - firstItemBounds.Top - allHeight) / averageHeight), section);
+                }
+                else
+                {
+                    allHeight += rowsInSection * averageHeight;
+                }
+            }
+            //maybe scrolly is very big
+            return NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections - 1), numberOfSections - 1);
+        }
+
+        #endregion
 
         #endregion
     }

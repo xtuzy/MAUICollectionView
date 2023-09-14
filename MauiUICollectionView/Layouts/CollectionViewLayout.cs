@@ -6,7 +6,7 @@ namespace MauiUICollectionView.Layouts
     /// <summary>
     /// layout content.
     /// </summary>
-    public abstract class CollectionViewLayout : IDisposable
+    public abstract partial class CollectionViewLayout : IDisposable
     {
         public CollectionViewLayout(MAUICollectionView collectionView)
         {
@@ -45,7 +45,23 @@ namespace MauiUICollectionView.Layouts
         /// </summary>
         protected bool HasOperation = false;
 
-        public bool RunOperateAnimation = false;
+        /// <summary>
+        /// it start equal to true when <see cref="HasOperation"/> equal to, but it be false after start operation animation.
+        /// </summary>
+        protected bool RunOperateAnimation = false;
+
+        /// <summary>
+        /// it contain information about item and bounds, we layout item according to it. it's IndexPath is latest.
+        /// </summary>
+        public LayoutInfor ItemLayoutBaseline;
+
+        /// <summary>
+        /// current Visible items, it is different with <see cref="MAUICollectionView.PreparedItems"/>
+        /// </summary>
+        public LayoutInfor VisibleIndexPath { get; protected set; }
+        public LayoutInfor LastVisibleIndexPath { get; protected set; }
+
+        public LayoutInfor OldPreparedItems;
 
         /// <summary>
         /// Arrange Header, Items and Footer. They will be arranged according to <see cref="MAUICollectionViewViewHolder.ItemBounds"/>
@@ -90,32 +106,6 @@ namespace MauiUICollectionView.Layouts
                 CollectionView.FooterView.ArrangeSelf(CollectionView.FooterView.ItemBounds);
             }
         }
-
-        public LayoutInfor OldPreparedItems;
-
-        public class LayoutInfor
-        {
-            public NSIndexPath StartItem;
-            public NSIndexPath EndItem;
-            public Rect StartBounds;
-            public Rect EndBounds;
-
-            public LayoutInfor Copy()
-            {
-                return new LayoutInfor()
-                {
-                    StartItem = this.StartItem,
-                    EndItem = this.EndItem,
-                    StartBounds = this.StartBounds,
-                    EndBounds = this.EndBounds
-                };
-            }
-        }
-
-        /// <summary>
-        /// it contain information about item and bounds, we layout item according to it. it's IndexPath is latest.
-        /// </summary>
-        public LayoutInfor BaseLineItemUsually;
 
         /// <summary>
         /// Measure size of Header, Items and Footer. It will load <see cref="MeasureHeader"/>, <see cref="MeasureItems"/>, <see cref="MeasureFooter"/>.
@@ -403,12 +393,6 @@ namespace MauiUICollectionView.Layouts
         }
 
         /// <summary>
-        /// current Visible items, it is different with <see cref="MAUICollectionView.PreparedItems"/>
-        /// </summary>
-        public LayoutInfor VisibleIndexPath { get; protected set; }
-        public LayoutInfor LastVisibleIndexPath { get; protected set; }
-
-        /// <summary>
         /// Measure items to fill target rect.
         /// </summary>
         /// <param name="top"></param>
@@ -439,23 +423,7 @@ namespace MauiUICollectionView.Layouts
         /// <param name="point">the point in Content or CollectionView</param>
         /// <param name="baseOnContent"> specify point is base on Content or CollectionView</param>
         /// <returns></returns>
-        public virtual NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true)
-        {
-            if (!baseOnContent)
-            {
-                var contentOffset = CollectionView.ScrollY;
-                point.Y = point.Y + contentOffset;//convert to base on content
-            }
-
-            foreach (var item in CollectionView.PreparedItems)
-            {
-                if (item.Value.ItemBounds.Contains(point))
-                {
-                    return item.Key;
-                }
-            }
-            return null;
-        }
+        public abstract NSIndexPath ItemAtPoint(Point point, bool baseOnContent = true);
 
         /// <summary>
         /// Get <see cref="MAUICollectionViewViewHolder.ItemBounds"/> of item. If it in <see cref="MAUICollectionView.PreparedItems"/>, will return bounds, if not, return <see cref="Rect.Zero"/>.

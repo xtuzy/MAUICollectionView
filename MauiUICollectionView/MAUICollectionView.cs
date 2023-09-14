@@ -630,7 +630,7 @@ namespace MauiUICollectionView
                     baselineCurrentIndexPath = firstVisibleItem.Section == indexPath.Section ?
                         NSIndexPath.FromRowSection(firstVisibleItem.Row - count, firstVisibleItem.Section) ://row will change when same section 
                         firstVisibleItem;
-                    layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                    layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                     {
                         //indexpath maybe change
                         StartItem = baselineCurrentIndexPath,
@@ -645,7 +645,7 @@ namespace MauiUICollectionView
                         baselineLastIndexPath = firstVisibleItem;
                         baselineCurrentIndexPath = firstVisibleItem;
 
-                        layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                        layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                         {
                             StartItem = baselineCurrentIndexPath,
                             StartBounds = firstVisibleItemBounds
@@ -659,7 +659,7 @@ namespace MauiUICollectionView
                             NSIndexPath.FromRowSection(lastVisibleItem.Row - count, lastVisibleItem.Section) ://row will change when same section 
                             lastVisibleItem;
 
-                        layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                        layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                         {
                             StartItem = baselineCurrentIndexPath,
                             StartBounds = lastVisibleItemBounds
@@ -668,7 +668,7 @@ namespace MauiUICollectionView
                         //fix move first item will measure multiple times when remove top item
                         if (ItemCountInRange(NSIndexPath.FromRowSection(0, 0), baselineCurrentIndexPath) <= count)
                         {
-                            layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                            layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                             {
                                 StartItem = baselineCurrentIndexPath,
                                 StartBounds = new Rect(0, ScrollY, 0, 0)
@@ -686,7 +686,7 @@ namespace MauiUICollectionView
                             baselineCurrentIndexPath = next.Section == indexPath.Section ?
                                 NSIndexPath.FromRowSection(next.Row - count, next.Section) ://row will change when same section 
                                 next;
-                            layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                            layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                             {
                                 StartItem = baselineCurrentIndexPath,
                                 StartBounds = new Rect(0, ScrollY, 0, 0)
@@ -759,7 +759,7 @@ namespace MauiUICollectionView
                 {
                     baselineCurrentIndexPath = firstVisibleItem;
                 }
-                layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                 {
                     StartItem = baselineCurrentIndexPath,
                     StartBounds = firstVisibleItemBounds
@@ -802,7 +802,7 @@ namespace MauiUICollectionView
                 NSIndexPath baselineLastIndexPath = firstVisibleItem;
                 NSIndexPath baselineCurrentIndexPath = firstVisibleItem;
                 bool moved = false;
-                layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                 {
                     StartItem = baselineCurrentIndexPath,
                     StartBounds = firstVisibleItemBounds
@@ -830,7 +830,7 @@ namespace MauiUICollectionView
             if (layout != null)
             {
                 var firstVisibleItem = PreparedItems.FirstOrDefault();
-                layout.BaseLineItemUsually = new CollectionViewLayout.LayoutInfor()
+                layout.ItemLayoutBaseline = new CollectionViewLayout.LayoutInfor()
                 {
                     StartItem = firstVisibleItem.Key,
                     StartBounds = firstVisibleItem.Value.ItemBounds
