@@ -6,10 +6,26 @@
         {
         }
 
+        #region Property or Field
+
+        /// <summary>
+        /// When jump to specify position, we use this tag tell <see cref="MeasureItems"/> if remeasure all item.
+        /// </summary>
+        protected bool isScrollingTo = false;
+
+        /// <summary>
+        /// store bounds of items at start in list.
+        /// </summary>
+        protected List<Rect> StartBoundsCache = new List<Rect> { };
+
+        #endregion
+
+        #region Method
+
         protected override double MeasureItems(double top, Rect inRect, Rect visibleRect, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availablePreparedItems)
         {
             if (CollectionView.IsScrolling &&
-                isScrollToDirectly == false &&
+                isScrollingTo == false &&
                 !HasOperation)
             {
                 //MeasureItemsWhenScroll(inRect, availablePreparedItems);
@@ -18,8 +34,8 @@
             else
             {
                 MeasureItems(top, inRect, availablePreparedItems);
-                if (isScrollToDirectly)
-                    isScrollToDirectly = false;
+                if (isScrollingTo)
+                    isScrollingTo = false;
                 if (BaseLineItemUsually != null)
                     BaseLineItemUsually = null;
             }
@@ -114,7 +130,7 @@
                     {
                         OnLayoutChildren(inRect, new LayoutInfor()
                         {
-                            StartItem = EstimateItem(CollectionView.ScrollY),
+                            StartItem = EstimateItem(0, CollectionView.ScrollY),
                             StartBounds = new Rect(0, CollectionView.ScrollY, 0, 0),
                         }, availablePreparedItems, isRemeasureAll);
                     }
@@ -142,9 +158,9 @@
         /// <summary>
         /// Estimate the item displayed when scrolling to a certain position.
         /// </summary>
-        /// <param name="scrollY"></param>
+        /// <param name="y"></param>
         /// <returns></returns>
-        protected virtual NSIndexPath EstimateItem(double scrollY)
+        protected virtual NSIndexPath EstimateItem(double x, double y)
         {
             var firstItemBounds = StartBoundsCache.First();
             double averageHeight = EstimateAverageHeight();
@@ -154,9 +170,9 @@
             for (var section = 0; section < numberOfSections; section++)
             {
                 var rowsInSection = CollectionView.NumberOfItemsInSection(section);
-                if (scrollY - firstItemBounds.Top < allHeight + rowsInSection * averageHeight)
+                if (y - firstItemBounds.Top < allHeight + rowsInSection * averageHeight)
                 {
-                    return NSIndexPath.FromRowSection((int)((scrollY - firstItemBounds.Top - allHeight) / averageHeight), section);
+                    return NSIndexPath.FromRowSection((int)((y - firstItemBounds.Top - allHeight) / averageHeight), section);
                 }
                 else
                 {
@@ -361,16 +377,11 @@
         }
 
         /// <summary>
-        /// When jump to specify position, we need this avoid use <see cref="ScrollByOffset"/>.
-        /// </summary>
-        bool isScrollToDirectly = false;
-
-        /// <summary>
         /// Jump to specify item immediately, no animation.
         /// </summary>
         /// <param name="targetIndexPath"></param>
         /// <param name="animated"></param>
-        void ScrollToItem(NSIndexPath targetIndexPath)
+        protected virtual void ScrollToItem(NSIndexPath targetIndexPath)
         {
             /*
              * Estimate position of item, and set ScrollY
@@ -384,7 +395,7 @@
                 itemsOffset += CollectionView.ItemCountInRange(lastPreparedItem.Key, targetIndexPath) * lastPreparedItem.Value.ItemBounds.Height;
                 BaseLineItemUsually = new LayoutInfor()
                 {
-                    EndBounds = new Rect(0, 0, 0, CollectionView.ScrollY + itemsOffset + CollectionView.Bounds.Height),
+                    EndBounds = new Rect(0, 0, 0, CollectionView.ScrollY + itemsOffset + CollectionView.Bounds.Height), //set this item at bottom of visible area.
                     EndItem = targetIndexPath
                 };
                 CollectionView.ScrollToAsync(0, CollectionView.ScrollY + itemsOffset, false);
@@ -402,13 +413,7 @@
                 };
                 CollectionView.ScrollToAsync(0, CollectionView.ScrollY - distanceFromTargetToFirstPrepared, false);
             }
-            isScrollToDirectly = true;
         }
-
-        /// <summary>
-        /// store bounds of items at start in list.
-        /// </summary>
-        protected List<Rect> StartBoundsCache = new List<Rect> { };
 
         /// <summary>
         /// this layout support go to, so item's position is not accurate sometimes, we need adjust position to fit header's position.
@@ -476,7 +481,7 @@
                                     StartBounds = new Rect(0, targetBounds.Top, 0, 0),
                                     StartItem = visibleFirst
                                 };
-                                isScrollToDirectly = true;
+                                isScrollingTo = true;
                                 CollectionView.ScrollToAsync(0, targetBounds.Top, false);
                             }
                         }
@@ -489,7 +494,7 @@
                                 StartBounds = new Rect(0, targetTop, 0, 0),
                                 StartItem = visibleFirst
                             };
-                            isScrollToDirectly = true;
+                            isScrollingTo = true;
                             CollectionView.ScrollToAsync(0, targetTop, false);
                         }
                     }
@@ -508,7 +513,7 @@
                             StartBounds = new Rect(0, StartBoundsCache[0].Top, 0, 0),
                             StartItem = firstItem
                         };
-                        isScrollToDirectly = true;
+                        isScrollingTo = true;
                         CollectionView.ScrollToAsync(0, StartBoundsCache[0].Top, false);
                     }
                 }
@@ -534,15 +539,18 @@
 
                     }
                     ScrollToItem(target);
+                    isScrollingTo = true;
                 }, 0, end);
                 anim.Commit(CollectionView, "ScrollTo", 16, 250, null, (v, b) =>
                 {
                     ScrollToItem(indexPath);
+                    isScrollingTo = true;
                 });
             }
             else
             {
                 ScrollToItem(indexPath);
+                isScrollingTo = true;
             }
         }
 
@@ -565,7 +573,7 @@
                     var itemViewHolder = item.Value;
                     if (indexPath < itemIndexPath)
                     {
-                        var count = CollectionView.ItemCountInRange(indexPath, itemIndexPath) + 1;
+                        var count = CollectionView.ItemCountInRange(indexPath, itemIndexPath) + 1;//we need get top, so total height include height of target item, so +1.
                         double averageHeight = EstimateAverageHeight();
                         var allItemHeight = count * averageHeight;
                         return new Rect(0, itemViewHolder.ItemBounds.Top - allItemHeight, itemViewHolder.ItemBounds.Width, averageHeight);
@@ -585,5 +593,7 @@
             }
             return rect;
         }
+
+        #endregion
     }
 }

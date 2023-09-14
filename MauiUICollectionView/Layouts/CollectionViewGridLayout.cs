@@ -164,7 +164,7 @@
             {
                 itemRowIndex = (item.Row + 1) / ColumnCount; // items从0开始计数
                 var remain = (item.Row + 1) % ColumnCount;
-                itemColumnIndex = remain == 0 ? ColumnCount - 1 : remain - 1 ;
+                itemColumnIndex = remain == 0 ? ColumnCount - 1 : remain - 1;
             }
             return (itemRowIndex, itemColumnIndex);
         }
@@ -178,9 +178,71 @@
             return totalH / StartBoundsCache.Count;
         }
 
-        protected override NSIndexPath EstimateItem(double scrollY)
+        protected override NSIndexPath EstimateItem(double x, double y)
         {
-            return base.EstimateItem(scrollY);
+            var firstItemBounds = StartBoundsCache.First();
+            double averageHeight = EstimateAverageHeight();
+
+            var numberOfSections = CollectionView.NumberOfSections();
+            double allHeight = 0;
+            for (var section = 0; section < numberOfSections; section++)
+            {
+                double headerH = 0;
+                var firstItem = NSIndexPath.FromRowSection(0, section);
+                var firstItemRowColumn = GetRowAndColumnOfItem(firstItem);
+                if (firstItemRowColumn.row == -1)// is header
+                {
+                    var wantH = CollectionView.Source.HeightForItem(CollectionView, firstItem);
+                    if (wantH == MAUICollectionViewViewHolder.AutoSize)
+                        headerH = averageHeight;
+                    else
+                        headerH = wantH;
+                    // in header item
+                    if (y - firstItemBounds.Top < allHeight + headerH)
+                    {
+                        return NSIndexPath.FromRowSection(0, section);
+                    }
+                }
+                var indexCountInSection = CollectionView.NumberOfItemsInSection(section);
+                int rowOfLastDataItem = 0;
+                var lastItem = NSIndexPath.FromRowSection(indexCountInSection - 1, section);
+                var lastItemRowColumn = GetRowAndColumnOfItem(lastItem);
+                if (lastItemRowColumn.row == -2)
+                {
+                    rowOfLastDataItem = GetRowAndColumnOfItem(NSIndexPath.FromRowSection(indexCountInSection - 1, section)).row;
+                }
+                else
+                {
+                    rowOfLastDataItem = lastItemRowColumn.row;
+                }
+
+                // in data items
+                if (y - firstItemBounds.Top < allHeight + headerH + rowOfLastDataItem * averageHeight)
+                {
+                    var firstItemIndexAtTargetRow = (int)((y - firstItemBounds.Top - allHeight - headerH) / averageHeight) * ColumnCount;
+                    var column = (int)( x / (CollectionView.ContentSize.Width / ColumnCount));
+                    return NSIndexPath.FromRowSection(firstItemIndexAtTargetRow + column, section);
+                }
+
+                double footerH = 0;
+                if (lastItemRowColumn.row == -2)
+                {
+                    var wantH = CollectionView.Source.HeightForItem(CollectionView, lastItem);
+                    if (wantH == MAUICollectionViewViewHolder.AutoSize)
+                        footerH = averageHeight;
+                    else
+                        footerH = wantH;
+                    // in footer item
+                    if (y - firstItemBounds.Top < allHeight + headerH + rowOfLastDataItem * averageHeight + footerH)
+                    {
+                        return NSIndexPath.FromRowSection(indexCountInSection - 1, section);
+                    }
+                }
+
+                allHeight += headerH + rowOfLastDataItem * averageHeight + footerH;
+            }
+            //maybe scrolly is very big
+            return NSIndexPath.FromRowSection(CollectionView.NumberOfItemsInSection(numberOfSections - 1), numberOfSections - 1);
         }
 
         protected override void OnLayoutChildren(Rect inRect, LayoutInfor baselineInfor, Dictionary<NSIndexPath, MAUICollectionViewViewHolder> availableCells, bool isRemeasureAll = true)
@@ -226,7 +288,7 @@
                         }
                         if (result.bounds.Top >= inRect.Bottom)// In order to ensure that the item on the right is also loaded, an out-of-bounds item will be measured.
                             return;
-                        if(column == ColumnCount - 1 || column == -1)//if item is header, footer, or right item, top of next item will be added.
+                        if (column == ColumnCount - 1 || column == -1)//if item is header, footer, or right item, top of next item will be added.
                             top += result.bounds.Height;
                     }
                 }
@@ -264,7 +326,7 @@
                             var left = column == -1 ? 0 : column * w;
                             result = MeasureItem(inRect, w, new Point(left, bottom), Edge.Bottom | Edge.Left, indexPath, availableCells);
                         }
-                            
+
                         if (result.viewHolder != null)
                         {
                             //here we can change item's size
@@ -371,165 +433,82 @@
                 point.Y = point.Y + contentOffset;//convert to base on content
             }
 
-            double top = 0;
-            if (CollectionView.HeaderView != null)
-            {
-                top = CollectionView.HeaderView.DesiredSize.Height;
-            }
-
-            double itemsHeight = 0;
-            var contentWidth = CollectionView.ContentSize.Width;
-            var itemWidth = contentWidth / ColumnCount;
-            var itemHeight = itemWidth * AspectRatio.Height / AspectRatio.Width;
-            int numberOfSections = CollectionView.NumberOfSections();
-
-            for (int section = 0; section < numberOfSections; section++)
-            {
-                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
-                NSIndexPath firstItem = NSIndexPath.FromRowSection(0, section);
-                NSIndexPath lastItem = NSIndexPath.FromRowSection(numberOfRows - 1, section);
-
-                var firstIsSectionItem = CollectionView.Source.IsSectionItem?.Invoke(CollectionView, firstItem);
-                var lastIsSectionItem = CollectionView.Source.IsSectionItem?.Invoke(CollectionView, lastItem);
-
-                int dataItemCount = numberOfRows;
-                if (firstIsSectionItem == true) dataItemCount--;
-                if (lastIsSectionItem == true) dataItemCount--;
-
-                double firstItemHeight = 0;
-                if (firstIsSectionItem == true)
-                {
-                    var id = CollectionView.Source.ReuseIdForItem(CollectionView, firstItem);
-                    var wantHeight = CollectionView.Source.HeightForItem(CollectionView, firstItem);
-                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? EstimateAverageHeight() : wantHeight;
-                    var firstItemRect = new Rect(0, itemsHeight + top, contentWidth, firstItemHeight);
-                    var firstItemIsTarget = firstItemRect.Contains(point);
-                    if (firstItemIsTarget)
-                    {
-                        return firstItem;
-                    }
-                }
-
-                var sectionAllDataItemsHeight = itemHeight * (dataItemCount / ColumnCount) + itemHeight * (dataItemCount % ColumnCount > 0 ? 1 : 0);
-
-                var allDataItemRect = new Rect(0, itemsHeight + firstItemHeight + top, contentWidth, sectionAllDataItemsHeight);
-                if (allDataItemRect.Contains(point))
-                {
-                    var rowIndex = (int)((point.Y - allDataItemRect.Top) / itemHeight);
-                    var rowCount = dataItemCount % ColumnCount == 0 ? dataItemCount / ColumnCount : dataItemCount / ColumnCount + 1;
-                    for (var itemRowIndex = rowIndex; itemRowIndex < rowCount; itemRowIndex++)
-                    {
-                        var rowTop = top + itemsHeight + firstItemHeight + itemRowIndex * itemHeight;
-                        var rowHeight = itemHeight;
-                        for (var currentColumIndex = 1; currentColumIndex <= ColumnCount; currentColumIndex++)
-                        {
-                            var itemIndex = itemRowIndex * ColumnCount + currentColumIndex;
-                            if (itemIndex > dataItemCount)
-                            {
-                                break;
-                            }
-                            NSIndexPath itemIndexPath = NSIndexPath.FromRowSection(itemIndex, section);
-                            var itemRect = new Rect(itemWidth * (currentColumIndex - 1), rowTop, itemWidth, rowHeight);
-                            if (itemRect.Contains(point))
-                            {
-                                return itemIndexPath;
-                            }
-                        }
-                    }
-                }
-
-                double lastItemHeight = 0;
-                if (lastIsSectionItem == true)
-                {
-                    var id = CollectionView.Source.ReuseIdForItem(CollectionView, lastItem);
-                    var wantHeight = CollectionView.Source.HeightForItem(CollectionView, lastItem);
-                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? EstimateAverageHeight() : wantHeight;
-                    var lastItemRect = new Rect(0, top + itemsHeight + firstItemHeight + sectionAllDataItemsHeight, contentWidth, lastItemHeight);
-                    var lastItemIsTarget = lastItemRect.Contains(point);
-                    if (lastItemIsTarget)
-                    {
-                        return firstItem;
-                    }
-                }
-
-                itemsHeight = itemsHeight + firstItemHeight + sectionAllDataItemsHeight + lastItemHeight;
-            }
-            return null;
+            return EstimateItem(point.X, point.Y);
         }
 
-        public override Rect RectForItem(NSIndexPath indexPathTarget)
+        public override Rect RectForItem(NSIndexPath indexPath)
         {
-            if (CollectionView.PreparedItems.ContainsKey(indexPathTarget))
+            if (CollectionView.PreparedItems.ContainsKey(indexPath))
             {
-                return CollectionView.PreparedItems[indexPathTarget].ItemBounds;
+                return CollectionView.PreparedItems[indexPath].ItemBounds;
             }
 
-            double top = 0;
-            if (CollectionView.HeaderView != null)
+            //base on any visible item
+            if (CollectionView.PreparedItems.Count > 0)
             {
-                top = CollectionView.HeaderView.DesiredSize.Height;
+                var item = CollectionView.PreparedItems.First();
+                var itemIndexPath = item.Key;
+                var itemViewHolder = item.Value;
+
+                var row = GetRowAndColumnOfItem(indexPath);
+                var left = row.column == -1 ? 0 : row.column * (CollectionView.ContentSize.Width / ColumnCount);
+                if (indexPath < itemIndexPath)
+                {
+                    var count = CollectionView.ItemCountInRange(indexPath, itemIndexPath) + 1;
+                    double averageHeight = EstimateAverageHeight();
+                    var allItemHeight = count * averageHeight / ColumnCount;
+                    return new Rect(left, itemViewHolder.ItemBounds.Top - allItemHeight, itemViewHolder.ItemBounds.Width, averageHeight);
+                }
+
+                item = CollectionView.PreparedItems.Last();
+                itemIndexPath = item.Key;
+                itemViewHolder = item.Value;
+                if (indexPath > itemIndexPath)
+                {
+                    var count = CollectionView.ItemCountInRange(itemIndexPath, indexPath);
+                    double averageHeight = EstimateAverageHeight();
+                    var allItemHeight = count * averageHeight / ColumnCount;
+                    return new Rect(left, itemViewHolder.ItemBounds.Bottom + allItemHeight, itemViewHolder.ItemBounds.Width, averageHeight);
+                }
             }
 
-            double itemsHeight = 0;
-            var contentWidth = CollectionView.ContentSize.Width;
-            var itemWidth = contentWidth / ColumnCount;
-            var itemHeight = itemWidth * AspectRatio.Height / AspectRatio.Width;
-            int numberOfSections = CollectionView.NumberOfSections();
-
-            for (int section = 0; section < numberOfSections; section++)
-            {
-                int numberOfRows = CollectionView.NumberOfItemsInSection(section);
-                NSIndexPath firstItem = NSIndexPath.FromRowSection(0, section);
-                NSIndexPath lastItem = NSIndexPath.FromRowSection(numberOfRows - 1, section);
-
-                var firstIsSectionItem = CollectionView.Source.IsSectionItem?.Invoke(CollectionView, firstItem);
-                var lastIsSectionItem = CollectionView.Source.IsSectionItem?.Invoke(CollectionView, lastItem);
-
-                int dataItemCount = numberOfRows;
-                if (firstIsSectionItem == true) dataItemCount--;
-                if (lastIsSectionItem == true) dataItemCount--;
-
-                double firstItemHeight = 0;
-                if (firstIsSectionItem == true)
-                {
-
-                    var id = CollectionView.Source.ReuseIdForItem(CollectionView, firstItem);
-                    var wantHeight = CollectionView.Source.HeightForItem(CollectionView, firstItem);
-                    firstItemHeight = CollectionView.PreparedItems.ContainsKey(firstItem) ? CollectionView.PreparedItems[firstItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? EstimateAverageHeight() : wantHeight;
-                    if (firstItem.Equals(indexPathTarget))
-                    {
-                        return new Rect(0, itemsHeight + top, contentWidth, firstItemHeight);
-                    }
-                }
-
-                var sectionAllDataItemsHeight = itemHeight * (dataItemCount / ColumnCount) + itemHeight * (dataItemCount % ColumnCount > 0 ? 1 : 0);
-
-                var allDataItemRect = new Rect(0, itemsHeight + firstItemHeight + top, contentWidth, sectionAllDataItemsHeight);
-                if (section == indexPathTarget.Section)
-                {
-                    var itemIndex = indexPathTarget.Row;
-                    if (firstIsSectionItem == true)
-                        itemIndex--; //if have section, item index start from 1, i want use 0 to calculate line
-                    var itemRowIndex = itemIndex % ColumnCount == 0 ? itemIndex / ColumnCount : itemIndex / ColumnCount + 1;
-                    var rowTop = top + itemsHeight + firstItemHeight + itemRowIndex * itemHeight;
-                    return new Rect((itemIndex % ColumnCount == 0 ? 2 : itemIndex % ColumnCount - 1) * itemWidth, rowTop, itemWidth, itemHeight);
-                }
-
-                double lastItemHeight = 0;
-                if (lastIsSectionItem == true)
-                {
-                    var id = CollectionView.Source.ReuseIdForItem(CollectionView, lastItem);
-                    var wantHeight = CollectionView.Source.HeightForItem(CollectionView, lastItem);
-                    lastItemHeight = CollectionView.PreparedItems.ContainsKey(lastItem) ? CollectionView.PreparedItems[lastItem].ItemBounds.Height : wantHeight == MAUICollectionViewViewHolder.AutoSize ? EstimateAverageHeight() : wantHeight;
-                    if (lastItem.Equals(indexPathTarget))
-                    {
-                        return new Rect(0, top + itemsHeight + firstItemHeight + sectionAllDataItemsHeight, contentWidth, lastItemHeight);
-                    }
-                }
-
-                itemsHeight = itemsHeight + firstItemHeight + sectionAllDataItemsHeight + lastItemHeight;
-            }
             return Rect.Zero;
+        }
+
+        protected override void ScrollToItem(NSIndexPath targetIndexPath)
+        {
+            /*
+            * Estimate position of item, and set ScrollY
+            */
+            var firstPreparedItem = CollectionView.PreparedItems.FirstOrDefault();
+            var lastPreparedItem = CollectionView.PreparedItems.LastOrDefault();
+            double itemsOffset = 0;
+            var numberOfSections = CollectionView.NumberOfSections();
+            if (targetIndexPath > lastPreparedItem.Key)//The target item is at the bottom of the visible area, laid out from the bottom up.
+            {
+                itemsOffset += CollectionView.ItemCountInRange(lastPreparedItem.Key, targetIndexPath) / ColumnCount * EstimateAverageHeight();
+                
+                BaseLineItemUsually = new LayoutInfor()
+                {
+                    EndBounds = new Rect(0, 0, 0, lastPreparedItem.Value.ItemBounds.Bottom + itemsOffset + CollectionView.Bounds.Height),
+                    EndItem = targetIndexPath
+                };
+                CollectionView.ScrollToAsync(0, lastPreparedItem.Value.ItemBounds.Bottom + itemsOffset, false);
+            }
+            else if (targetIndexPath < firstPreparedItem.Key)//The target item is at the top of the visible area, laid out from the top down.
+            {
+                //Using proportional calculations is more reasonable than calculating based on individual item heights, avoid negative numbers.
+                var rowCountFromTargetToFirstPrepared = (CollectionView.ItemCountInRange(targetIndexPath, firstPreparedItem.Key) + 1) / ColumnCount;
+                var rowCountFromFirstToFirstPrepared = (CollectionView.ItemCountInRange(NSIndexPath.FromRowSection(0, 0), firstPreparedItem.Key) + 1) / ColumnCount;
+                var distanceFromTargetToFirstPrepared = (firstPreparedItem.Value.ItemBounds.Top - StartBoundsCache[0].Top) * rowCountFromTargetToFirstPrepared / rowCountFromFirstToFirstPrepared + (CollectionView.ScrollY - firstPreparedItem.Value.ItemBounds.Top);
+                BaseLineItemUsually = new LayoutInfor()
+                {
+                    StartBounds = new Rect(0, CollectionView.ScrollY - distanceFromTargetToFirstPrepared, 0, 0),
+                    StartItem = targetIndexPath
+                };
+                CollectionView.ScrollToAsync(0, CollectionView.ScrollY - distanceFromTargetToFirstPrepared, false);
+            }
+            isScrollingTo = true;
         }
     }
 }

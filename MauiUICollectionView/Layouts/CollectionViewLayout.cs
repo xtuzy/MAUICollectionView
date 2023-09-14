@@ -34,7 +34,7 @@ namespace MauiUICollectionView.Layouts
         /// <summary>
         /// scroll direction.
         /// </summary>
-        public virtual ItemsLayoutOrientation ScrollDirection
+        public ItemsLayoutOrientation ScrollDirection
         {
             get; set;
         } = ItemsLayoutOrientation.Vertical;
@@ -409,7 +409,7 @@ namespace MauiUICollectionView.Layouts
         public LayoutInfor LastVisibleIndexPath { get; protected set; }
 
         /// <summary>
-        /// 
+        /// Measure items to fill target rect.
         /// </summary>
         /// <param name="top"></param>
         /// <param name="inRect">rect for prepared items</param>
@@ -431,7 +431,10 @@ namespace MauiUICollectionView.Layouts
         }
 
         /// <summary>
-        /// Get item at point.
+        /// Get item at point. <see cref="CollectionViewLayout.ItemAtPoint(Point, bool)"/> find it in <see cref="MAUICollectionView.PreparedItems"/>.
+        /// <para>
+        /// The main purpose of this method is to get IndexPath in visible position, if you want get item in invisible position, you need to know if subclass support it.
+        /// </para>
         /// </summary>
         /// <param name="point">the point in Content or CollectionView</param>
         /// <param name="baseOnContent"> specify point is base on Content or CollectionView</param>
@@ -456,6 +459,10 @@ namespace MauiUICollectionView.Layouts
 
         /// <summary>
         /// Get <see cref="MAUICollectionViewViewHolder.ItemBounds"/> of item. If it in <see cref="MAUICollectionView.PreparedItems"/>, will return bounds, if not, return <see cref="Rect.Zero"/>.
+        /// Subclass need implement it for other item.
+        /// <para>
+        /// The main purpose of this method is to get the position of visible and invisible items for manipulating animations.
+        /// </para>
         /// </summary>
         /// <returns></returns>
         public virtual Rect RectForItem(NSIndexPath indexPath)
