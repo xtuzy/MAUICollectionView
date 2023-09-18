@@ -557,7 +557,7 @@ namespace DemoTest.Pages
         public ItemViewHolderSimple(View itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
         {
             ModelView = itemView as ModelViewSimple;
-            this.IsClippedToBounds = true;
+            ModelView.IsClippedToBounds = true;
             this.Effects.Add(new TabEffect());
         }
 
