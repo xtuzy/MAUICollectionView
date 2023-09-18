@@ -194,10 +194,17 @@
                 }
             }
 
-            if (baselineInfor.StartItem != null)//从上到下
+            if (baselineInfor.StartItem != null)//from top to bottom
             {
+                // if baseline is right item, we try set left item of same row as baseline.
+                var startItemRowAndColum = GetRowAndColumnOfItem(baselineInfor.StartItem);
+                if (startItemRowAndColum.column > 0)
+                {
+                    baselineInfor.StartItem = NSIndexPath.FromRowSection(baselineInfor.StartItem.Row - startItemRowAndColum.column, baselineInfor.StartItem.Section);
+                }
+
                 //由于有多列且有Header,Footer, baseline的位置判断更复杂, 它不像Vertical List的X总是0
-                if (baselineInfor.StartBounds.Top > inRect.Top)
+                if (baselineInfor.StartBounds.Top > inRect.Top - 1)// why "-1":when scroll to top, baseline may be right item, we also need measure left item, but sometimes top of baseline not equal to top of inRect and the difference is less than 1.
                 {
                     var frontItem = CollectionView.NextItem(baselineInfor.StartItem, -1);
                     if (frontItem != null)
@@ -214,10 +221,17 @@
                 }
                 LayoutFromTopToBottom(baselineInfor);
             }
-            else//从下往上
+            else//from bottom to top
             {
+                // if baseline is left item, we try set right item of same row as baseline.
+                var endItemRowAndColum = GetRowAndColumnOfItem(baselineInfor.EndItem);
+                if (endItemRowAndColum.column < ColumnCount -1)
+                {
+                    baselineInfor.EndItem = NSIndexPath.FromRowSection(baselineInfor.EndItem.Row + (ColumnCount - 1 - endItemRowAndColum.column), baselineInfor.EndItem.Section);
+                }
+
                 LayoutFromBottomToTop(baselineInfor);
-                if (baselineInfor.EndBounds.Bottom < inRect.Bottom)
+                if (baselineInfor.EndBounds.Bottom - 1 < inRect.Bottom)
                 {
                     var behindItem = CollectionView.NextItem(baselineInfor.EndItem, 1);
                     if (behindItem != null)
