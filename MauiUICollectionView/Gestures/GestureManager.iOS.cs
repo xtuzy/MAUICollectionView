@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Windows.Input;
 using UIKit;
 
-namespace MauiUICollectionView.Gestures
+namespace Yang.MAUICollectionView.Gestures
 {
     public class GestureManager : IGestureManager
     {
@@ -115,7 +115,7 @@ namespace MauiUICollectionView.Gestures
                 {
                     var control = view as UIScrollView;
                     var point = recognizer.LocationInView(control); 
-                    var parameter = new MauiUICollectionView.DragEventArgs(gestureStatus, new Point(point.X, point.Y- control.ContentOffset.Y));
+                    var parameter = new Yang.MAUICollectionView.DragEventArgs(gestureStatus, new Point(point.X, point.Y- control.ContentOffset.Y));
                     parameter.Device = GestureDevice.Touch;
                     if (dragPointCommand?.CanExecute(parameter) == true)
                         dragPointCommand.Execute(parameter);
@@ -155,7 +155,7 @@ namespace MauiUICollectionView.Gestures
                             _ => GestureStatus.Canceled,
                         };
 
-                        var parameter = new MauiUICollectionView.DragEventArgs(gestureStatus, point);
+                        var parameter = new Yang.MAUICollectionView.DragEventArgs(gestureStatus, point);
                         //if (dragPointCommand.CanExecute(parameter))
                         //dragPointCommand.Execute(parameter);
                     }
@@ -174,7 +174,7 @@ namespace MauiUICollectionView.Gestures
                         var control = view;
                         var point = recognizer.LocationInView(control).ToPoint();
 
-                        var parameter = new MauiUICollectionView.DragEventArgs(GestureStatus.Started, point);
+                        var parameter = new Yang.MAUICollectionView.DragEventArgs(GestureStatus.Started, point);
                         if (pointCommand.CanExecute(parameter))
                             pointCommand.Execute(parameter);
                         if (!parameter.CancelGesture)

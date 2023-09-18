@@ -1,6 +1,6 @@
-﻿using MauiUICollectionView.Layouts;
+﻿using Yang.MAUICollectionView.Layouts;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public class MAUICollectionViewSource : IMAUICollectionViewSource
     {

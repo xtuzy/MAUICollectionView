@@ -1,5 +1,5 @@
-using MauiUICollectionView;
-using MauiUICollectionView.Layouts;
+using Yang.MAUICollectionView;
+using Yang.MAUICollectionView.Layouts;
 
 namespace DemoTest.Pages;
 
@@ -212,7 +212,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
 
                 //Id.SetBinding(Label.TextProperty, new Binding(nameof(IndexPath), source: this));
 
-                this.Effects.Add(new MauiUICollectionView.TouchEffects.TabEffect());
+                this.Effects.Add(new Yang.MAUICollectionView.TouchEffects.TabEffect());
             }
 
             public override void UpdateSelectionState(SelectStatus status)
@@ -283,7 +283,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 menu.Add(deleteMenuItem);
                 menu.Add(insertMenuItem);
                 menu.Add(insertAfterMenuItem);
-                ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+                ContextMenu = new Yang.MAUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
             }
         }

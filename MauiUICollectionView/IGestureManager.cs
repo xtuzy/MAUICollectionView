@@ -6,7 +6,7 @@ using PlatformView = Microsoft.UI.Xaml.FrameworkElement;
 #else
 using PlatformView = UIKit.UIView;
 #endif
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public interface IGestureManager
     {

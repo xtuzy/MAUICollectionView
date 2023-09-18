@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public static class ViewExtension
     {

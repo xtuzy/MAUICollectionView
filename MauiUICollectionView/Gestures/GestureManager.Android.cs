@@ -8,7 +8,7 @@ using System.Windows.Input;
 using static Android.Views.View;
 using AView = Android.Views.View;
 
-namespace MauiUICollectionView.Gestures
+namespace Yang.MAUICollectionView.Gestures
 {
     /// <summary>
     /// 用于管理CollectonView在Android上的手势. Maui的手势处理不能提供细节, 而处理好CollectionView的长按拖拽,长按ContextMenu,点击选择之间的关系,都需要细节.

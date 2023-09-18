@@ -1,4 +1,4 @@
-﻿namespace MauiUICollectionView.Layouts
+﻿namespace Yang.MAUICollectionView.Layouts
 {
     public partial class CollectionViewFlatListLayout : CollectionViewLayout
     {

@@ -1,4 +1,4 @@
-﻿namespace MauiUICollectionView
+﻿namespace Yang.MAUICollectionView
 {
     #region 操作
 

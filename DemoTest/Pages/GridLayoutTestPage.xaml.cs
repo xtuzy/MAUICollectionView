@@ -1,10 +1,10 @@
 using Bogus;
-using MauiUICollectionView;
-using MauiUICollectionView.Layouts;
+using Yang.MAUICollectionView;
+using Yang.MAUICollectionView.Layouts;
 using Microsoft.Maui.Controls.Shapes;
 using SharpConstraintLayout.Maui.Widget;
 using Yang.Maui.Helper.Image;
-using MAUICollectionView = MauiUICollectionView.MAUICollectionView;
+using MAUICollectionView = Yang.MAUICollectionView.MAUICollectionView;
 namespace DemoTest.Pages;
 
 public partial class GridLayoutTestPage : ContentPage

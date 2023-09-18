@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Diagnostics;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public class MyScrollViewHandler : ScrollViewHandler
     {

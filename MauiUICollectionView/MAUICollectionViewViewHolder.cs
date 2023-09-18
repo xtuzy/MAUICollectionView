@@ -1,6 +1,6 @@
 ﻿using Maui.BindableProperty.Generator.Core;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public partial class MAUICollectionViewViewHolder : ContentView
     {
@@ -107,14 +107,14 @@ namespace MauiUICollectionView
         {
             base.OnHandlerChanged();
 #if ANDROID
-            androidGestureManager = new MauiUICollectionView.Gestures.GestureManager();
+            androidGestureManager = new Yang.MAUICollectionView.Gestures.GestureManager();
             androidGestureManager.LongPressPointCommand = new Command(Av_LongClick);
             androidGestureManager.SelectPointCommand = new Command(Av_Click);
             androidGestureManager.SubscribeGesture(this);
 #endif
         }
 
-        MauiUICollectionView.Gestures.GestureManager androidGestureManager;
+        Yang.MAUICollectionView.Gestures.GestureManager androidGestureManager;
         protected override void OnHandlerChanging(HandlerChangingEventArgs args)
         {
             base.OnHandlerChanging(args);
@@ -148,7 +148,7 @@ namespace MauiUICollectionView
                 var parameter = new DragEventArgs(GestureStatus.Started, pointRelateToScrollView);
                 parameter.Device = GestureDevice.Touch;
                 collectionView.DragCommand(parameter);
-                (collectionView.GestureManager as MauiUICollectionView.Gestures.GestureManager).SetScrollViewInterceptEventWhenViewHolderHandledLongPress();
+                (collectionView.GestureManager as Yang.MAUICollectionView.Gestures.GestureManager).SetScrollViewInterceptEventWhenViewHolderHandledLongPress();
             }
         }
 

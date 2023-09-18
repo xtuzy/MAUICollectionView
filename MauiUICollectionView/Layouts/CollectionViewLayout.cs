@@ -1,7 +1,7 @@
-﻿using MauiUICollectionView.Layouts;
+﻿using Yang.MAUICollectionView.Layouts;
 using System.Diagnostics;
 
-namespace MauiUICollectionView.Layouts
+namespace Yang.MAUICollectionView.Layouts
 {
     /// <summary>
     /// layout content.

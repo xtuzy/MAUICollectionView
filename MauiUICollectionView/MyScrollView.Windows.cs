@@ -1,7 +1,7 @@
 ﻿using Microsoft.Maui.Platform;
 using Microsoft.UI.Xaml.Controls;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public class MyScrollView 
     {

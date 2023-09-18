@@ -1,10 +1,10 @@
-﻿using MauiUICollectionView.TouchEffects;
+﻿using Yang.MAUICollectionView.TouchEffects;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public static class AppHostBuilderExtensions
     {
-        public static MauiAppBuilder UseMauiUICollectionView(this MauiAppBuilder builder)
+        public static MauiAppBuilder UseMAUICollectionView(this MauiAppBuilder builder)
         {
             builder.ConfigureMauiHandlers(handlers =>
             {

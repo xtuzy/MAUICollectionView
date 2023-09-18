@@ -1,7 +1,7 @@
 ﻿using Android.Content;
 using System.Diagnostics;
 
-namespace MauiUICollectionView.Gestures
+namespace Yang.MAUICollectionView.Gestures
 {
     public class AndroidContextMenu : IContextMenu
     {

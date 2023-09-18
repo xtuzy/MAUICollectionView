@@ -1,11 +1,12 @@
 ﻿using Bogus;
-using MauiUICollectionView;
-using MauiUICollectionView.Layouts;
+using Yang.MAUICollectionView;
+using Yang.MAUICollectionView.Layouts;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using The49.Maui.ContextMenu;
+using Yang.MAUICollectionView.TouchEffects;
 
 namespace DemoTest.Pages
 {
@@ -557,7 +558,7 @@ namespace DemoTest.Pages
         {
             ModelView = itemView as ModelViewSimple;
             this.IsClippedToBounds = true;
-            this.Effects.Add(new MauiUICollectionView.TouchEffects.TabEffect());
+            this.Effects.Add(new TabEffect());
         }
 
         public ModelViewSimple ModelView;
@@ -593,7 +594,7 @@ namespace DemoTest.Pages
             base.OnHandlerChanged();
 #if ANDROID
             var av = this.Handler.PlatformView as Android.Views.View;
-            var aContextMenu = ContextMenu as MauiUICollectionView.Gestures.AndroidContextMenu;
+            var aContextMenu = ContextMenu as Yang.MAUICollectionView.Gestures.AndroidContextMenu;
             aContextMenu.Init(av.Context, av);
 
             //设置PopupMenu样式, see https://learn.microsoft.com/en-us/xamarin/android/user-interface/controls/popup-menu
@@ -652,7 +653,7 @@ namespace DemoTest.Pages
                 insertMenuItem,
                 insertAfterMenuItem
             };
-            ContextMenu = new MauiUICollectionView.Gestures.iOSContextMenu(this, menu);
+            ContextMenu = new Yang.MAUICollectionView.Gestures.iOSContextMenu(this, menu);
 #elif WINDOWS || MACCATALYST
             var menu = new MenuFlyout();
             var deleteMenuItem = new MenuFlyoutItem()
@@ -682,9 +683,9 @@ namespace DemoTest.Pages
             menu.Add(deleteMenuItem);
             menu.Add(insertMenuItem);
             menu.Add(insertAfterMenuItem);
-            ContextMenu = new MauiUICollectionView.Gestures.DesktopContextMenu(this, menu);
+            ContextMenu = new Yang.MAUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #elif ANDROID
-            ContextMenu = new MauiUICollectionView.Gestures.AndroidContextMenu();
+            ContextMenu = new Yang.MAUICollectionView.Gestures.AndroidContextMenu();
 #endif
         }
 

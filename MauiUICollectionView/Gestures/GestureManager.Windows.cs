@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Windows.Input;
 using GestureRecognizer = Microsoft.UI.Input.GestureRecognizer;
 
-namespace MauiUICollectionView.Gestures
+namespace Yang.MAUICollectionView.Gestures
 {
     public class GestureManager : IGestureManager
     {
@@ -44,7 +44,7 @@ namespace MauiUICollectionView.Gestures
                     DraggingState.Completed => GestureStatus.Completed,
                     _ => GestureStatus.Canceled
                 };
-                var parameters = new MauiUICollectionView.DragEventArgs(gestureStatus, new Point(args.Position.X, args.Position.Y));
+                var parameters = new Yang.MAUICollectionView.DragEventArgs(gestureStatus, new Point(args.Position.X, args.Position.Y));
                 parameters.Device = args.PointerDeviceType switch
                 {
                     PointerDeviceType.Mouse => GestureDevice.Mouse,

@@ -16,6 +16,7 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 		<PackageId>Yang.MAUICollectionView</PackageId>
+    <RootNamespace>Yang.MAUICollectionView</RootNamespace>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Version>0.0.3-pre</Version>
 		<RepositoryUrl>https://github.com/xtuzy/MAUICollectionView</RepositoryUrl>

@@ -1,5 +1,5 @@
-﻿using MauiUICollectionView;
-using MauiUICollectionView.Layouts;
+﻿using Yang.MAUICollectionView;
+using Yang.MAUICollectionView.Layouts;
 using Xunit;
 using Xunit.Abstractions;
 

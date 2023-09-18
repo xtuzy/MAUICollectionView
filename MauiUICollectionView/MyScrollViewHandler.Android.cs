@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public class MyScrollViewHandler : ScrollViewHandler
     {

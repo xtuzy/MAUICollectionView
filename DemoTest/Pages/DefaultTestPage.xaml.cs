@@ -1,8 +1,8 @@
-using MauiUICollectionView;
-using MauiUICollectionView.Layouts;
+using Yang.MAUICollectionView;
+using Yang.MAUICollectionView.Layouts;
 using System.Diagnostics;
 using Yang.Maui.Helper.Device.Screen;
-using MAUICollectionView = MauiUICollectionView.MAUICollectionView;
+using MAUICollectionView = Yang.MAUICollectionView.MAUICollectionView;
 namespace DemoTest.Pages;
 
 public partial class DefaultTestPage : ContentPage

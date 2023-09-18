@@ -1,4 +1,4 @@
-﻿namespace MauiUICollectionView
+﻿namespace Yang.MAUICollectionView
 {
     public class SelectEventArgs
     {

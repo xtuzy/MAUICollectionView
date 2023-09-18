@@ -6,7 +6,7 @@ using Android.Util;
 using Android.Views;
 using Microsoft.Maui.Platform;
 
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public class MyScrollView : MauiScrollView
     {

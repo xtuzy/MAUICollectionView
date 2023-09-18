@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using The49.Maui.ContextMenu;
 
-namespace MauiUICollectionView.Gestures
+namespace Yang.MAUICollectionView.Gestures
 {
     public class iOSContextMenu : IContextMenu
     {

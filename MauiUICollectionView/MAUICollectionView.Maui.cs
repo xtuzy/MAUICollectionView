@@ -7,7 +7,7 @@ using PlatformView = Microsoft.UI.Xaml.FrameworkElement;
 #else
 using PlatformView = UIKit.UIView;
 #endif
-namespace MauiUICollectionView
+namespace Yang.MAUICollectionView
 {
     public partial class MAUICollectionView : ScrollView
     {
@@ -34,7 +34,7 @@ namespace MauiUICollectionView
             this.SizeChanged += MAUICollectionView_SizeChanged;
 
             if (GestureManager == null)
-                GestureManager = new MauiUICollectionView.Gestures.GestureManager();//set default gesturemanager
+                GestureManager = new Yang.MAUICollectionView.Gestures.GestureManager();//set default gesturemanager
                                                                                     //选择Item
 #if !ANDROID
             GestureManager.SelectPointCommand = new Command(SelectItemCommand);

@@ -1,4 +1,4 @@
-﻿using MauiUICollectionView;
+﻿using Yang.MAUICollectionView;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

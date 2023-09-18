@@ -1,5 +1,5 @@
 ﻿
-namespace MauiUICollectionView.TouchEffects
+namespace Yang.MAUICollectionView.TouchEffects
 {
     public class TabEffect : RoutingEffect
     {

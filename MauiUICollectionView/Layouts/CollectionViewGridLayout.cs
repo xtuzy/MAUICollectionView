@@ -1,4 +1,4 @@
-﻿namespace MauiUICollectionView.Layouts
+﻿namespace Yang.MAUICollectionView.Layouts
 {
     /// <summary>
     /// GridLayout 意味着分割列表为几列, 高度直接指定比例, 在布局时是确定的值. Source中的设置高度的方法对其无效. 注意Cell不要直接设置Margin, Layout中未加入计算.

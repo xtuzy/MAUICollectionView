@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MauiUICollectionView.Layouts
+namespace Yang.MAUICollectionView.Layouts
 {
     [Flags] public enum Edge
     {
