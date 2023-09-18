@@ -27,6 +27,8 @@
                 <Button x:Name="Move" Text="Move" />
                 <Button x:Name="Reload" Text="Reload" />
                 <Button x:Name="ChangeLayout" Text="ChangeLayout" />
+                <Button x:Name="GoTop" Text="GoTop" />
+                <Button x:Name="GoBottom" Text="GoBottom" />
             </HorizontalStackLayout>
         </ScrollView>
         <ContentView x:Name="content" Grid.Row="1" />

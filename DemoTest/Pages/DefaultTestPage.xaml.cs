@@ -167,6 +167,16 @@ public partial class DefaultTestPage : ContentPage
             refreshview.IsRefreshing = false;
         });
 
+        GoTop.Clicked += (sender, e) =>
+        {
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(10, 0), ScrollPosition.Top, false);
+        };
+
+        GoBottom.Clicked += (sender, e) =>
+        {
+            tableView.ScrollToItem(NSIndexPath.FromRowSection(ViewModel.Instance.models[ViewModel.Instance.models.Count - 1].Count - 10, ViewModel.Instance.models.Count - 1), ScrollPosition.Top, false);
+        };
+
         this.SizeChanged += DefaultTestPage_SizeChanged;
     }
 
