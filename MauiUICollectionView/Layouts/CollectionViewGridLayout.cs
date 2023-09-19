@@ -130,12 +130,16 @@
                             result.bounds = result.viewHolder.ItemBounds;
                             CollectionView.PreparedItems.Add(indexPath, result.viewHolder);
                         }
-                        if (result.bounds.Top >= inRect.Bottom)// In order to ensure that the item on the right is also loaded, an out-of-bounds item will be measured.
-                            return;
+                        /*if (result.bounds.Top >= inRect.Bottom)// In order to ensure that the item on the right is also loaded, an out-of-bounds item will be measured.
+                            return;*/
                         if (column == ColumnCount - 1 || //if item is right item,
                             column == -1 || // or header, footer,  
                             ((column != -1 && indexPath.Row == numberOfItems - 1) || ((indexPath.Row == numberOfItems - 1-1) && GetRowAndColumnOfItem(NSIndexPath.FromRowSection(numberOfSections - 1,section)).column == -1)))// or last data item in this section, top of next item will be added.
+                        {
+                            if (result.bounds.Bottom >= inRect.Bottom)
+                                return;
                             top += result.bounds.Height;
+                        }
                     }
                 }
             }
