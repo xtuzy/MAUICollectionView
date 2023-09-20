@@ -18,7 +18,7 @@
 		<PackageId>Yang.MAUICollectionView</PackageId>
     <RootNamespace>Yang.MAUICollectionView</RootNamespace>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>0.0.3-pre</Version>
+		<Version>0.0.5-pre</Version>
 		<RepositoryUrl>https://github.com/xtuzy/MAUICollectionView</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/xtuzy/MAUICollectionView</PackageProjectUrl>
 		<PackageTags>maui collectionview listview</PackageTags>

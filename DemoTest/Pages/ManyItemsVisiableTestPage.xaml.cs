@@ -1,5 +1,7 @@
+using Microsoft.Maui.Controls;
 using Yang.MAUICollectionView;
 using Yang.MAUICollectionView.Layouts;
+using static System.Net.WebRequestMethods;
 
 namespace DemoTest.Pages;
 
@@ -84,6 +86,8 @@ public partial class ManyItemsVisiableTestPage : ContentPage
 
         public string reuseIdentifierForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath)
         {
+            if (indexPath.Row % 3 == 0)
+                return canDeleteItemCell;
             return itemCell;
         }
 
@@ -93,6 +97,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
             switch (type)
             {
                 case itemCell:
+                case canDeleteItemCell:
                     return MAUICollectionViewViewHolder.AutoSize;
                 default:
                     return 100;
@@ -102,6 +107,7 @@ public partial class ManyItemsVisiableTestPage : ContentPage
         int newCellCount = 0;
         //给每个cell设置ID号（重复利用时使用）
         const string itemCell = "itemCell";
+        const string canDeleteItemCell = "canDeleteItemCell";
         public MAUICollectionViewViewHolder cellForRowAtIndexPathMethod(MAUICollectionView tableView, NSIndexPath indexPath, MAUICollectionViewViewHolder oldViewHolder, double widthConstrain)
         {
             //从tableView的一个队列里获取一个cell
@@ -155,6 +161,30 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                     }
 
                     cell = textCell;
+                }
+                else if(type == canDeleteItemCell)
+                {
+                    var swipeCell = cell as SwipeItemViewHolder;
+                    if (swipeCell == null)
+                    {
+                        //没有,创建一个
+                        var content = new SwipeView();
+                        swipeCell = new SwipeItemViewHolder(content, type) { };
+                       
+                        var deleteCommand = new Command<object>(execute: (object arg) =>
+                        {
+                            var index = arg as NSIndexPath;
+                            if (index != null)
+                            {
+                                RemoveData(index.Section, index.Row - 1, 1);
+                                tableView.NotifyItemRangeRemoved(index, 1);
+                                tableView.ReMeasure();
+                            }
+                        });
+
+                        swipeCell.InitCommand(deleteCommand);
+                    }
+                    cell = swipeCell;
                 }
             }
             if (cell.ContextMenu != null)
@@ -285,6 +315,40 @@ public partial class ManyItemsVisiableTestPage : ContentPage
                 menu.Add(insertAfterMenuItem);
                 ContextMenu = new Yang.MAUICollectionView.Gestures.DesktopContextMenu(this, menu);
 #endif
+            }
+        }
+
+        internal class SwipeItemViewHolder : MAUICollectionViewViewHolder
+        {
+            private SwipeItem leftSwipeItem;
+
+            public SwipeItemViewHolder(SwipeView itemView, string reuseIdentifier) : base(itemView, reuseIdentifier)
+            {
+                var content = itemView;
+                content.IsClippedToBounds = true;
+                leftSwipeItem = new SwipeItem
+                {
+                    Text = "Delete",
+                    BackgroundColor = Colors.LightGreen
+                };
+                Grid grid = new Grid
+                {
+                    BackgroundColor = Colors.Gray
+                };
+                grid.Add(new Label
+                {
+                    Text = "Swipe right",
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                });
+                content.LeftItems = new SwipeItems(new[] { leftSwipeItem });
+                content.Content = grid;
+            }
+
+            public void InitCommand(Command command)
+            {
+                leftSwipeItem.Command = command;
+                leftSwipeItem.SetBinding(SwipeItem.CommandParameterProperty, new Binding(nameof(IndexPath), source: this));
             }
         }
     }

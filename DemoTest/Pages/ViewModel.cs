@@ -70,7 +70,7 @@ namespace DemoTest.Pages
                 .RuleFor(m => m.PersonPhone, f => f.Person.Phone)
                 .RuleFor(m => m.PersonTextBlogTitle, f => f.WaffleText(1, false))
                 .RuleFor(m => m.PersonTextBlog, f => f.WaffleText(1, false))
-                //.RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
+                .RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
                 .RuleFor(m => m.FirstComment, f => f.WaffleText(1, false))
                 //.RuleFor(m => m.LikeIconUrl, f => f.Person.Avatar)
                 //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
@@ -124,7 +124,7 @@ namespace DemoTest.Pages
             ReuseIdForItem += ReuseIdForItemMethod;
             OnDragStart += OnDragStartMethod;
             OnDragOver += OnDragOverMethod;
-            DidPrepareItem += DidPrepareItemMethod;
+            //DidPrepareItem += DidPrepareItemMethod;
             IsSectionItem += IsSectionItemMethod;
             WillArrange += WillArrangeMethod;
         }
