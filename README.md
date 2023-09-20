@@ -19,7 +19,7 @@ https://user-images.githubusercontent.com/17793881/242142431-e5647e76-e297-4fc6-
 - Support custom layout
    - [x] vertical list
    - [ ] horizontal list
-   - [ ] vertical grid
+   - [x] vertical grid
    - [ ] horizontal grid
 - Support operation(Insert, Remove, ~Move~, Update) animation
 - Support load more
