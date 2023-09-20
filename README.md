@@ -5,6 +5,8 @@ This is a custom CollectionView based on ScrollView, similar to FlatList in Reac
 
 Demo:
 - Android
+
+try it on your phone -> [download apk](https://github.com/xtuzy/MAUICollectionView/releases)
   
 https://user-images.githubusercontent.com/17793881/248198954-316b2734-fbe6-4dfd-a87d-9feaa1abd68c.mp4
 - Windows
