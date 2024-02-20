@@ -64,17 +64,17 @@ namespace DemoTest.Pages
         {
             testModel = new Faker<Model>();
             testModel
-                .RuleFor(m => m.PersonIconUrl, f => f.Person.Avatar)
+                .RuleFor(m => m.PersonIconUrl, f => "dotnet_bot.png")
                 .RuleFor(m => m.PersonName, f => f.Person.FullName)
                 .RuleFor(m => m.PersonGender, f => f.Person.Gender.ToString())
                 .RuleFor(m => m.PersonPhone, f => f.Person.Phone)
                 .RuleFor(m => m.PersonTextBlogTitle, f => f.WaffleText(1, false))
                 .RuleFor(m => m.PersonTextBlog, f => f.WaffleText(1, false))
-                .RuleFor(m => m.PersonImageBlogUrl, f => f.Image.PicsumUrl())
+                .RuleFor(m => m.PersonImageBlogUrl, f => "dotnet_bot.png")// f.Image.PicsumUrl())
                 .RuleFor(m => m.FirstComment, f => f.WaffleText(1, false))
-                //.RuleFor(m => m.LikeIconUrl, f => f.Person.Avatar)
-                //.RuleFor(m => m.CommentIconUrl, f => f.Person.Avatar)
-                //.RuleFor(m => m.ShareIconUrl, f => f.Person.Avatar)
+                .RuleFor(m => m.LikeIconUrl, f => "dotnet_bot.png")
+                .RuleFor(m => m.CommentIconUrl, f => "dotnet_bot.png")
+                .RuleFor(m => m.ShareIconUrl, f => "dotnet_bot.png")
                 ;
             var modelsList = testModel.Generate(10000);
             var itenmCountInSection = 20;
@@ -394,6 +394,7 @@ namespace DemoTest.Pages
                     }
 
                     var data = GetItemData(indexPath);
+                    simpleCell.ModelView.PersonIcon.Source = data.PersonIconUrl;
                     simpleCell.ModelView.PersonName.Text = data.PersonName;
                     simpleCell.ModelView.PersonGender.Text = data.PersonGender;
                     simpleCell.ModelView.PersonPhone.Text = data.PersonPhone;
@@ -401,7 +402,9 @@ namespace DemoTest.Pages
                     simpleCell.ModelView.PersonImageBlog.Source = data.PersonImageBlogUrl;
                     simpleCell.ModelView.PersonTextBlog.Text = data.PersonTextBlog;
                     simpleCell.ModelView.TestButton.Text = $"AId={indexPath.ToString()}";
-
+                    simpleCell.ModelView.LikeIcon.Source = data.LikeIconUrl;
+                    simpleCell.ModelView.CommentIcon.Source = data.CommentIconUrl;
+                    simpleCell.ModelView.ShareIcon.Source = data.ShareIconUrl;
                     cell = simpleCell;
                 }
             }
@@ -838,6 +841,9 @@ namespace DemoTest.Pages
             PersonTextBlogTitle.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlogTitle));
             PersonTextBlog.SetBinding(Label.TextProperty, nameof(Model.PersonTextBlog));
             PersonImageBlog.SetBinding(Image.SourceProperty, nameof(Model.PersonImageBlogUrl));
+            LikeIcon.SetBinding(Image.SourceProperty, nameof(Model.LikeIconUrl));
+            CommentIcon.SetBinding(Image.SourceProperty, nameof(Model.CommentIconUrl));
+            ShareIcon.SetBinding(Image.SourceProperty, nameof(Model.ShareIconUrl));
         }
     }
 
